@@ -1,0 +1,116 @@
+paths:
+  /documents:
+    get:
+      tags: [Documents]
+      summary: List documents
+      parameters:
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+      responses:
+        '200':
+          description: Paginated document list
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/paginatedResponse'
+    post:
+      tags: [Documents]
+      summary: Upload document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                document_type_id: { type: integer }
+                entity_type: { type: string }
+                entity_id: { type: integer }
+                document_title: { type: string }
+      responses:
+        '201':
+          description: Document uploaded
+
+  /documents/types:
+    get:
+      tags: [Documents]
+      summary: List document types
+      responses:
+        '200':
+          description: Document type list
+
+  /documents/classifications:
+    get:
+      tags: [Documents]
+      summary: List document classifications
+      responses:
+        '200':
+          description: Classification list
+
+  '/documents/entity/{entityType}/{entityId}':
+    get:
+      tags: [Documents]
+      summary: Get documents by entity
+      parameters:
+        - name: entityType
+          in: path
+          required: true
+          schema: { type: string }
+        - name: entityId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Document list
+
+  '/documents/{id}':
+    delete:
+      tags: [Documents]
+      summary: Soft-delete document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Document deleted
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/documents/{id}/sign':
+    post:
+      tags: [Documents]
+      summary: Sign document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Document signed
+
+  '/documents/{id}/signatures':
+    get:
+      tags: [Documents]
+      summary: Get document signatures
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Signature list
+
+  /documents/pending-signatures:
+    get:
+      tags: [Documents]
+      summary: Get pending signatures for current user
+      responses:
+        '200':
+          description: Pending signature list

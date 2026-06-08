@@ -1,0 +1,48 @@
+paths:
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Get admin dashboard stats
+      responses:
+        '200':
+          description: Dashboard statistics
+
+  /admin/audit-log:
+    get:
+      tags: [Admin]
+      summary: Get paginated audit log
+      parameters:
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: user_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Paginated audit log
+
+  /admin/audit-log/actions:
+    get:
+      tags: [Admin]
+      summary: Get distinct audit actions
+      responses:
+        '200':
+          description: Distinct action types
+
+  /admin/online-users:
+    get:
+      tags: [Admin]
+      summary: Get online user count
+      responses:
+        '200':
+          description: Online user count
+
+  /admin/recent-activity:
+    get:
+      tags: [Admin]
+      summary: Get recent activity
+      responses:
+        '200':
+          description: Recent activity entries

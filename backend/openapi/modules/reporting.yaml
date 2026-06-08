@@ -1,0 +1,66 @@
+paths:
+  /reporting/dashboard/stats:
+    get:
+      tags: [Reporting]
+      summary: Get dashboard statistics
+      responses:
+        '200':
+          description: Dashboard stats
+
+  /reporting/dashboard/stream:
+    get:
+      tags: [Reporting]
+      summary: SSE dashboard stream
+      description: Server-Sent Events stream for real-time dashboard updates.
+      security: []
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /reporting/applications:
+    get:
+      tags: [Reporting]
+      summary: Get applications report
+      responses:
+        '200':
+          description: Application report data
+
+  /reporting/committees:
+    get:
+      tags: [Reporting]
+      summary: Get committees report
+      responses:
+        '200':
+          description: Committee report data
+
+  /reporting/status-summary:
+    get:
+      tags: [Reporting]
+      summary: Get status summary
+      responses:
+        '200':
+          description: Status aggregate
+
+  /reporting/applications-trend:
+    get:
+      tags: [Reporting]
+      summary: Get applications monthly trend
+      responses:
+        '200':
+          description: Monthly trend data
+
+  /reporting/export/applications:
+    get:
+      tags: [Reporting]
+      summary: Export applications as CSV
+      responses:
+        '200':
+          description: CSV file download
+          content:
+            text/csv:
+              schema:
+                type: string

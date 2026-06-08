@@ -1,0 +1,64 @@
+paths:
+  /core/applications:
+    get:
+      tags: [Applications]
+      summary: List applications
+      parameters:
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated application list
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/paginatedResponse'
+    post:
+      tags: [Applications]
+      summary: Submit application
+      responses:
+        '201':
+          description: Application submitted
+
+  '/core/applications/{id}':
+    get:
+      tags: [Applications]
+      summary: Get application by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Application details
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/core/applications/{id}/status':
+    patch:
+      tags: [Applications]
+      summary: Update application status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Status updated
+
+  '/core/applications/{id}/committee-decision':
+    post:
+      tags: [Applications]
+      summary: Submit committee decision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Decision recorded

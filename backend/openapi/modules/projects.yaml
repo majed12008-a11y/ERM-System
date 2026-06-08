@@ -1,0 +1,61 @@
+paths:
+  /core/projects:
+    get:
+      tags: [Projects]
+      summary: List projects
+      parameters:
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+      responses:
+        '200':
+          description: Paginated project list
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/paginatedResponse'
+    post:
+      tags: [Projects]
+      summary: Create project
+      responses:
+        '201':
+          description: Project created
+
+  '/core/projects/{id}':
+    get:
+      tags: [Projects]
+      summary: Get project by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Project details
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/core/projects/{id}/applications':
+    get:
+      tags: [Projects]
+      summary: Get applications for project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Application list
+
+  '/core/projects/{id}/stats':
+    get:
+      tags: [Projects]
+      summary: Get project statistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Project statistics

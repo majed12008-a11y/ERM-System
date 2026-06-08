@@ -1,0 +1,403 @@
+# ───────────────────────────────────────────────
+# ERM System — OpenAPI 3.1 Root Assembly
+# Contract Layer: Composition & Binding
+# ───────────────────────────────────────────────
+# THIS FILE IS THE SINGLE EXECUTABLE API CONTRACT.
+# After this file is finalized:
+#   - Any response shape change = contract version bump
+#   - Backend becomes implementation layer
+#   - SDK becomes derived artifact
+#   - Frontend becomes consumer
+# ───────────────────────────────────────────────
+
+openapi: 3.1.0
+
+info:
+  title: ERM Ethics API
+  version: 1.0.0
+  description: |
+    Ethics Review Management (ERM) System — API Contract.
+
+    Base URL: `/api/v1`
+    Auth: Bearer JWT (15min access token, 7d refresh token in httpOnly cookie)
+
+    ## Contract Stability
+    This specification is locked after Sprint 5.
+    Any breaking change requires a contract version bump.
+
+    ## Domains
+    - Security (auth, users, roles, permissions, profiles, responsibilities)
+    - Core (projects, applications, lookups)
+    - Committee (committees, meetings, members, reviews, voting)
+    - Documents (upload, sign, classify)
+    - Workflow (definitions, instances, transitions)
+    - Communication (notifications, messages)
+    - Reporting (dashboard, analytics, CSV export)
+    - Safety (adverse events, risk register, incidents)
+    - Monitoring (health, audit log, system config)
+    - Integration (events, logs)
+    - System (saved searches, config)
+    - Admin (stats, activity, online users)
+    - Reference (institutions, professions, licenses)
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+# ── Global Security ──
+# All endpoints require bearerAuth by default.
+# Public endpoints explicitly opt out with `security: []`.
+security:
+  - bearerAuth: []
+
+# ── Tags ──
+tags:
+  - name: Auth
+    description: Authentication (login, register, refresh, logout, me, change-password)
+  - name: Users
+    description: User management (CRUD, profiles, responsibilities)
+  - name: Roles
+    description: Role definition and management
+  - name: Permissions
+    description: Permission management and role assignment
+  - name: Admin
+    description: Administrative dashboard (stats, audit log, activity)
+  - name: Committees
+    description: Committee CRUD, meetings, members, and terms
+  - name: Reviews
+    description: Review assignments, forms, questions, scoring
+  - name: Voting
+    description: Voting sessions, casting, and closure
+  - name: Projects
+    description: Research project management
+  - name: Applications
+    description: Ethics application submissions and review
+  - name: Lookups
+    description: Reference lookup data (categories, classifications)
+  - name: Documents
+    description: Document upload, signing, and classification
+  - name: Workflow
+    description: Workflow definitions, instances, and transitions
+  - name: Communication
+    description: Notifications and internal messaging
+  - name: Reporting
+    description: Dashboard statistics, trends, and data export
+  - name: Safety
+    description: Adverse events, risk register, incidents, corrective actions
+  - name: Monitoring
+    description: Health check, system audit, configuration
+  - name: Integration
+    description: External integration events and logs
+  - name: System
+    description: Saved searches and system configuration
+  - name: Reference
+    description: Public reference data (institutions, professions, licenses)
+  - name: Health
+    description: Service health check
+
+# ── Security Matrix Extension ──
+# Maps every route to its required permissions.
+# Used by SDK generators, frontend guards, and audit tooling.
+x-security-matrix:
+  $ref: './security.schema.yaml#/components/schemas/routeSecurity'
+
+# ── Paths ──
+paths:
+  # ────────────────────────────────
+  # Security Module
+  # ────────────────────────────────
+  /security/auth/login:
+    $ref: './modules/security.yaml#/paths/~1security~1auth~1login'
+  /security/auth/register:
+    $ref: './modules/security.yaml#/paths/~1security~1auth~1register'
+  /security/auth/refresh:
+    $ref: './modules/security.yaml#/paths/~1security~1auth~1refresh'
+  /security/auth/logout:
+    $ref: './modules/security.yaml#/paths/~1security~1auth~1logout'
+  /security/auth/me:
+    $ref: './modules/security.yaml#/paths/~1security~1auth~1me'
+  /security/auth/change-password:
+    $ref: './modules/security.yaml#/paths/~1security~1auth~1change-password'
+
+  /security/users:
+    $ref: './modules/security.yaml#/paths/~1security~1users'
+  '/security/users/{id}':
+    $ref: './modules/security.yaml#/paths/~1security~1users~1{id}'
+
+  /security/roles:
+    $ref: './modules/security.yaml#/paths/~1security~1roles'
+  '/security/roles/{id}':
+    $ref: './modules/security.yaml#/paths/~1security~1roles~1{id}'
+
+  /security/permissions:
+    $ref: './modules/security.yaml#/paths/~1security~1permissions'
+  '/security/permissions/{id}':
+    $ref: './modules/security.yaml#/paths/~1security~1permissions~1{id}'
+  '/security/permissions/role/{roleId}':
+    $ref: './modules/security.yaml#/paths/~1security~1permissions~1role~1{roleId}'
+
+  /security/profile:
+    $ref: './modules/security.yaml#/paths/~1security~1profile'
+  '/security/profile/{userId}':
+    $ref: './modules/security.yaml#/paths/~1security~1profile~1{userId}'
+
+  /security/responsibility-types:
+    $ref: './modules/security.yaml#/paths/~1security~1responsibility-types'
+  /security/user-responsibilities:
+    $ref: './modules/security.yaml#/paths/~1security~1user-responsibilities'
+  '/security/user-responsibilities/{id}':
+    $ref: './modules/security.yaml#/paths/~1security~1user-responsibilities~1{id}'
+
+  # ────────────────────────────────
+  # Admin Module
+  # ────────────────────────────────
+  /admin/stats:
+    $ref: './modules/admin.yaml#/paths/~1admin~1stats'
+  /admin/audit-log:
+    $ref: './modules/admin.yaml#/paths/~1admin~1audit-log'
+  /admin/audit-log/actions:
+    $ref: './modules/admin.yaml#/paths/~1admin~1audit-log~1actions'
+  /admin/online-users:
+    $ref: './modules/admin.yaml#/paths/~1admin~1online-users'
+  /admin/recent-activity:
+    $ref: './modules/admin.yaml#/paths/~1admin~1recent-activity'
+
+  # ────────────────────────────────
+  # Committee Module
+  # ────────────────────────────────
+  /committee/committee-types:
+    $ref: './modules/committee.yaml#/paths/~1committee~1committee-types'
+  /committee/committees:
+    $ref: './modules/committee.yaml#/paths/~1committee~1committees'
+  '/committee/committees/{id}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1committees~1{id}'
+
+  '/committee/meetings/committee/{committeeId}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1committee~1{committeeId}'
+  /committee/meetings:
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings'
+  '/committee/meetings/{id}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}'
+  '/committee/meetings/{id}/quorum':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1quorum'
+  '/committee/meetings/{id}/agenda':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1agenda'
+  '/committee/meetings/{id}/agenda/{agendaId}/items':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1agenda~1{agendaId}~1items'
+  '/committee/meetings/{id}/attendance':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1attendance'
+  '/committee/meetings/{id}/minutes':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1minutes'
+  '/committee/meetings/{id}/minutes/{minutesId}/approve':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1minutes~1{minutesId}~1approve'
+  '/committee/meetings/{id}/committee-members':
+    $ref: './modules/committee.yaml#/paths/~1committee~1meetings~1{id}~1committee-members'
+
+  '/committee/members/{memberId}/terms':
+    $ref: './modules/committee.yaml#/paths/~1committee~1members~1{memberId}~1terms'
+  '/committee/members/{memberId}/qualifications':
+    $ref: './modules/committee.yaml#/paths/~1committee~1members~1{memberId}~1qualifications'
+  '/committee/members/{memberId}/conflicts':
+    $ref: './modules/committee.yaml#/paths/~1committee~1members~1{memberId}~1conflicts'
+
+  # ────────────────────────────────
+  # Reviews (sub-path of Committee)
+  # ────────────────────────────────
+  /committee/reviews/my:
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1my'
+  /committee/reviews/assign:
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1assign'
+  '/committee/reviews/application/{applicationId}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1application~1{applicationId}'
+  '/committee/reviews/application/{applicationId}/recommendations':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1application~1{applicationId}~1recommendations'
+  '/committee/reviews/application/{applicationId}/comments':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1application~1{applicationId}~1comments'
+  '/committee/reviews/{assignmentId}/submit':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1{assignmentId}~1submit'
+  /committee/reviews/forms:
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1forms'
+  '/committee/reviews/forms/{formId}/questions':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1forms~1{formId}~1questions'
+  '/committee/reviews/forms/{formId}/questions/{questionId}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1forms~1{formId}~1questions~1{questionId}'
+  '/committee/reviews/assignment/{assignmentId}/answers':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1assignment~1{assignmentId}~1answers'
+  '/committee/reviews/assignment/{assignmentId}/score':
+    $ref: './modules/committee.yaml#/paths/~1committee~1reviews~1assignment~1{assignmentId}~1score'
+
+  # ────────────────────────────────
+  # Voting (sub-path of Committee)
+  # ────────────────────────────────
+  '/committee/voting/meeting/{meetingId}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1voting~1meeting~1{meetingId}'
+  /committee/voting/sessions:
+    $ref: './modules/committee.yaml#/paths/~1committee~1voting~1sessions'
+  '/committee/voting/sessions/{id}':
+    $ref: './modules/committee.yaml#/paths/~1committee~1voting~1sessions~1{id}'
+
+  # ────────────────────────────────
+  # Core Module — Projects
+  # ────────────────────────────────
+  /core/projects:
+    $ref: './modules/projects.yaml#/paths/~1core~1projects'
+  '/core/projects/{id}':
+    $ref: './modules/projects.yaml#/paths/~1core~1projects~1{id}'
+  '/core/projects/{id}/applications':
+    $ref: './modules/projects.yaml#/paths/~1core~1projects~1{id}~1applications'
+  '/core/projects/{id}/stats':
+    $ref: './modules/projects.yaml#/paths/~1core~1projects~1{id}~1stats'
+
+  # ────────────────────────────────
+  # Core Module — Applications
+  # ────────────────────────────────
+  /core/applications:
+    $ref: './modules/applications.yaml#/paths/~1core~1applications'
+  '/core/applications/{id}':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}'
+  '/core/applications/{id}/status':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1status'
+  '/core/applications/{id}/committee-decision':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1committee-decision'
+
+  # ────────────────────────────────
+  # Core Module — Lookups
+  # ────────────────────────────────
+  /core/research-categories:
+    $ref: './modules/lookups.yaml#/paths/~1core~1research-categories'
+  /core/risk-classifications:
+    $ref: './modules/lookups.yaml#/paths/~1core~1risk-classifications'
+  /core/vulnerable-populations:
+    $ref: './modules/lookups.yaml#/paths/~1core~1vulnerable-populations'
+  /core/research-population-links:
+    $ref: './modules/lookups.yaml#/paths/~1core~1research-population-links'
+
+  # ────────────────────────────────
+  # Documents Module
+  # ────────────────────────────────
+  /documents:
+    $ref: './modules/documents.yaml#/paths/~1documents'
+  /documents/types:
+    $ref: './modules/documents.yaml#/paths/~1documents~1types'
+  /documents/classifications:
+    $ref: './modules/documents.yaml#/paths/~1documents~1classifications'
+  '/documents/entity/{entityType}/{entityId}':
+    $ref: './modules/documents.yaml#/paths/~1documents~1entity~1{entityType}~1{entityId}'
+  '/documents/{id}':
+    $ref: './modules/documents.yaml#/paths/~1documents~1{id}'
+  '/documents/{id}/sign':
+    $ref: './modules/documents.yaml#/paths/~1documents~1{id}~1sign'
+  '/documents/{id}/signatures':
+    $ref: './modules/documents.yaml#/paths/~1documents~1{id}~1signatures'
+  /documents/pending-signatures:
+    $ref: './modules/documents.yaml#/paths/~1documents~1pending-signatures'
+
+  # ────────────────────────────────
+  # Workflow Module
+  # ────────────────────────────────
+  /workflow/definitions:
+    $ref: './modules/workflow.yaml#/paths/~1workflow~1definitions'
+  '/workflow/instances/{entityType}/{entityId}':
+    $ref: './modules/workflow.yaml#/paths/~1workflow~1instances~1{entityType}~1{entityId}'
+  '/workflow/available-transitions/{entityType}/{entityId}':
+    $ref: './modules/workflow.yaml#/paths/~1workflow~1available-transitions~1{entityType}~1{entityId}'
+  /workflow/execute-transition:
+    $ref: './modules/workflow.yaml#/paths/~1workflow~1execute-transition'
+
+  # ────────────────────────────────
+  # Communication Module
+  # ────────────────────────────────
+  /communication/notifications:
+    $ref: './modules/communication.yaml#/paths/~1communication~1notifications'
+  '/communication/notifications/{id}/read':
+    $ref: './modules/communication.yaml#/paths/~1communication~1notifications~1{id}~1read'
+  /communication/notifications/read-all:
+    $ref: './modules/communication.yaml#/paths/~1communication~1notifications~1read-all'
+  '/communication/notifications/{id}':
+    $ref: './modules/communication.yaml#/paths/~1communication~1notifications~1{id}'
+  /communication/messages:
+    $ref: './modules/communication.yaml#/paths/~1communication~1messages'
+  /communication/messages/unread-count:
+    $ref: './modules/communication.yaml#/paths/~1communication~1messages~1unread-count'
+  '/communication/messages/{id}':
+    $ref: './modules/communication.yaml#/paths/~1communication~1messages~1{id}'
+  '/communication/messages/{id}/attachments/{attachmentId}':
+    $ref: './modules/communication.yaml#/paths/~1communication~1messages~1{id}~1attachments~1{attachmentId}'
+  /communication/users/search:
+    $ref: './modules/communication.yaml#/paths/~1communication~1users~1search'
+
+  # ────────────────────────────────
+  # Reporting Module
+  # ────────────────────────────────
+  /reporting/dashboard/stats:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1dashboard~1stats'
+  /reporting/dashboard/stream:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1dashboard~1stream'
+  /reporting/applications:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1applications'
+  /reporting/committees:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1committees'
+  /reporting/status-summary:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1status-summary'
+  /reporting/applications-trend:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1applications-trend'
+  /reporting/export/applications:
+    $ref: './modules/reporting.yaml#/paths/~1reporting~1export~1applications'
+
+  # ────────────────────────────────
+  # Safety Module
+  # ────────────────────────────────
+  /safety/adverse-events:
+    $ref: './modules/safety.yaml#/paths/~1safety~1adverse-events'
+  /safety/serious-adverse-events:
+    $ref: './modules/safety.yaml#/paths/~1safety~1serious-adverse-events'
+  /safety/safety-reports:
+    $ref: './modules/safety.yaml#/paths/~1safety~1safety-reports'
+  /safety/risk-register:
+    $ref: './modules/safety.yaml#/paths/~1safety~1risk-register'
+  '/safety/risk-register/{id}':
+    $ref: './modules/safety.yaml#/paths/~1safety~1risk-register~1{id}'
+  '/safety/risk-register/{id}/mitigations':
+    $ref: './modules/safety.yaml#/paths/~1safety~1risk-register~1{id}~1mitigations'
+  /safety/risk-incidents:
+    $ref: './modules/safety.yaml#/paths/~1safety~1risk-incidents'
+  /safety/corrective-actions:
+    $ref: './modules/safety.yaml#/paths/~1safety~1corrective-actions'
+
+  # ────────────────────────────────
+  # Monitoring Module
+  # ────────────────────────────────
+  /monitoring/health:
+    $ref: './modules/monitoring.yaml#/paths/~1monitoring~1health'
+  /monitoring/audit:
+    $ref: './modules/monitoring.yaml#/paths/~1monitoring~1audit'
+  /monitoring/config:
+    $ref: './modules/monitoring.yaml#/paths/~1monitoring~1config'
+
+  # ────────────────────────────────
+  # Integration Module
+  # ────────────────────────────────
+  /integration/events:
+    $ref: './modules/integration.yaml#/paths/~1integration~1events'
+  /integration/logs:
+    $ref: './modules/integration.yaml#/paths/~1integration~1logs'
+
+  # ────────────────────────────────
+  # System Module
+  # ────────────────────────────────
+  /system/saved-searches:
+    $ref: './modules/system.yaml#/paths/~1system~1saved-searches'
+  '/system/saved-searches/{id}':
+    $ref: './modules/system.yaml#/paths/~1system~1saved-searches~1{id}'
+  /system/config:
+    $ref: './modules/system.yaml#/paths/~1system~1config'
+
+  # ────────────────────────────────
+  # Reference Module
+  # ────────────────────────────────
+  /reference/institutions-registry:
+    $ref: './modules/reference.yaml#/paths/~1reference~1institutions-registry'
+  /reference/professions:
+    $ref: './modules/reference.yaml#/paths/~1reference~1professions'
+  /reference/licenses:
+    $ref: './modules/reference.yaml#/paths/~1reference~1licenses'

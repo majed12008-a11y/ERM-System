@@ -1,0 +1,32 @@
+paths:
+  /core/research-categories:
+    get:
+      tags: [Lookups]
+      summary: List research categories
+      responses:
+        '200':
+          description: Research category list
+
+  /core/risk-classifications:
+    get:
+      tags: [Lookups]
+      summary: List risk classifications
+      responses:
+        '200':
+          description: Risk classification list
+
+  /core/vulnerable-populations:
+    get:
+      tags: [Lookups]
+      summary: List vulnerable populations
+      responses:
+        '200':
+          description: Vulnerable population list
+
+  /core/research-population-links:
+    get:
+      tags: [Lookups]
+      summary: List research-population links
+      responses:
+        '200':
+          description: Research-population link list

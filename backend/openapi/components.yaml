@@ -1,0 +1,168 @@
+openapi: 3.1.0
+info:
+  title: ERM System — API Contract Components
+  version: 1.0.0
+  description: |
+    Universal grammar for the ERM System API.
+    All domain-specific schemas reference these base components.
+
+paths: {}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ────────────────────────────────────
+    # Base Response Contract
+    # ────────────────────────────────────
+    successResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          description: Response payload (object, array, or null)
+          nullable: true
+        message:
+          type: string
+          nullable: true
+          example: Operation completed successfully
+
+    errorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+          example: Resource not found
+
+    # ────────────────────────────────────
+    # Pagination
+    # ────────────────────────────────────
+    pagination:
+      type: object
+      required: [page, limit, total, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          example: 100
+        totalPages:
+          type: integer
+          minimum: 0
+          example: 5
+
+    paginatedResponse:
+      allOf:
+        - $ref: '#/components/schemas/successResponse'
+        - type: object
+          required: [pagination]
+          properties:
+            pagination:
+              $ref: '#/components/schemas/pagination'
+
+    # ────────────────────────────────────
+    # Roles
+    # ────────────────────────────────────
+    roleCode:
+      type: string
+      enum: [SUPER_ADMIN, SYS_ADMIN, ADMIN, ETHICS_ADMIN, COMMITTEE_CHAIR, REVIEWER, RESEARCHER, INST_COORDINATOR, USER]
+
+    # ────────────────────────────────────
+    # Common Metadata
+    # ────────────────────────────────────
+    id:
+      type: integer
+      description: Primary key (serial)
+      example: 1
+
+    uuid:
+      type: string
+      format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+
+    timestamp:
+      type: string
+      format: date-time
+      example: 2026-06-08T19:30:00.000Z
+
+    paginationParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Page number (1-indexed)
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Items per page
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+          deprecated: true
+          description: Deprecated — use `limit` instead
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: No token provided
+
+    Forbidden:
+      description: Authenticated but insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: Insufficient permissions
+
+    NotFound:
+      description: Requested resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: Resource not found
+
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: Internal server error

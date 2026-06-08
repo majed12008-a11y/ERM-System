@@ -1,0 +1,114 @@
+paths:
+  /safety/adverse-events:
+    get:
+      tags: [Safety]
+      summary: List adverse events
+      responses:
+        '200':
+          description: Adverse event list
+
+  /safety/serious-adverse-events:
+    get:
+      tags: [Safety]
+      summary: List serious adverse events
+      responses:
+        '200':
+          description: Serious adverse event list
+
+  /safety/safety-reports:
+    get:
+      tags: [Safety]
+      summary: List safety reports
+      responses:
+        '200':
+          description: Safety report list
+
+  /safety/risk-register:
+    get:
+      tags: [Safety]
+      summary: List risk register entries
+      responses:
+        '200':
+          description: Risk register list
+    post:
+      tags: [Safety]
+      summary: Create risk register entry
+      responses:
+        '201':
+          description: Risk entry created
+
+  '/safety/risk-register/{id}':
+    put:
+      tags: [Safety]
+      summary: Update risk register entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Risk entry updated
+    delete:
+      tags: [Safety]
+      summary: Delete risk register entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Risk entry deleted
+
+  '/safety/risk-register/{id}/mitigations':
+    get:
+      tags: [Safety]
+      summary: List mitigations for risk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Mitigation list
+    post:
+      tags: [Safety]
+      summary: Add mitigation to risk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Mitigation added
+
+  /safety/risk-incidents:
+    get:
+      tags: [Safety]
+      summary: List risk incidents
+      responses:
+        '200':
+          description: Incident list
+    post:
+      tags: [Safety]
+      summary: Report risk incident
+      responses:
+        '201':
+          description: Incident reported
+
+  /safety/corrective-actions:
+    get:
+      tags: [Safety]
+      summary: List corrective actions
+      responses:
+        '200':
+          description: Corrective action list
+    post:
+      tags: [Safety]
+      summary: Create corrective action
+      responses:
+        '201':
+          description: Corrective action created

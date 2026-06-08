@@ -1,0 +1,297 @@
+paths:
+  /security/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate user
+      description: Public endpoint. Returns JWT access token + httpOnly refresh cookie.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken: { type: string }
+                          userId: { type: integer }
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+
+  /security/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      description: Public endpoint. Creates user account.
+      security: []
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Validation error
+
+  /security/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Public endpoint. Reads refresh token from httpOnly cookie.
+      security: []
+      responses:
+        '200':
+          description: Token refreshed
+
+  /security/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout user
+      description: Clears refresh token cookie.
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /security/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      description: Returns authenticated user's profile and roles.
+      responses:
+        '200':
+          description: Current user data
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+
+  /security/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change password
+      description: Requires current password + new password.
+      responses:
+        '200':
+          description: Password changed
+
+  /security/users:
+    get:
+      tags: [Users]
+      summary: List users
+      description: Paginated user list. Admin only.
+      parameters:
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/paginatedResponse'
+    post:
+      tags: [Users]
+      summary: Create user
+      description: Admin creates a new user with roles.
+      responses:
+        '201':
+          description: User created
+
+  '/security/users/{id}':
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      description: Self or admin access (scoped).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User data
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Update user
+      description: Admin updates user data.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User updated
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  /security/roles:
+    get:
+      tags: [Roles]
+      summary: List roles
+      responses:
+        '200':
+          description: Role list
+    post:
+      tags: [Roles]
+      summary: Create role
+      responses:
+        '201':
+          description: Role created
+
+  '/security/roles/{id}':
+    get:
+      tags: [Roles]
+      summary: Get role by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Role data
+    put:
+      tags: [Roles]
+      summary: Update role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Role updated
+
+  /security/permissions:
+    get:
+      tags: [Permissions]
+      summary: List permissions
+      responses:
+        '200':
+          description: Permission list
+    post:
+      tags: [Permissions]
+      summary: Create permission
+      responses:
+        '201':
+          description: Permission created
+
+  '/security/permissions/{id}':
+    delete:
+      tags: [Permissions]
+      summary: Delete permission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Permission deleted
+
+  '/security/permissions/role/{roleId}':
+    get:
+      tags: [Permissions]
+      summary: Get permissions for role
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Role permissions
+    put:
+      tags: [Permissions]
+      summary: Update role permissions
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Role permissions updated
+
+  /security/profile:
+    get:
+      tags: [Users]
+      summary: Get own profile
+      responses:
+        '200':
+          description: Profile data
+    put:
+      tags: [Users]
+      summary: Update own profile
+      responses:
+        '200':
+          description: Profile updated
+
+  '/security/profile/{userId}':
+    get:
+      tags: [Users]
+      summary: Get user profile by ID
+      description: Admin access to any user's extended profile.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User profile data
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  /security/responsibility-types:
+    get:
+      tags: [Users]
+      summary: List responsibility types
+      responses:
+        '200':
+          description: Responsibility type list
+
+  /security/user-responsibilities:
+    get:
+      tags: [Users]
+      summary: List user responsibilities
+      responses:
+        '200':
+          description: Responsibility list
+    post:
+      tags: [Users]
+      summary: Assign responsibility
+      responses:
+        '201':
+          description: Responsibility assigned
+
+  '/security/user-responsibilities/{id}':
+    delete:
+      tags: [Users]
+      summary: Remove responsibility
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Responsibility removed
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'

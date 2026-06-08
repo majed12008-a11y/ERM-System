@@ -1,0 +1,16 @@
+paths:
+  /integration/events:
+    get:
+      tags: [Integration]
+      summary: List integration events
+      responses:
+        '200':
+          description: Integration event list
+
+  /integration/logs:
+    get:
+      tags: [Integration]
+      summary: List integration logs
+      responses:
+        '200':
+          description: Integration log list

@@ -1,0 +1,511 @@
+paths:
+  /committee/committee-types:
+    get:
+      tags: [Committees]
+      summary: List committee types
+      responses:
+        '200':
+          description: Committee type list
+
+  /committee/committees:
+    get:
+      tags: [Committees]
+      summary: List committees
+      responses:
+        '200':
+          description: Committee list
+    post:
+      tags: [Committees]
+      summary: Create committee
+      responses:
+        '201':
+          description: Committee created
+
+  '/committee/committees/{id}':
+    get:
+      tags: [Committees]
+      summary: Get committee by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Committee details
+    put:
+      tags: [Committees]
+      summary: Update committee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Committee updated
+    delete:
+      tags: [Committees]
+      summary: Deactivate committee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Committee deactivated
+
+  '/committee/meetings/committee/{committeeId}':
+    get:
+      tags: [Committees]
+      summary: List meetings for committee
+      parameters:
+        - name: committeeId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Meeting list
+
+  /committee/meetings:
+    post:
+      tags: [Committees]
+      summary: Create meeting
+      responses:
+        '201':
+          description: Meeting created
+
+  '/committee/meetings/{id}':
+    get:
+      tags: [Committees]
+      summary: Get meeting by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Meeting details
+    patch:
+      tags: [Committees]
+      summary: Update meeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Meeting updated
+
+  '/committee/meetings/{id}/quorum':
+    post:
+      tags: [Committees]
+      summary: Record quorum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Quorum recorded
+
+  '/committee/meetings/{id}/agenda':
+    get:
+      tags: [Committees]
+      summary: Get meeting agenda
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Agenda items
+    post:
+      tags: [Committees]
+      summary: Add agenda item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Agenda item added
+
+  '/committee/meetings/{id}/agenda/{agendaId}/items':
+    post:
+      tags: [Committees]
+      summary: Add sub-item to agenda
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: agendaId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Sub-item added
+
+  '/committee/meetings/{id}/attendance':
+    get:
+      tags: [Committees]
+      summary: Get attendance list
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Attendance list
+    post:
+      tags: [Committees]
+      summary: Record attendance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Attendance recorded
+
+  '/committee/meetings/{id}/minutes':
+    get:
+      tags: [Committees]
+      summary: Get meeting minutes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Meeting minutes
+    post:
+      tags: [Committees]
+      summary: Create meeting minutes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Minutes created
+
+  '/committee/meetings/{id}/minutes/{minutesId}/approve':
+    patch:
+      tags: [Committees]
+      summary: Approve meeting minutes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: minutesId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Minutes approved
+
+  '/committee/meetings/{id}/committee-members':
+    get:
+      tags: [Committees]
+      summary: Get committee members for meeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Committee member list
+
+  '/committee/members/{memberId}/terms':
+    get:
+      tags: [Committees]
+      summary: Get member terms
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Member terms
+    post:
+      tags: [Committees]
+      summary: Add member term
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Term added
+
+  '/committee/members/{memberId}/qualifications':
+    get:
+      tags: [Committees]
+      summary: Get member qualifications
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Member qualifications
+    post:
+      tags: [Committees]
+      summary: Add member qualification
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Qualification added
+
+  '/committee/members/{memberId}/conflicts':
+    get:
+      tags: [Committees]
+      summary: Get member conflicts
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Conflict list
+    post:
+      tags: [Committees]
+      summary: Declare conflict
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Conflict declared
+
+  /committee/reviews/my:
+    get:
+      tags: [Reviews]
+      summary: Get my review assignments
+      responses:
+        '200':
+          description: Review assignments
+
+  /committee/reviews/assign:
+    post:
+      tags: [Reviews]
+      summary: Assign reviewer
+      responses:
+        '201':
+          description: Reviewer assigned
+
+  '/committee/reviews/application/{applicationId}':
+    get:
+      tags: [Reviews]
+      summary: Get reviews for application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Review list
+
+  '/committee/reviews/application/{applicationId}/recommendations':
+    get:
+      tags: [Reviews]
+      summary: Get recommendations for application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Recommendation list
+
+  '/committee/reviews/application/{applicationId}/comments':
+    get:
+      tags: [Reviews]
+      summary: Get comments for application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Comment list
+
+  '/committee/reviews/{assignmentId}/submit':
+    post:
+      tags: [Reviews]
+      summary: Submit review
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Review submitted
+
+  /committee/reviews/forms:
+    get:
+      tags: [Reviews]
+      summary: List review forms
+      responses:
+        '200':
+          description: Form list
+    post:
+      tags: [Reviews]
+      summary: Create review form
+      responses:
+        '201':
+          description: Form created
+
+  '/committee/reviews/forms/{formId}/questions':
+    get:
+      tags: [Reviews]
+      summary: Get form questions
+      parameters:
+        - name: formId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Question list
+    post:
+      tags: [Reviews]
+      summary: Add question to form
+      parameters:
+        - name: formId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Question added
+
+  '/committee/reviews/forms/{formId}/questions/{questionId}':
+    delete:
+      tags: [Reviews]
+      summary: Delete question from form
+      parameters:
+        - name: formId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: questionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Question deleted
+
+  '/committee/reviews/assignment/{assignmentId}/answers':
+    get:
+      tags: [Reviews]
+      summary: Get review answers
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Answer list
+
+  '/committee/reviews/assignment/{assignmentId}/score':
+    get:
+      tags: [Reviews]
+      summary: Get review score
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Review score
+
+  '/committee/voting/meeting/{meetingId}':
+    get:
+      tags: [Voting]
+      summary: Get votes for meeting
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Vote list
+
+  /committee/voting/sessions:
+    post:
+      tags: [Voting]
+      summary: Create voting session
+      responses:
+        '201':
+          description: Voting session created
+
+  '/committee/voting/sessions/{id}':
+    get:
+      tags: [Voting]
+      summary: Get voting session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Voting session data
+    post:
+      tags: [Voting]
+      summary: Cast vote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Vote recorded
+    patch:
+      tags: [Voting]
+      summary: Close voting session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Voting session closed

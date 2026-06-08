@@ -1,0 +1,142 @@
+paths:
+  /communication/notifications:
+    get:
+      tags: [Communication]
+      summary: List notifications
+      responses:
+        '200':
+          description: Notification list
+
+  '/communication/notifications/{id}/read':
+    patch:
+      tags: [Communication]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /communication/notifications/read-all:
+    patch:
+      tags: [Communication]
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All notifications marked as read
+
+  '/communication/notifications/{id}':
+    delete:
+      tags: [Communication]
+      summary: Delete notification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Notification deleted
+
+  /communication/messages:
+    get:
+      tags: [Communication]
+      summary: List messages
+      responses:
+        '200':
+          description: Message list
+    post:
+      tags: [Communication]
+      summary: Send message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, body, recipient_ids]
+              properties:
+                subject: { type: string }
+                body: { type: string }
+                recipient_ids:
+                  description: JSON array of recipient user IDs
+                  oneOf:
+                    - type: array
+                      items: { type: integer }
+                    - type: string
+                parent_id: { type: integer, nullable: true }
+      responses:
+        '201':
+          description: Message sent
+
+  /communication/messages/unread-count:
+    get:
+      tags: [Communication]
+      summary: Get unread message count
+      responses:
+        '200':
+          description: Unread count
+
+  '/communication/messages/{id}':
+    get:
+      tags: [Communication]
+      summary: Get message detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Message detail
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+    delete:
+      tags: [Communication]
+      summary: Soft-delete message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Message deleted
+
+  '/communication/messages/{id}/attachments/{attachmentId}':
+    get:
+      tags: [Communication]
+      summary: Download message attachment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: File download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /communication/users/search:
+    get:
+      tags: [Communication]
+      summary: Search users for messaging
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Search query
+      responses:
+        '200':
+          description: Matching users

@@ -1,0 +1,50 @@
+paths:
+  /workflow/definitions:
+    get:
+      tags: [Workflow]
+      summary: List workflow definitions
+      responses:
+        '200':
+          description: Workflow definition list
+
+  '/workflow/instances/{entityType}/{entityId}':
+    get:
+      tags: [Workflow]
+      summary: Get workflow instance for entity
+      parameters:
+        - name: entityType
+          in: path
+          required: true
+          schema: { type: string }
+        - name: entityId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Workflow instance
+
+  '/workflow/available-transitions/{entityType}/{entityId}':
+    get:
+      tags: [Workflow]
+      summary: Get available transitions for entity
+      parameters:
+        - name: entityType
+          in: path
+          required: true
+          schema: { type: string }
+        - name: entityId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Available transitions
+
+  /workflow/execute-transition:
+    post:
+      tags: [Workflow]
+      summary: Execute workflow transition
+      responses:
+        '200':
+          description: Transition executed

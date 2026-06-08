@@ -1,0 +1,50 @@
+paths:
+  /system/saved-searches:
+    get:
+      tags: [System]
+      summary: List saved searches
+      responses:
+        '200':
+          description: Saved search list
+    post:
+      tags: [System]
+      summary: Create saved search
+      responses:
+        '201':
+          description: Saved search created
+
+  '/system/saved-searches/{id}':
+    put:
+      tags: [System]
+      summary: Update saved search
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Saved search updated
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+    delete:
+      tags: [System]
+      summary: Delete saved search
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Saved search deleted
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  /system/config:
+    get:
+      tags: [System]
+      summary: Get system configuration
+      responses:
+        '200':
+          description: System configuration

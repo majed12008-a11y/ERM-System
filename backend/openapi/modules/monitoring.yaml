@@ -1,0 +1,44 @@
+paths:
+  /monitoring/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Public endpoint. Returns DB connectivity status.
+      security: []
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: healthy
+                          timestamp:
+                            type: string
+                            format: date-time
+        '503':
+          description: Service unhealthy
+
+  /monitoring/audit:
+    get:
+      tags: [Monitoring]
+      summary: Get system audit log
+      responses:
+        '200':
+          description: Audit log entries
+
+  /monitoring/config:
+    get:
+      tags: [Monitoring]
+      summary: Get system configuration
+      responses:
+        '200':
+          description: System configuration

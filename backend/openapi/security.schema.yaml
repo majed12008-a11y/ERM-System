@@ -1,0 +1,727 @@
+# ───────────────────────────────────────────────
+# ERM System — Authorization & Access Model
+# Contract Layer: Security Schema
+# ───────────────────────────────────────────────
+# This file is the Single Source of Truth for:
+#   - Role hierarchy & levels
+#   - Permission model
+#   - Role → Permission mapping
+#   - Route protection matrix
+#   - Access boundaries (self vs admin)
+#   - JWT claims structure
+# ───────────────────────────────────────────────
+
+openapi: 3.1.0
+info:
+  title: ERM System — Security & Access Model
+  version: 1.0.0
+  description: Authorization contract for the ERM System API
+
+paths: {}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ────────────────────────────────────
+    # 1. Role Hierarchy
+    # ────────────────────────────────────
+    # Levels define inheritance: a role at level N
+    # inherits all permissions of roles at level < N.
+    RoleLevel:
+      type: integer
+      description: Role hierarchy level (higher = more privilege)
+      enum: [100, 90, 80, 70, 60, 50, 40, 10]
+
+    RoleDefinition:
+      type: object
+      required: [code, level]
+      properties:
+        code:
+          $ref: '#/components/schemas/RoleCode'
+        level:
+          $ref: '#/components/schemas/RoleLevel'
+        name_ar:
+          type: string
+        name_en:
+          type: string
+
+    RoleCode:
+      type: string
+      enum: [SUPER_ADMIN, SYS_ADMIN, ADMIN, ETHICS_ADMIN, COMMITTEE_CHAIR, REVIEWER, INST_COORDINATOR, RESEARCHER]
+
+    roleHierarchy:
+      type: array
+      items:
+        $ref: '#/components/schemas/RoleDefinition'
+      example:
+        - code: SUPER_ADMIN
+          level: 100
+          name_ar: مشرف عام
+          name_en: Super Admin
+        - code: SYS_ADMIN
+          level: 90
+          name_ar: مشرف نظام
+          name_en: System Admin
+        - code: ADMIN
+          level: 80
+          name_ar: مدير
+          name_en: Administrator
+        - code: ETHICS_ADMIN
+          level: 70
+          name_ar: مشرف أخلاقيات
+          name_en: Ethics Admin
+        - code: COMMITTEE_CHAIR
+          level: 60
+          name_ar: رئيس لجنة
+          name_en: Committee Chair
+        - code: REVIEWER
+          level: 50
+          name_ar: مراجع
+          name_en: Reviewer
+        - code: INST_COORDINATOR
+          level: 40
+          name_ar: منسق مؤسسة
+          name_en: Institution Coordinator
+        - code: RESEARCHER
+          level: 10
+          name_ar: باحث
+          name_en: Researcher
+
+    # ────────────────────────────────────
+    # 2. Permission Model
+    # ────────────────────────────────────
+    PermissionCode:
+      type: string
+      enum:
+        # ── Auth ──
+        - AUTH_LOGIN
+        - AUTH_ME
+        - AUTH_CHANGE_PASSWORD
+        # ── Users ──
+        - USER_LIST
+        - USER_READ
+        - USER_CREATE
+        - USER_UPDATE
+        # ── Roles & Permissions ──
+        - ROLE_LIST
+        - ROLE_READ
+        - ROLE_CREATE
+        - ROLE_UPDATE
+        - PERMISSION_LIST
+        - PERMISSION_CREATE
+        - PERMISSION_DELETE
+        - PERMISSION_ASSIGN
+        # ── Profiles ──
+        - PROFILE_READ
+        - PROFILE_UPDATE
+        - PROFILE_READ_ANY
+        # ── Responsibilities ──
+        - RESPONSIBILITY_LIST
+        - RESPONSIBILITY_CREATE
+        - RESPONSIBILITY_DELETE
+        # ── Admin ──
+        - ADMIN_STATS
+        - AUDIT_LOG_LIST
+        - ONLINE_USERS
+        - RECENT_ACTIVITY
+        # ── Committee ──
+        - COMMITTEE_LIST
+        - COMMITTEE_CREATE
+        - COMMITTEE_UPDATE
+        - COMMITTEE_DELETE
+        - MEETING_CREATE
+        - MEETING_UPDATE
+        - MEETING_MINUTES_APPROVE
+        - MEMBER_TERM_CREATE
+        - MEMBER_QUALIFICATION_CREATE
+        # ── Reviews ──
+        - REVIEW_ASSIGN
+        - REVIEW_FORM_CREATE
+        - REVIEW_FORM_QUESTION_CREATE
+        - REVIEW_FORM_QUESTION_DELETE
+        # ── Voting ──
+        - VOTING_SESSION_CREATE
+        - VOTING_SESSION_CLOSE
+        # ── Projects ──
+        - PROJECT_CREATE
+        - APPLICATION_CREATE
+        - APPLICATION_COMMITTEE_DECISION
+        # ── Safety ──
+        - RISK_REGISTER_CREATE
+        - RISK_REGISTER_UPDATE
+        - RISK_REGISTER_DELETE
+        - RISK_MITIGATION_CREATE
+        - CORRECTIVE_ACTION_CREATE
+        # ── Monitoring & Integration ──
+        - MONITORING_AUDIT_LIST
+        - MONITORING_CONFIG_LIST
+        - INTEGRATION_EVENT_LIST
+        - INTEGRATION_LOG_LIST
+        # ── System ──
+        - SYSTEM_CONFIG_READ
+        # ── Wildcard (super admin only) ──
+        - '*'
+
+    # ────────────────────────────────────
+    # 3. Role → Permission Mapping
+    # ────────────────────────────────────
+    # Each role is assigned a set of permissions.
+    # SUPER_ADMIN has wildcard access to everything.
+    # Other roles have explicit permissions based on
+    # actual authorize() middleware in the codebase.
+    rolePermissions:
+      type: object
+      properties:
+        SUPER_ADMIN:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example: ['*']
+        SYS_ADMIN:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example:
+            - USER_LIST
+            - USER_CREATE
+            - USER_UPDATE
+            - ROLE_LIST
+            - ROLE_READ
+            - ROLE_CREATE
+            - ROLE_UPDATE
+            - PERMISSION_LIST
+            - PERMISSION_ASSIGN
+            - PROFILE_READ_ANY
+            - ADMIN_STATS
+            - AUDIT_LOG_LIST
+            - ONLINE_USERS
+            - RECENT_ACTIVITY
+            - COMMITTEE_CREATE
+            - COMMITTEE_UPDATE
+            - COMMITTEE_DELETE
+            - MEMBER_TERM_CREATE
+            - MEMBER_QUALIFICATION_CREATE
+            - MONITORING_AUDIT_LIST
+            - MONITORING_CONFIG_LIST
+            - INTEGRATION_EVENT_LIST
+            - INTEGRATION_LOG_LIST
+            - SYSTEM_CONFIG_READ
+            - RESPONSIBILITY_CREATE
+            - RESPONSIBILITY_DELETE
+        ADMIN:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example:
+            - USER_LIST
+            - USER_CREATE
+            - USER_UPDATE
+            - ROLE_LIST
+            - ROLE_READ
+            - PERMISSION_LIST
+            - PROFILE_READ_ANY
+            - ADMIN_STATS
+            - AUDIT_LOG_LIST
+            - ONLINE_USERS
+            - RECENT_ACTIVITY
+            - MEMBER_TERM_CREATE
+            - MEMBER_QUALIFICATION_CREATE
+            - SYSTEM_CONFIG_READ
+            - RESPONSIBILITY_CREATE
+            - RESPONSIBILITY_DELETE
+            - PROJECT_CREATE
+        ETHICS_ADMIN:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example:
+            - USER_LIST
+            - PROFILE_READ_ANY
+            - ADMIN_STATS
+            - ONLINE_USERS
+            - RECENT_ACTIVITY
+            - COMMITTEE_CREATE
+            - COMMITTEE_UPDATE
+            - COMMITTEE_DELETE
+            - MEMBER_TERM_CREATE
+            - MEMBER_QUALIFICATION_CREATE
+            - REVIEW_ASSIGN
+            - REVIEW_FORM_CREATE
+            - REVIEW_FORM_QUESTION_CREATE
+            - REVIEW_FORM_QUESTION_DELETE
+            - VOTING_SESSION_CREATE
+            - VOTING_SESSION_CLOSE
+            - MEETING_CREATE
+            - MEETING_UPDATE
+            - MEETING_MINUTES_APPROVE
+            - APPLICATION_COMMITTEE_DECISION
+            - PROJECT_CREATE
+            - RISK_REGISTER_CREATE
+            - RISK_REGISTER_UPDATE
+            - RISK_REGISTER_DELETE
+            - RISK_MITIGATION_CREATE
+            - CORRECTIVE_ACTION_CREATE
+            - SYSTEM_CONFIG_READ
+            - RESPONSIBILITY_CREATE
+            - RESPONSIBILITY_DELETE
+        COMMITTEE_CHAIR:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example:
+            - REVIEW_ASSIGN
+            - REVIEW_FORM_CREATE
+            - REVIEW_FORM_QUESTION_CREATE
+            - REVIEW_FORM_QUESTION_DELETE
+            - VOTING_SESSION_CREATE
+            - VOTING_SESSION_CLOSE
+            - MEETING_CREATE
+            - MEETING_UPDATE
+            - MEETING_MINUTES_APPROVE
+            - APPLICATION_COMMITTEE_DECISION
+        INST_COORDINATOR:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example:
+            - PROJECT_CREATE
+            - APPLICATION_CREATE
+        RESEARCHER:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionCode' }
+          example:
+            - PROJECT_CREATE
+            - APPLICATION_CREATE
+
+    # ────────────────────────────────────
+    # 4. Route Protection Matrix
+    # ────────────────────────────────────
+    # Maps every API route to its required permissions.
+    # Routes with no explicit permission are authenticated-only
+    # (enforced via RLS or service-layer logic).
+    routeSecurity:
+      type: object
+      properties:
+        # ── Auth ──
+        /security/auth/login:
+          description: Public — no auth required
+        /security/auth/register:
+          description: Public — no auth required
+        /security/auth/refresh:
+          description: Public — no auth required
+        /security/auth/logout:
+          POST: { $ref: '#/components/schemas/PermissionCode' }
+          example: AUTH_LOGIN
+        /security/auth/me:
+          GET: { $ref: '#/components/schemas/PermissionCode' }
+          example: AUTH_ME
+        /security/auth/change-password:
+          POST: { $ref: '#/components/schemas/PermissionCode' }
+          example: AUTH_CHANGE_PASSWORD
+
+        # ── Users ──
+        /security/users:
+          GET: [USER_LIST]
+          POST: [USER_CREATE]
+        '/security/users/{id}':
+          GET: [USER_READ]
+          PUT: [USER_UPDATE]
+
+        # ── Roles ──
+        /security/roles:
+          GET: [ROLE_LIST]
+          POST: [ROLE_CREATE]
+        '/security/roles/{id}':
+          GET: [ROLE_READ]
+          PUT: [ROLE_UPDATE]
+
+        # ── Permissions ──
+        /security/permissions:
+          GET: [PERMISSION_LIST]
+          POST: [PERMISSION_CREATE]
+        '/security/permissions/{id}':
+          DELETE: [PERMISSION_DELETE]
+        '/security/permissions/role/{roleId}':
+          GET: [PERMISSION_LIST]
+          PUT: [PERMISSION_ASSIGN]
+
+        # ── Profiles ──
+        /security/profile:
+          GET: [PROFILE_READ]
+          PUT: [PROFILE_UPDATE]
+        '/security/profile/{userId}':
+          GET: [PROFILE_READ_ANY]
+
+        # ── Responsibilities ──
+        /security/responsibility-types:
+          GET: [RESPONSIBILITY_LIST]
+        /security/user-responsibilities:
+          GET: [RESPONSIBILITY_LIST]
+          POST: [RESPONSIBILITY_CREATE]
+        '/security/user-responsibilities/{id}':
+          DELETE: [RESPONSIBILITY_DELETE]
+
+        # ── Admin ──
+        /admin/stats:
+          GET: [ADMIN_STATS]
+        /admin/audit-log:
+          GET: [AUDIT_LOG_LIST]
+        /admin/audit-log/actions:
+          GET: [AUDIT_LOG_LIST]
+        /admin/online-users:
+          GET: [ONLINE_USERS]
+        /admin/recent-activity:
+          GET: [RECENT_ACTIVITY]
+
+        # ── Committee ──
+        /committee/committee-types:
+          GET: [COMMITTEE_LIST]
+        /committee/committees:
+          GET: [COMMITTEE_LIST]
+          POST: [COMMITTEE_CREATE]
+        '/committee/committees/{id}':
+          GET: [COMMITTEE_LIST]
+          PUT: [COMMITTEE_UPDATE]
+          DELETE: [COMMITTEE_DELETE]
+        '/committee/meetings/committee/{committeeId}':
+          GET: [COMMITTEE_LIST]
+        /committee/meetings:
+          POST: [MEETING_CREATE]
+        '/committee/meetings/{id}':
+          GET: [COMMITTEE_LIST]
+          PATCH: [MEETING_UPDATE]
+        '/committee/meetings/{id}/quorum':
+          POST: [MEETING_UPDATE]
+        '/committee/meetings/{id}/agenda':
+          GET: [COMMITTEE_LIST]
+          POST: [MEETING_UPDATE]
+        '/committee/meetings/{id}/agenda/{agendaId}/items':
+          POST: [MEETING_UPDATE]
+        '/committee/meetings/{id}/attendance':
+          GET: [COMMITTEE_LIST]
+          POST: [MEETING_UPDATE]
+        '/committee/meetings/{id}/minutes':
+          GET: [COMMITTEE_LIST]
+          POST: [MEETING_UPDATE]
+        '/committee/meetings/{id}/minutes/{minutesId}/approve':
+          PATCH: [MEETING_MINUTES_APPROVE]
+        '/committee/meetings/{id}/committee-members':
+          GET: [COMMITTEE_LIST]
+        '/committee/members/{memberId}/terms':
+          GET: [COMMITTEE_LIST]
+          POST: [MEMBER_TERM_CREATE]
+        '/committee/members/{memberId}/qualifications':
+          GET: [COMMITTEE_LIST]
+          POST: [MEMBER_QUALIFICATION_CREATE]
+        '/committee/members/{memberId}/conflicts':
+          GET: [COMMITTEE_LIST]
+          POST: [COMMITTEE_LIST]
+
+        # ── Reviews ──
+        /committee/reviews/my:
+          GET: [COMMITTEE_LIST]
+        /committee/reviews/assign:
+          POST: [REVIEW_ASSIGN]
+        '/committee/reviews/application/{applicationId}':
+          GET: [COMMITTEE_LIST]
+        '/committee/reviews/application/{applicationId}/recommendations':
+          GET: [COMMITTEE_LIST]
+        '/committee/reviews/application/{applicationId}/comments':
+          GET: [COMMITTEE_LIST]
+        '/committee/reviews/{assignmentId}/submit':
+          POST: [COMMITTEE_LIST]
+        /committee/reviews/forms:
+          GET: [COMMITTEE_LIST]
+          POST: [REVIEW_FORM_CREATE]
+        '/committee/reviews/forms/{formId}/questions':
+          GET: [COMMITTEE_LIST]
+          POST: [REVIEW_FORM_QUESTION_CREATE]
+        '/committee/reviews/forms/{formId}/questions/{questionId}':
+          DELETE: [REVIEW_FORM_QUESTION_DELETE]
+        '/committee/reviews/assignment/{assignmentId}/answers':
+          GET: [COMMITTEE_LIST]
+        '/committee/reviews/assignment/{assignmentId}/score':
+          GET: [COMMITTEE_LIST]
+
+        # ── Voting ──
+        '/committee/voting/meeting/{meetingId}':
+          GET: [COMMITTEE_LIST]
+        /committee/voting/sessions:
+          POST: [VOTING_SESSION_CREATE]
+        '/committee/voting/sessions/{id}':
+          GET: [COMMITTEE_LIST]
+          POST: [VOTING_SESSION_CREATE]
+          PATCH: [VOTING_SESSION_CLOSE]
+
+        # ── Projects ──
+        /core/projects:
+          GET: [COMMITTEE_LIST]
+          POST: [PROJECT_CREATE]
+        '/core/projects/{id}':
+          GET: [COMMITTEE_LIST]
+        '/core/projects/{id}/applications':
+          GET: [COMMITTEE_LIST]
+        '/core/projects/{id}/stats':
+          GET: [COMMITTEE_LIST]
+
+        # ── Applications ──
+        /core/applications:
+          GET: [COMMITTEE_LIST]
+          POST: [APPLICATION_CREATE]
+        '/core/applications/{id}':
+          GET: [COMMITTEE_LIST]
+        '/core/applications/{id}/status':
+          PATCH: [COMMITTEE_LIST]
+        '/core/applications/{id}/committee-decision':
+          POST: [APPLICATION_COMMITTEE_DECISION]
+
+        # ── Lookups ──
+        /core/research-categories:
+          GET: [COMMITTEE_LIST]
+        /core/risk-classifications:
+          GET: [COMMITTEE_LIST]
+        /core/vulnerable-populations:
+          GET: [COMMITTEE_LIST]
+        /core/research-population-links:
+          GET: [COMMITTEE_LIST]
+
+        # ── Documents ──
+        /documents:
+          GET: [COMMITTEE_LIST]
+          POST: [COMMITTEE_LIST]
+        /documents/types:
+          GET: [COMMITTEE_LIST]
+        /documents/classifications:
+          GET: [COMMITTEE_LIST]
+        '/documents/entity/{entityType}/{entityId}':
+          GET: [COMMITTEE_LIST]
+        '/documents/{id}':
+          DELETE: [COMMITTEE_LIST]
+        '/documents/{id}/sign':
+          POST: [COMMITTEE_LIST]
+        '/documents/{id}/signatures':
+          GET: [COMMITTEE_LIST]
+        /documents/pending-signatures:
+          GET: [COMMITTEE_LIST]
+
+        # ── Workflow ──
+        /workflow/definitions:
+          GET: [COMMITTEE_LIST]
+        '/workflow/instances/{entityType}/{entityId}':
+          GET: [COMMITTEE_LIST]
+        '/workflow/available-transitions/{entityType}/{entityId}':
+          GET: [COMMITTEE_LIST]
+        /workflow/execute-transition:
+          POST: [COMMITTEE_LIST]
+
+        # ── Communication ──
+        /communication/notifications:
+          GET: [COMMITTEE_LIST]
+        '/communication/notifications/{id}/read':
+          PATCH: [COMMITTEE_LIST]
+        /communication/notifications/read-all:
+          PATCH: [COMMITTEE_LIST]
+        '/communication/notifications/{id}':
+          DELETE: [COMMITTEE_LIST]
+        /communication/messages:
+          GET: [COMMITTEE_LIST]
+          POST: [COMMITTEE_LIST]
+        /communication/messages/unread-count:
+          GET: [COMMITTEE_LIST]
+        '/communication/messages/{id}':
+          GET: [COMMITTEE_LIST]
+          DELETE: [COMMITTEE_LIST]
+        '/communication/messages/{id}/attachments/{attachmentId}':
+          GET: [COMMITTEE_LIST]
+        /communication/users/search:
+          GET: [COMMITTEE_LIST]
+
+        # ── Reporting ──
+        /reporting/dashboard/stats:
+          GET: [COMMITTEE_LIST]
+        /reporting/applications:
+          GET: [COMMITTEE_LIST]
+        /reporting/committees:
+          GET: [COMMITTEE_LIST]
+        /reporting/status-summary:
+          GET: [COMMITTEE_LIST]
+        /reporting/applications-trend:
+          GET: [COMMITTEE_LIST]
+        /reporting/export/applications:
+          GET: [COMMITTEE_LIST]
+
+        # ── Safety ──
+        /safety/adverse-events:
+          GET: [COMMITTEE_LIST]
+        /safety/serious-adverse-events:
+          GET: [COMMITTEE_LIST]
+        /safety/safety-reports:
+          GET: [COMMITTEE_LIST]
+        /safety/risk-register:
+          GET: [COMMITTEE_LIST]
+          POST: [RISK_REGISTER_CREATE]
+        '/safety/risk-register/{id}':
+          PUT: [RISK_REGISTER_UPDATE]
+          DELETE: [RISK_REGISTER_DELETE]
+        '/safety/risk-register/{id}/mitigations':
+          GET: [COMMITTEE_LIST]
+          POST: [RISK_MITIGATION_CREATE]
+        /safety/risk-incidents:
+          GET: [COMMITTEE_LIST]
+          POST: [COMMITTEE_LIST]
+        /safety/corrective-actions:
+          GET: [COMMITTEE_LIST]
+          POST: [CORRECTIVE_ACTION_CREATE]
+
+        # ── Monitoring ──
+        /monitoring/health:
+          description: Public — no auth required
+        /monitoring/audit:
+          GET: [MONITORING_AUDIT_LIST]
+        /monitoring/config:
+          GET: [MONITORING_CONFIG_LIST]
+
+        # ── Integration ──
+        /integration/events:
+          GET: [INTEGRATION_EVENT_LIST]
+        /integration/logs:
+          GET: [INTEGRATION_LOG_LIST]
+
+        # ── System ──
+        /system/saved-searches:
+          GET: [COMMITTEE_LIST]
+          POST: [COMMITTEE_LIST]
+        '/system/saved-searches/{id}':
+          PUT: [COMMITTEE_LIST]
+          DELETE: [COMMITTEE_LIST]
+        /system/config:
+          GET: [SYSTEM_CONFIG_READ]
+
+        # ── Reference ──
+        /reference/institutions-registry:
+          description: Public — no auth required
+        /reference/professions:
+          GET: [COMMITTEE_LIST]
+        /reference/licenses:
+          GET: [COMMITTEE_LIST]
+
+    # ────────────────────────────────────
+    # 5. Access Boundaries
+    # ────────────────────────────────────
+    AccessBoundary:
+      type: object
+      required: [rule, description, appliesTo]
+      properties:
+        rule:
+          type: string
+          description: Unique rule identifier
+        description:
+          type: string
+        appliesTo:
+          type: array
+          items:
+            type: string
+            description: Route path pattern
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleCode'
+          description: Roles that bypass this restriction
+
+    accessBoundaries:
+      type: array
+      items:
+        $ref: '#/components/schemas/AccessBoundary'
+      example:
+        - rule: USER_SELF_ACCESS
+          description: Users can access their own profile and data
+          appliesTo:
+            - /security/users/{id}
+            - /security/profile
+          roles: [SUPER_ADMIN, SYS_ADMIN, ADMIN, ETHICS_ADMIN]
+
+        - rule: ADMIN_BYPASS_OWNERSHIP
+          description: Admin roles bypass data ownership (RLS filters by role)
+          appliesTo:
+            - /core/projects
+            - /core/applications
+          roles: [SUPER_ADMIN, SYS_ADMIN, ADMIN, ETHICS_ADMIN]
+
+        - rule: COMMITTEE_SCOPE
+          description: Committee operations limited to assigned committees
+          appliesTo:
+            - /committee/meetings
+            - /committee/reviews
+            - /committee/voting
+          roles: [SUPER_ADMIN, ETHICS_ADMIN]
+
+    # ────────────────────────────────────
+    # 6. JWT Claims
+    # ────────────────────────────────────
+    JwtAccessToken:
+      type: object
+      required: [userId, type]
+      properties:
+        userId:
+          type: integer
+          description: User primary key
+        type:
+          type: string
+          enum: [access, refresh]
+        iat:
+          type: integer
+          description: Issued at (Unix timestamp)
+        exp:
+          type: integer
+          description: Expiration (Unix timestamp)
+
+    JwtTokenResponse:
+      type: object
+      required: [accessToken]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token (15min expiry)
+        refreshToken:
+          type: string
+          description: JWT refresh token (7d expiry, httpOnly cookie)
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '../components.yaml#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: No token provided
+
+    Forbidden:
+      description: Authenticated but insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '../components.yaml#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: Insufficient permissions
+
+    NotFound:
+      description: Requested resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '../components.yaml#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: Resource not found
+
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '../components.yaml#/components/schemas/errorResponse'
+          example:
+            success: false
+            error: Internal server error

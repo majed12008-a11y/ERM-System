@@ -1,0 +1,26 @@
+paths:
+  /reference/institutions-registry:
+    get:
+      tags: [Reference]
+      summary: List institutions
+      description: Public endpoint. Returns registered institutions.
+      security: []
+      responses:
+        '200':
+          description: Institution list
+
+  /reference/professions:
+    get:
+      tags: [Reference]
+      summary: List professions
+      responses:
+        '200':
+          description: Profession list
+
+  /reference/licenses:
+    get:
+      tags: [Reference]
+      summary: List licenses
+      responses:
+        '200':
+          description: License list
