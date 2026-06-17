@@ -236,6 +236,7 @@ CREATE TABLE IF NOT EXISTS committee.review_questions
     question_type character varying(50) COLLATE pg_catalog."default" NOT NULL,
     display_order integer NOT NULL,
     is_required boolean NOT NULL DEFAULT true,
+    question_options text COLLATE pg_catalog."default",
     CONSTRAINT pk_review_questions PRIMARY KEY (id)
 );
 

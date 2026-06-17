@@ -1,11 +1,12 @@
-import * as argon2 from 'argon2';
 import { jwtVerify } from 'jose';
+import { createHash, randomBytes } from 'crypto';
 import { AuthRepository } from '../repositories/auth.repository';
 import { UsersRepository } from '../repositories/users.repository';
 import { AuthUser } from '../shared/types';
 import { generateTokens, signToken } from '../middleware/auth';
 import { env } from '../config/env';
 import { withTransaction } from '../config/database';
+import { hashPassword, verifyPassword } from '../config/password';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -43,7 +44,7 @@ export class AuthService {
       throw Object.assign(new Error('Account is not active'), { status: 403 });
     }
 
-    const valid = await argon2.verify(user.password_hash, password);
+    const valid = await verifyPassword(password, user.password_hash);
     if (!valid) {
       await this.repo.logLoginAttempt(username, user.id, false, ip, 'Invalid password');
       const failCount = await this.repo.getRecentFailedAttempts(user.id, LOCK_DURATION_MINUTES);
@@ -106,17 +107,17 @@ export class AuthService {
     if (strengthError) throw Object.assign(new Error(strengthError), { status: 400 });
 
     const hash = await this.repo.getPasswordHash(userId);
-    const valid = await argon2.verify(hash!, oldPassword);
+    const valid = await verifyPassword(oldPassword, hash!);
     if (!valid) throw Object.assign(new Error('Current password is incorrect'), { status: 400 });
 
     const recentHashes = await this.repo.getRecentPasswordHashes(userId, PASSWORD_HISTORY_CHECK);
     for (const h of recentHashes) {
-      if (await argon2.verify(h, newPassword)) {
+      if (await verifyPassword(newPassword, h)) {
         throw Object.assign(new Error('Password has been used recently. Choose a different one.'), { status: 400 });
       }
     }
 
-    const newHash = await argon2.hash(newPassword);
+    const newHash = await hashPassword(newPassword);
     await this.repo.updatePassword(userId, newHash);
     await this.repo.revokeAllSessions(userId);
   }
@@ -134,7 +135,7 @@ export class AuthService {
     const exists = await this.repo.checkExistingUser(data.username, data.email);
     if (exists) throw Object.assign(new Error('Username or email already exists'), { status: 409 });
 
-    const password_hash = await argon2.hash(data.password);
+    const password_hash = await hashPassword(data.password);
     const userRepo = new UsersRepository();
 
     const user = await withTransaction(async (client) => {
@@ -159,5 +160,31 @@ export class AuthService {
     });
 
     return { userId: user.id, username: user.username, email: user.email };
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.repo.findUserByEmail(email);
+    if (!user) {
+      return { message: 'If the email exists, a reset link has been sent.' };
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.repo.saveResetToken(user.id, tokenHash, expiresAt);
+
+    // TODO: send email with reset link in production
+    return { message: 'If the email exists, a reset link has been sent.' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const strengthError = this.validatePasswordStrength(newPassword);
+    if (strengthError) throw Object.assign(new Error(strengthError), { status: 400 });
+
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const hash = await hashPassword(newPassword);
+    const success = await this.repo.resetPasswordWithToken(tokenHash, hash);
+    if (!success) throw Object.assign(new Error('Invalid or expired reset token'), { status: 400 });
   }
 }

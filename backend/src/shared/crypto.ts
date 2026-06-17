@@ -28,7 +28,7 @@ export function encrypt(text: string): string {
 
 export function decrypt(encoded: string): string {
   if (!encoded) return encoded;
-  if (encoded.startsWith('$argon2id')) return encoded;
+  if (encoded.startsWith('$argon2id') || encoded.startsWith('$scrypt')) return encoded;
   const parts = encoded.split(':');
   if (parts.length !== 3) return encoded;
   const key = getKey();

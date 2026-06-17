@@ -1,7 +1,7 @@
-import * as argon2 from 'argon2';
+import { hashPassword } from '../config/password';
 
 async function main() {
-  const hash = await argon2.hash('admin123');
+  const hash = await hashPassword('admin123');
   console.log(hash);
 }
 

@@ -11,6 +11,8 @@ import PageLoader from './components/PageLoader'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const ApplicationList = lazy(() => import('./pages/Applications/List'))
 const ApplicationCreate = lazy(() => import('./pages/Applications/Create'))
@@ -77,6 +79,8 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} errorElement={<ErrorBoundary />} />
             <Route path="/register" element={<RegisterPage />} errorElement={<ErrorBoundary />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} errorElement={<ErrorBoundary />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} errorElement={<ErrorBoundary />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<RootLayout />} errorElement={<ErrorBoundary />}>
                 <Route index element={<Dashboard />} />

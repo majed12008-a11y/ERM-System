@@ -27,6 +27,9 @@ import integrationRoutes from './modules/integration';
 import systemRoutes from './modules/system';
 import referenceRoutes from './modules/reference';
 
+process.on('uncaughtException', (err) => { logger.error({ err }, 'Uncaught exception'); });
+process.on('unhandledRejection', (err: any) => { logger.error({ err }, 'Unhandled rejection'); });
+
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000');
 const isProd = process.env.NODE_ENV === 'production';

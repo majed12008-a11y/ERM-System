@@ -124,4 +124,37 @@ export class AuthRepository extends AuditableRepository {
     const result = await this.query('SELECT id FROM security.roles WHERE code = $1', [code], client);
     return result.rows[0] || null;
   }
+
+  async findUserByEmail(email: string): Promise<{ id: number; username: string; email: string } | null> {
+    const result = await this.query(
+      'SELECT id, username, email FROM security.users WHERE email = $1 AND status = \'ACTIVE\'',
+      [email]
+    );
+    return result.rows[0] || null;
+  }
+
+  async saveResetToken(userId: number, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.query(
+      `INSERT INTO security.password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [userId, tokenHash, expiresAt.toISOString()]
+    );
+  }
+
+  async findValidResetToken(tokenHash: string): Promise<{ id: number; user_id: number; expires_at: Date } | null> {
+    const result = await this.query(
+      `SELECT id, user_id, expires_at FROM security.password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()`,
+      [tokenHash]
+    );
+    return result.rows[0] || null;
+  }
+
+  async resetPasswordWithToken(tokenHash: string, passwordHash: string): Promise<boolean> {
+    const result = await this.query(
+      'SELECT security.fn_reset_password($1, $2)',
+      [tokenHash, passwordHash]
+    );
+    return result.rows[0]?.fn_reset_password === true;
+  }
 }

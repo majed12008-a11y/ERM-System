@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { loginSchema, registerSchema } from '../../middleware/schemas';
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { env } from '../../config/env';
 import { AuthService } from '../../services/auth.service';
@@ -44,6 +44,24 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
       institution_id: parseInt(institution_id, 10),
     });
     res.status(201).json(successResponse(result, 'Registration successful'));
+  } catch (err: any) {
+    res.status(err.status || 500).json(errorResponse(err.message));
+  }
+});
+
+router.post('/forgot-password', validate(forgotPasswordSchema), async (req: Request, res: Response) => {
+  try {
+    const result = await service.forgotPassword(req.body.email);
+    res.json(successResponse(result, result.message));
+  } catch (err: any) {
+    res.status(err.status || 500).json(errorResponse(err.message));
+  }
+});
+
+router.post('/reset-password', validate(resetPasswordSchema), async (req: Request, res: Response) => {
+  try {
+    await service.resetPassword(req.body.token, req.body.password);
+    res.json(successResponse(null, 'Password has been reset successfully'));
   } catch (err: any) {
     res.status(err.status || 500).json(errorResponse(err.message));
   }

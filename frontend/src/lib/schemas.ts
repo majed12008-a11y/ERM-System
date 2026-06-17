@@ -156,3 +156,16 @@ export const minutesSchema = z.object({
 export const votingSessionSchema = z.object({
   application_id: z.string({ message: 'Application ID is required' }).min(1),
 })
+
+export const forgotPasswordSchema = z.object({
+  email: z.string({ message: 'Valid email is required' }).email(),
+})
+
+export const resetPasswordSchema = z.object({
+  token: z.string({ message: 'Reset token is required' }).min(1),
+  password: z.string({ message: 'Password is required' }).min(8),
+  confirmPassword: z.string({ message: 'Please confirm your password' }).min(8),
+}).refine(d => d.password === d.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})

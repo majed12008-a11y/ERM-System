@@ -661,5 +661,24 @@
 
   "status.VERIFIED": "موثق",
   "status.DECLARED": "معلن",
-  "status.RESOLVED": "تم الحل"
+  "status.RESOLVED": "تم الحل",
+
+  "forgotPassword.title": "نسيت كلمة المرور",
+  "forgotPassword.email": "البريد الإلكتروني",
+  "forgotPassword.send": "إرسال رابط إعادة التعيين",
+  "forgotPassword.sent": "تم إرسال رابط إعادة التعيين بنجاح",
+  "forgotPassword.failed": "فشل إرسال رابط إعادة التعيين",
+  "forgotPassword.checkEmail": "في حالة وجود البريد الإلكتروني، تم إرسال رابط إعادة التعيين. يرجى التحقق من بريدك الوارد.",
+  "forgotPassword.backToLogin": "العودة إلى تسجيل الدخول",
+
+  "resetPassword.title": "إعادة تعيين كلمة المرور",
+  "resetPassword.newPassword": "كلمة المرور الجديدة",
+  "resetPassword.confirmPassword": "تأكيد كلمة المرور الجديدة",
+  "resetPassword.submit": "إعادة تعيين",
+  "resetPassword.success": "تم إعادة تعيين كلمة المرور بنجاح",
+  "resetPassword.failed": "فشل إعادة تعيين كلمة المرور",
+  "resetPassword.invalidToken": "رمز إعادة التعيين غير صالح أو مفقود.",
+  "resetPassword.requestNew": "طلب رابط إعادة تعيين جديد",
+
+  "login.forgotPassword": "نسيت كلمة المرور؟"
 }

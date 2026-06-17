@@ -41,10 +41,13 @@ export default function LoginPage() {
             <Input type="password" placeholder={t('login.password')} {...register('password')} />
             {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
             <Button type="submit" className="w-full" disabled={isSubmitting}>{t('login.signIn')}</Button>
-            <p className="text-center text-sm text-slate-500">
-              {t('login.noAccount')}{' '}
-              <Link to="/register" className="text-blue-600 hover:underline">{t('login.createOne')}</Link>
-            </p>
+            <div className="text-center text-sm text-slate-500 space-y-1">
+              <p>
+                {t('login.noAccount')}{' '}
+                <Link to="/register" className="text-blue-600 hover:underline">{t('login.createOne')}</Link>
+              </p>
+              <Link to="/forgot-password" className="text-blue-600 hover:underline text-xs">{t('login.forgotPassword')}</Link>
+            </div>
           </form>
         </CardContent>
       </Card>

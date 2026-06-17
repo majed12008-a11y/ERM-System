@@ -128,3 +128,12 @@ export const committeeDecisionSchema = z.object({
   decision: z.enum(['APPROVED', 'REJECTED', 'CONDITIONAL']),
   notes: z.string().max(2000).optional(),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Valid email is required').max(255),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(100),
+});

@@ -766,6 +766,7 @@ CREATE TABLE IF NOT EXISTS committee.review_questions (
     question_type               VARCHAR(50) NOT NULL,
     display_order               INTEGER NOT NULL,
     is_required                 BOOLEAN NOT NULL DEFAULT TRUE,
+    question_options            TEXT,
     CONSTRAINT pk_review_questions PRIMARY KEY(id),
     CONSTRAINT fk_review_questions_form FOREIGN KEY(form_id) REFERENCES committee.review_forms(id)  ON DELETE CASCADE
 );

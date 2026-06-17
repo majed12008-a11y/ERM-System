@@ -661,5 +661,24 @@
 
   "status.VERIFIED": "Verified",
   "status.DECLARED": "Declared",
-  "status.RESOLVED": "Resolved"
+  "status.RESOLVED": "Resolved",
+
+  "forgotPassword.title": "Forgot Password",
+  "forgotPassword.email": "Email address",
+  "forgotPassword.send": "Send Reset Link",
+  "forgotPassword.sent": "Reset link sent successfully",
+  "forgotPassword.failed": "Failed to send reset link",
+  "forgotPassword.checkEmail": "If the email exists, a reset link has been sent. Please check your inbox.",
+  "forgotPassword.backToLogin": "Back to Login",
+
+  "resetPassword.title": "Reset Password",
+  "resetPassword.newPassword": "New password",
+  "resetPassword.confirmPassword": "Confirm new password",
+  "resetPassword.submit": "Reset Password",
+  "resetPassword.success": "Password has been reset successfully",
+  "resetPassword.failed": "Failed to reset password",
+  "resetPassword.invalidToken": "Invalid or missing reset token.",
+  "resetPassword.requestNew": "Request a new reset link",
+
+  "login.forgotPassword": "Forgot password?"
 }
