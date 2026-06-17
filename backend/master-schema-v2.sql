@@ -127,6 +127,30 @@ COMMENT ON TABLE committee.member_conflicts IS 'تضارب مصالح الأعض
 CREATE INDEX idx_member_conflicts_member ON committee.member_conflicts(member_id);
 CREATE INDEX idx_member_conflicts_entity ON committee.member_conflicts(entity_type, entity_id);
 
+-- [member_roles] junction table: committee_members <-> committee_roles
+CREATE TABLE committee.member_roles (
+  id         BIGINT GENERATED ALWAYS AS IDENTITY,
+  uuid       UUID NOT NULL DEFAULT gen_random_uuid(),
+  member_id  BIGINT NOT NULL,
+  role_id    BIGINT NOT NULL,
+  start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  end_date   DATE,
+  is_primary BOOLEAN NOT NULL DEFAULT false,
+  is_active  BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  CONSTRAINT pk_member_roles PRIMARY KEY (id),
+  CONSTRAINT uq_member_roles_uuid UNIQUE (uuid),
+  CONSTRAINT uq_member_role UNIQUE (member_id, role_id),
+  CONSTRAINT fk_member_roles_member FOREIGN KEY (member_id) REFERENCES committee.committee_members(id) ON DELETE CASCADE,
+  CONSTRAINT fk_member_roles_role FOREIGN KEY (role_id) REFERENCES committee.committee_roles(id)
+);
+
+CREATE INDEX idx_member_roles_member ON committee.member_roles(member_id);
+CREATE INDEX idx_member_roles_role ON committee.member_roles(role_id);
+
+COMMENT ON TABLE committee.member_roles IS 'أدوار أعضاء اللجنة / Committee Member Roles';
+
 -- ============================================================
 -- Phase 18 — Research Governance
 -- ============================================================

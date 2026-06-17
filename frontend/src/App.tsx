@@ -24,6 +24,7 @@ const MyReviews = lazy(() => import('./pages/Committee/MyReviews'))
 const CommitteeMeetings = lazy(() => import('./pages/Committee/Meetings'))
 const MeetingDetail = lazy(() => import('./pages/Committee/MeetingDetail'))
 const Committees = lazy(() => import('./pages/Committee/Committees'))
+const CommitteeDetail = lazy(() => import('./pages/Committee/CommitteeDetail'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const RiskRegister = lazy(() => import('./pages/Safety/RiskRegister'))
 const SavedSearches = lazy(() => import('./pages/System/SavedSearches'))
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="/roles" element={<RoleList />} />
                 <Route path="/committee/reviews" element={<MyReviews />} />
                 <Route path="/committee/committees" element={<Committees />} />
+                <Route path="/committee/committees/:id" element={<CommitteeDetail />} />
                 <Route path="/committee/meetings" element={<CommitteeMeetings />} />
                 <Route path="/committee/meetings/:id" element={<MeetingDetail />} />
                 <Route path="/notifications" element={<Notifications />} />

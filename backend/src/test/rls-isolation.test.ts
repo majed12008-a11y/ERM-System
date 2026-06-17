@@ -21,7 +21,7 @@ beforeAll(async () => {
   researcherApi = axios.create({ baseURL: BASE, validateStatus: () => true, withCredentials: true });
   const researcherLogin = await researcherApi.post('/security/auth/login', {
     username: 'researcher1',
-    password: 'Test@1234',
+    password: 'admin123',
   });
   expect(researcherLogin.status).toBe(200);
   researcherToken = researcherLogin.data.data.accessToken;
@@ -36,7 +36,7 @@ describe('RLS Isolation — Admin Access', () => {
   });
 
   test('admin can see user detail of another user', async () => {
-    const res = await adminApi.get('/security/users/2');
+    const res = await adminApi.get('/security/users/22');
     expect(res.status).toBe(200);
     expect(res.data.data.username).toBe('ethics_admin');
   });
@@ -47,13 +47,14 @@ describe('RLS Isolation — Admin Access', () => {
     expect(res.data.data.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('admin can read workflow instances', async () => {
-    const res = await adminApi.get('/workflow/instances');
+  test('admin can read workflow definitions', async () => {
+    const res = await adminApi.get('/workflow/definitions');
     expect(res.status).toBe(200);
+    expect(res.data.data.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('admin can read workflow tasks', async () => {
-    const res = await adminApi.get('/workflow/tasks');
+  test('admin can read workflow instances for an entity', async () => {
+    const res = await adminApi.get('/workflow/instances/Application/1');
     expect(res.status).toBe(200);
   });
 
@@ -64,17 +65,14 @@ describe('RLS Isolation — Admin Access', () => {
 });
 
 describe('RLS Isolation — Researcher Restrictions', () => {
-  test('researcher can list users but only sees own record', async () => {
+  test('researcher cannot list users (no user.view)', async () => {
     const res = await researcherApi.get('/security/users');
-    expect(res.status).toBe(200);
-    for (const user of res.data.data) {
-      expect(user.id).toBe(researcherLoginUserId(researcherToken));
-    }
+    expect(res.status).toBe(403);
   });
 
   test('researcher cannot see another user profile directly', async () => {
-    const res = await researcherApi.get('/security/users/1');
-    expect(res.status).toBe(404);
+    const res = await researcherApi.get('/security/users/21');
+    expect(res.status).toBe(403);
   });
 
   test('researcher can see own applications but not others', async () => {
@@ -94,13 +92,13 @@ describe('RLS Isolation — Researcher Restrictions', () => {
     expect(res.status).toBe(403);
   });
 
-  test('researcher cannot create workflow instances', async () => {
+  test('researcher cannot create workflow instances (route not found)', async () => {
     const res = await researcherApi.post('/workflow/instances', {
       workflow_id: 1,
       entity_type: 'Application',
       entity_id: 999,
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 });
 

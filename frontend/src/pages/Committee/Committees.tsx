@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import api from '../../api/client'
 import DataTable from '../../components/DataTable'
@@ -24,6 +25,7 @@ type CommitteeFormData = z.input<typeof committeeSchema>
 export default function Committees() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const canCreate = usePermission('user.create')
@@ -50,7 +52,7 @@ export default function Committees() {
 
   const { data: committeeTypes } = useQuery({
     queryKey: ['committee-types'],
-    queryFn: () => api.get('/committee/committee-types').then(r => r.data.data || []),
+    queryFn: () => api.get('/committee/committees/committee-types').then(r => r.data.data || []),
   })
 
   const createMutation = useMutation({
@@ -104,7 +106,7 @@ export default function Committees() {
               <div className="grid grid-cols-2 gap-3">
                 <select {...editForm.register('committee_type_id')} className="p-2 border rounded text-sm">
                   <option value="">{t('committees.selectType')}</option>
-                  {(committeeTypes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.type_name}</option>)}
+                  {(committeeTypes || []).map((ct: any) => <option key={ct.id} value={String(ct.id)}>{ct.type_name}</option>)}
                 </select>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" {...editForm.register('is_active')} />
@@ -138,7 +140,7 @@ export default function Committees() {
               </select>
               <select {...register('committee_type_id')} className="p-2 border rounded text-sm">
                 <option value="">{t('committees.selectType')}</option>
-                {(committeeTypes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.type_name}</option>)}
+                {(committeeTypes || []).map((ct: any) => <option key={ct.id} value={String(ct.id)}>{ct.type_name}</option>)}
               </select>
             </div>
             <div className="flex gap-3">
@@ -154,6 +156,7 @@ export default function Committees() {
       <DataTable
         searchable
         loading={isLoading}
+        onRowClick={(c: any) => navigate(`/committee/committees/${c.id}`)}
         columns={[
           { key: 'committee_code', label: t('committees.code'), sortable: true },
           { key: 'committee_name_ar', label: t('committees.nameAr'), sortable: true },

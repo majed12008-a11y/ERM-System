@@ -74,14 +74,17 @@ export async function signToken(userId: number): Promise<string> {
     .sign(secret);
 }
 
-export async function signRefreshToken(userId: number): Promise<string> {
-  return await new SignJWT({ userId, type: 'refresh' })
+export async function signRefreshToken(userId: number, sessionToken?: string): Promise<string> {
+  const jwt = new SignJWT({ userId, type: 'refresh' })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(secret);
+    .setExpirationTime('7d');
+  if (sessionToken) {
+    jwt.setJti(sessionToken);
+  }
+  return await jwt.sign(secret);
 }
 
-export async function generateTokens(userId: number): Promise<{ accessToken: string; refreshToken: string }> {
-  const [accessToken, refreshToken] = await Promise.all([signToken(userId), signRefreshToken(userId)]);
+export async function generateTokens(userId: number, sessionToken?: string): Promise<{ accessToken: string; refreshToken: string }> {
+  const [accessToken, refreshToken] = await Promise.all([signToken(userId), signRefreshToken(userId, sessionToken)]);
   return { accessToken, refreshToken };
 }

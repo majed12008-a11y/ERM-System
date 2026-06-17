@@ -16,6 +16,11 @@ export class CommitteeRepository extends AuditableRepository {
     return result.rows;
   }
 
+  async getRoles(): Promise<any[]> {
+    const result = await this.query('SELECT * FROM committee.committee_roles ORDER BY role_name');
+    return result.rows;
+  }
+
   async findAll(): Promise<any[]> {
     const result = await this.query(
       `SELECT c.*, i.name_ar as institution_name, ct.type_name as committee_type_name,
@@ -108,6 +113,45 @@ export class CommitteeRepository extends AuditableRepository {
 }
 
 export class MemberRepository extends AuditableRepository {
+  async findByCommittee(committeeId: number): Promise<any[]> {
+    const result = await this.query(
+      `SELECT cm.*, u.username, CONCAT(u.first_name_ar, ' ', u.last_name_ar) as display_name,
+              cr.role_name, cm.role_id
+       FROM committee.committee_members cm
+       JOIN security.users u ON cm.user_id = u.id
+       LEFT JOIN committee.committee_roles cr ON cm.role_id = cr.id
+       WHERE cm.committee_id = $1 AND cm.is_active = true
+       ORDER BY u.username`,
+      [committeeId]
+    );
+    return result.rows;
+  }
+
+  async add(committeeId: number, data: { user_id: number; role_id?: number }): Promise<any> {
+    const result = await this.query(
+      `INSERT INTO committee.committee_members (committee_id, user_id, role_id, membership_start_date, is_active)
+       VALUES ($1, $2, $3, CURRENT_DATE, TRUE) RETURNING *`,
+      [committeeId, data.user_id, data.role_id ?? null]
+    );
+    return result.rows[0];
+  }
+
+  async updateRole(memberId: number, role_id: number): Promise<any> {
+    const result = await this.query(
+      `UPDATE committee.committee_members SET role_id = $1 WHERE id = $2 AND is_active = true RETURNING *`,
+      [role_id, memberId]
+    );
+    return result.rows[0] || null;
+  }
+
+  async remove(memberId: number): Promise<boolean> {
+    const result = await this.query(
+      `UPDATE committee.committee_members SET is_active = FALSE WHERE id = $1 AND is_active = TRUE`,
+      [memberId]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async getTerms(memberId: number): Promise<any[]> {
     const result = await this.query(
       `SELECT mt.*, CONCAT(u.first_name_ar, ' ', u.last_name_ar) as member_name
@@ -258,9 +302,9 @@ export class ReviewRepository extends AuditableRepository {
     const meta = this.createMeta();
     const result = await this.query(
       `INSERT INTO committee.review_questions
-        (form_id, question_code, question_text, question_type, display_order, is_required, created_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [formId, data.question_code, data.question_text, data.question_type, orderResult.rows[0].nxt, data.is_required !== false, meta.created_by, meta.created_at]
+        (form_id, question_code, question_text, question_type, display_order, is_required, question_options, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [formId, data.question_code, data.question_text, data.question_type, orderResult.rows[0].nxt, data.is_required !== false, data.question_options || null, meta.created_by, meta.created_at]
     );
     return result.rows[0];
   }

@@ -7,11 +7,16 @@ const api = axios.create({
   withCredentials: true,
 })
 
-let accessToken: string | null = null
+let accessToken: string | null = sessionStorage.getItem('accessToken')
 let refreshPromise: Promise<string | null> | null = null
 
 export function setAccessToken(token: string | null) {
   accessToken = token
+  if (token) {
+    sessionStorage.setItem('accessToken', token)
+  } else {
+    sessionStorage.removeItem('accessToken')
+  }
 }
 
 export function getAccessToken() {

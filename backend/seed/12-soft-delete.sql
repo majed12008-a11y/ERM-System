@@ -87,7 +87,10 @@ BEGIN
             'integration.retry_queue','integration.webhooks',
             -- workflow (3)
             'workflow.workflows','workflow.workflow_instances',
-            'workflow.workflow_tasks'
+            'workflow.workflow_tasks',
+            -- security / system (3, missing from original list)
+            'security.users','security.user_responsibilities',
+            'system.saved_searches'
         ]) AS tbl
     ) LOOP
         -- Add created_at if missing

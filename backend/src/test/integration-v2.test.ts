@@ -3,7 +3,7 @@ import axios, { AxiosInstance } from 'axios';
 import { Pool } from 'pg';
 
 const BASE = 'http://localhost:3000/api/v1';
-const pool = new Pool({ host: 'localhost', port: 5432, database: 'ethics_db', user: 'ethics_app', password: 'APP_PASSWORD' });
+const pool = new Pool({ host: 'localhost', port: 5432, database: 'ethics_db', user: 'postgres', password: 'postgres' });
 
 let adminApi: AxiosInstance;
 let adminToken = '';
@@ -209,7 +209,7 @@ describe('Permissions (as different roles)', () => {
   let researcherApi: AxiosInstance;
 
   test('Login as researcher', async () => {
-    const res = await axios.post(`${BASE}/security/auth/login`, { username: 'researcher1', password: 'Test@1234' }, { validateStatus: () => true });
+    const res = await axios.post(`${BASE}/security/auth/login`, { username: 'researcher1', password: 'admin123' }, { validateStatus: () => true });
     expect(res.status).toBe(200);
     researcherApi = axios.create({ baseURL: BASE, validateStatus: () => true });
     researcherApi.defaults.headers.common['Authorization'] = `Bearer ${res.data.data.accessToken}`;

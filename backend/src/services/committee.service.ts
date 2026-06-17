@@ -28,6 +28,7 @@ export class CommitteeService {
   private documents = new DocumentRepository();
 
   async getTypes() { return this.committees.getTypes(); }
+  async getRoles() { return this.committees.getRoles(); }
   async getAll() { return this.committees.findAll(); }
   async getById(id: number) {
     const c = await this.committees.findById(id);
@@ -52,6 +53,24 @@ export class CommitteeService {
   }
 
   // Members
+  async getMembers(committeeId: number) { return this.members.findByCommittee(committeeId); }
+  async addMember(committeeId: number, data: { user_id: number; role_id?: number }) {
+    const existing = await this.members.findByCommittee(committeeId);
+    if (existing.some((m: any) => m.user_id === data.user_id && m.is_active)) {
+      throw Object.assign(new Error('User is already a member of this committee'), { status: 400 });
+    }
+    return this.members.add(committeeId, data);
+  }
+  async updateMemberRole(memberId: number, role_id: number) {
+    const result = await this.members.updateRole(memberId, role_id);
+    if (!result) throw Object.assign(new Error('Member not found'), { status: 404 });
+    return result;
+  }
+  async removeMember(memberId: number) {
+    const ok = await this.members.remove(memberId);
+    if (!ok) throw Object.assign(new Error('Member not found or already inactive'), { status: 404 });
+    return { message: 'Member removed' };
+  }
   async getTerms(memberId: number) { return this.members.getTerms(memberId); }
   async createTerm(memberId: number, data: any) { return this.members.createTerm(memberId, data); }
   async getQualifications(memberId: number) { return this.members.getQualifications(memberId); }

@@ -113,7 +113,7 @@ describe('ApplicationService', () => {
         target_committee_id: 3,
       }, mockClient);
       expect(mockWorkflow.initWorkflow).toHaveBeenCalledWith(
-        'APP_REVIEW', 'Application', 100, mockClient
+        'APP_REVIEW_V1', 'Application', 100, mockClient
       );
       expect(broadcastDashboardEvent).toHaveBeenCalledWith('dashboard-stats', {});
       expect(result.id).toBe(100);

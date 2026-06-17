@@ -47,9 +47,12 @@ export async function query(text: string, params?: any[]): Promise<QueryResult> 
   const requestId = getRequestId();
   const client = await pool.connect();
   try {
-    await client.query(`SELECT set_config('app.user_id', '${userId}', false)`);
+    await client.query(`SELECT set_config('app.user_id', $1, false)`, [String(userId)]);
     const result = await client.query(text, params);
     return result;
+  } catch (err: any) {
+    logger.error({ err, text, params, sqlHash: sqlHash(text), requestId }, 'Database query error');
+    throw err;
   } finally {
     const duration = Date.now() - start;
     if (duration > 1000) {
@@ -74,7 +77,7 @@ export async function withTransaction<T>(
   const requestId = getRequestId();
   try {
     await client.query('BEGIN');
-    await client.query(`SELECT set_config('app.user_id', '${userId}', true)`);
+    await client.query(`SELECT set_config('app.user_id', $1, true)`, [String(userId)]);
     const result = await fn(client);
     await client.query('COMMIT');
     const duration = Date.now() - start;

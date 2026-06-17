@@ -4,6 +4,7 @@ import {
 } from './ui/table'
 import { Input } from './ui/input'
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Column<T> {
   key: string
@@ -26,6 +27,7 @@ interface DataTableProps<T> {
 function DataTableInner<T extends Record<string, any>>({
   columns, data, onRowClick, searchable, pageSize = 20, emptyMessage, loading
 }: DataTableProps<T>) {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
@@ -121,7 +123,7 @@ function DataTableInner<T extends Record<string, any>>({
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" />
               <Input
-                placeholder="Search..."
+                placeholder={t('common.search')}
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(0) }}
                 className="pl-8 h-9 text-sm"
@@ -135,7 +137,7 @@ function DataTableInner<T extends Record<string, any>>({
               onChange={e => { setFilters({ ...filters, [key]: e.target.value }); setPage(0) }}
               className="p-1.5 border rounded text-sm bg-white"
             >
-              <option value="">All {key}</option>
+              <option value="">{t('common.all')} {columns.find(c => c.key === key)?.label || key}</option>
               {options.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
@@ -171,7 +173,7 @@ function DataTableInner<T extends Record<string, any>>({
                 <TableCell colSpan={columns.length} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Inbox className="w-8 h-8" />
-                    <p className="text-sm font-medium">{emptyMessage || 'No records found'}</p>
+                    <p className="text-sm font-medium">{emptyMessage || t('dataTable.noRecords')}</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -194,7 +196,7 @@ function DataTableInner<T extends Record<string, any>>({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-2 text-sm text-slate-500">
-          <span>{filtered.length} records</span>
+          <span>{t('dataTable.records', { count: filtered.length })}</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
@@ -203,7 +205,7 @@ function DataTableInner<T extends Record<string, any>>({
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span>Page {page + 1} of {totalPages}</span>
+            <span>{t('dataTable.pageOf', { page: page + 1, total: totalPages })}</span>
             <button
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}

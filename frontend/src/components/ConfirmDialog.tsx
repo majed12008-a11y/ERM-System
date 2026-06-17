@@ -4,6 +4,7 @@ import {
   DialogFooter, DialogHeader, DialogTitle,
 } from './ui/dialog'
 import { Button } from './ui/button'
+import { useTranslation } from 'react-i18next'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -17,10 +18,11 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog({
-  open, onOpenChange, title = 'Confirm', description = 'Are you sure?',
-  confirmLabel = 'Confirm', confirmVariant = 'destructive',
+  open, onOpenChange, title, description,
+  confirmLabel, confirmVariant = 'destructive',
   onConfirm, loading,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -30,21 +32,21 @@ export default function ConfirmDialog({
               <AlertTriangle className="w-5 h-5 text-red-500" />
             </div>
             <div>
-              <DialogTitle>{title}</DialogTitle>
-              <DialogDescription>{description}</DialogDescription>
+              <DialogTitle>{title || t('common.confirm')}</DialogTitle>
+              <DialogDescription>{description || t('confirmDialog.areYouSure')}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant={confirmVariant === 'destructive' ? 'destructive' : 'default'}
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? 'Deleting...' : confirmLabel}
+            {loading ? t('common.deleting') : confirmLabel || t('common.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

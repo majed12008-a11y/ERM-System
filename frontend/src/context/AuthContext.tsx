@@ -16,35 +16,41 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
   isAuthenticated: boolean
+  isInitializing: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const token = getAccessToken()
   const [user, setUser] = useState<User | null>(() => {
     const stored = sessionStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
+    return stored && token ? JSON.parse(stored) : null
   })
+  const [isInitializing, setIsInitializing] = useState(true)
 
   useEffect(() => {
-    if (window.location.pathname.includes('/login') || window.location.pathname.includes('/register')) return
-    const token = getAccessToken()
-    if (!token) {
-      api.post('/security/auth/refresh').then((res) => {
-        const newToken = res.data.data?.accessToken
-        if (newToken) {
-          setAccessToken(newToken)
-          return api.get('/security/auth/me')
-        }
-        throw new Error('No token')
-      }).then((res) => {
-        setUser(res.data.data)
-        sessionStorage.setItem('user', JSON.stringify(res.data.data))
-      }).catch(() => {
-        setUser(null)
-        sessionStorage.removeItem('user')
-      })
+    if (getAccessToken()) {
+      setIsInitializing(false)
+      return
     }
+    api.post('/security/auth/refresh').then((res) => {
+      const newToken = res.data.data?.accessToken
+      if (newToken) {
+        setAccessToken(newToken)
+        return api.get('/security/auth/me')
+      }
+      throw new Error('No token')
+    }).then((res) => {
+      setUser(res.data.data)
+      sessionStorage.setItem('user', JSON.stringify(res.data.data))
+    }).catch(() => {
+      setUser(null)
+      sessionStorage.removeItem('user')
+      sessionStorage.removeItem('accessToken')
+    }).finally(() => {
+      setIsInitializing(false)
+    })
   }, [])
 
   async function login(username: string, password: string) {
@@ -63,10 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null)
     setUser(null)
     sessionStorage.removeItem('user')
+    sessionStorage.removeItem('accessToken')
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!getAccessToken() }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!getAccessToken(), isInitializing }}>
       {children}
     </AuthContext.Provider>
   )

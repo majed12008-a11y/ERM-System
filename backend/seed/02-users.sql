@@ -12,43 +12,43 @@ INSERT INTO security.roles (code, name_ar, name_en, description, is_system_role)
 
 -- Permissions
 INSERT INTO security.permissions (permission_code, module_name, action_name, description) VALUES
-  ('application.view', 'Applications', 'View', 'View applications'),
-  ('application.create', 'Applications', 'Create', 'Create applications'),
-  ('application.update', 'Applications', 'Update', 'Update applications'),
-  ('application.delete', 'Applications', 'Delete', 'Delete applications'),
-  ('application.approve', 'Applications', 'Approve', 'Approve/reject applications'),
+  ('application.view', 'الطلبات', 'عرض', 'عرض الطلبات'),
+  ('application.create', 'الطلبات', 'إنشاء', 'إنشاء الطلبات'),
+  ('application.update', 'الطلبات', 'تحديث', 'تحديث الطلبات'),
+  ('application.delete', 'الطلبات', 'حذف', 'حذف الطلبات'),
+  ('application.approve', 'الطلبات', 'اعتماد', 'اعتماد/رفض الطلبات'),
 
-  ('project.view', 'Projects', 'View', 'View projects'),
-  ('project.create', 'Projects', 'Create', 'Create projects'),
-  ('project.update', 'Projects', 'Update', 'Update projects'),
+  ('project.view', 'المشاريع', 'عرض', 'عرض المشاريع'),
+  ('project.create', 'المشاريع', 'إنشاء', 'إنشاء المشاريع'),
+  ('project.update', 'المشاريع', 'تحديث', 'تحديث المشاريع'),
 
-  ('user.view', 'Users', 'View', 'View users'),
-  ('user.create', 'Users', 'Create', 'Create users'),
-  ('user.update', 'Users', 'Update', 'Update users'),
+  ('user.view', 'المستخدمين', 'عرض', 'عرض المستخدمين'),
+  ('user.create', 'المستخدمين', 'إنشاء', 'إنشاء المستخدمين'),
+  ('user.update', 'المستخدمين', 'تحديث', 'تحديث المستخدمين'),
 
-  ('role.view', 'Roles', 'View', 'View roles'),
-  ('role.create', 'Roles', 'Create', 'Create roles'),
-  ('role.update', 'Roles', 'Update', 'Update roles'),
+  ('role.view', 'الأدوار', 'عرض', 'عرض الأدوار'),
+  ('role.create', 'الأدوار', 'إنشاء', 'إنشاء الأدوار'),
+  ('role.update', 'الأدوار', 'تحديث', 'تحديث الأدوار'),
 
-  ('meeting.view', 'Meetings', 'View', 'View meetings'),
-  ('meeting.create', 'Meetings', 'Create', 'Create meetings'),
-  ('meeting.update', 'Meetings', 'Update', 'Update meetings'),
+  ('meeting.view', 'الاجتماعات', 'عرض', 'عرض الاجتماعات'),
+  ('meeting.create', 'الاجتماعات', 'إنشاء', 'إنشاء الاجتماعات'),
+  ('meeting.update', 'الاجتماعات', 'تحديث', 'تحديث الاجتماعات'),
 
-  ('review.view', 'Reviews', 'View', 'View reviews'),
-  ('review.create', 'Reviews', 'Create', 'Create reviews'),
-  ('review.submit', 'Reviews', 'Submit', 'Submit review decisions'),
+  ('review.view', 'المراجعات', 'عرض', 'عرض المراجعات'),
+  ('review.create', 'المراجعات', 'إنشاء', 'إنشاء المراجعات'),
+  ('review.submit', 'المراجعات', 'تقديم', 'تقديم قرارات المراجعة'),
 
-  ('risk.view', 'Risk', 'View', 'View risk register'),
-  ('risk.create', 'Risk', 'Create', 'Create risk entries'),
+  ('risk.view', 'المخاطر', 'عرض', 'عرض سجل المخاطر'),
+  ('risk.create', 'المخاطر', 'إنشاء', 'إنشاء مدخلات المخاطر'),
 
-  ('document.view', 'Documents', 'View', 'View documents'),
-  ('document.upload', 'Documents', 'Upload', 'Upload documents'),
-  ('document.delete', 'Documents', 'Delete', 'Delete documents'),
+  ('document.view', 'المستندات', 'عرض', 'عرض المستندات'),
+  ('document.upload', 'المستندات', 'رفع', 'رفع المستندات'),
+  ('document.delete', 'المستندات', 'حذف', 'حذف المستندات'),
 
-  ('report.view', 'Reports', 'View', 'View reports'),
-  ('report.export', 'Reports', 'Export', 'Export reports'),
+  ('report.view', 'التقارير', 'عرض', 'عرض التقارير'),
+  ('report.export', 'التقارير', 'تصدير', 'تصدير التقارير'),
 
-  ('admin.access', 'Admin', 'Access', 'Access admin dashboard');
+  ('admin.access', 'الإدارة', 'دخول', 'دخول لوحة الإدارة');
 
 -- Assign permissions to SUPER_ADMIN
 INSERT INTO security.role_permissions (role_id, permission_id)
@@ -75,21 +75,15 @@ SELECT r.id, p.id
 FROM security.roles r, security.permissions p
 WHERE r.code = 'COMMITTEE_CHAIR'
   AND p.permission_code IN ('application.view', 'application.approve',
-    'project.view',
-    'meeting.view', 'meeting.update',
-    'review.view', 'review.submit',
-    'document.view',
-    'report.view');
+    'project.view', 'meeting.view', 'meeting.update',
+    'review.view', 'review.submit', 'document.view', 'report.view');
 
 -- REVIEWER permissions
 INSERT INTO security.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM security.roles r, security.permissions p
 WHERE r.code = 'REVIEWER'
-  AND p.permission_code IN ('application.view',
-    'review.view', 'review.submit',
-    'document.view',
-    'meeting.view');
+  AND p.permission_code IN ('application.view', 'review.view', 'review.submit', 'document.view', 'meeting.view');
 
 -- RESEARCHER permissions
 INSERT INTO security.role_permissions (role_id, permission_id)

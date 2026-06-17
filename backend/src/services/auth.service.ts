@@ -24,7 +24,7 @@ export class AuthService {
     return null;
   }
 
-  async login(username: string, password: string, ip: string) {
+  async login(username: string, password: string, ip: string, userAgent: string = '') {
     const user = await this.repo.authenticate(username);
     if (!user) {
       await this.repo.logLoginAttempt(username, null, false, ip, 'User not found');
@@ -57,9 +57,8 @@ export class AuthService {
     await this.repo.logLoginAttempt(username, user.id, true, ip);
     await this.repo.updateLoginSuccess(user.id);
 
-    const { accessToken, refreshToken } = await generateTokens(user.id);
-
-    await this.repo.createSession(user.id, ip, '');
+    const sessionToken = await this.repo.createSession(user.id, ip, userAgent);
+    const { accessToken, refreshToken } = await generateTokens(user.id, sessionToken);
 
     return { accessToken, refreshToken, userId: user.id };
   }
@@ -71,16 +70,16 @@ export class AuthService {
   async refresh(refreshToken: string) {
     const secret = new TextEncoder().encode(env.JWT_SECRET);
 
-    let payload: { userId: number; type?: string };
+    let payload: { userId: number; type?: string; jti?: string };
     try {
       const result = await jwtVerify(refreshToken, secret);
-      payload = result.payload as unknown as { userId: number; type?: string };
+      payload = result.payload as unknown as { userId: number; type?: string; jti?: string };
       if (payload.type !== 'refresh') throw new Error('Invalid token type');
     } catch {
       throw Object.assign(new Error('Invalid or expired refresh token'), { status: 401 });
     }
 
-    const session = await this.repo.findValidSession(payload.userId);
+    const session = await this.repo.findValidSession(payload.userId, payload.jti);
     if (!session) throw Object.assign(new Error('Session expired or revoked'), { status: 401 });
 
     const active = await this.repo.checkUserActive(payload.userId);

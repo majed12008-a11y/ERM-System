@@ -68,6 +68,7 @@ export const addQuestionSchema = z.object({
   display_order: z.coerce.number().int().positive().optional(),
   scale_min: z.coerce.number().int().optional(),
   scale_max: z.coerce.number().int().optional(),
+  question_options: z.string().optional(),
 });
 
 export const createCommitteeSchema = z.object({

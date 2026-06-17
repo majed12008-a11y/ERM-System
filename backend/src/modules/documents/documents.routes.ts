@@ -11,11 +11,29 @@ import { DocumentService } from '../../services/document.service';
 const router = Router();
 const service = new DocumentService();
 
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'];
+
+function sanitizeFilename(original: string): string {
+  const ext = path.extname(original).replace(/[^a-zA-Z0-9.]/g, '');
+  const base = path.basename(original, ext).replace(/[^a-zA-Z0-9 _-]/g, '');
+  return `${Date.now()}-${base}${ext}`;
+}
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, path.resolve('uploads')),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (_req, file, cb) => cb(null, sanitizeFilename(file.originalname)),
 });
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} is not allowed`));
+    }
+  },
+});
 
 router.get('/', authenticate, async (req: Request, res: Response) => {
   try {

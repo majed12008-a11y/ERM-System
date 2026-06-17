@@ -4,9 +4,9 @@
 
 -- Review Forms
 INSERT INTO committee.review_forms (form_code, form_name, review_type, version_no, is_active) VALUES
-  ('SCI_REVIEW_V1', 'Scientific Review Form', 'SCIENTIFIC', 1, true),
-  ('ETH_REVIEW_V1', 'Ethical Review Form', 'ETHICS', 1, true),
-  ('EXP_REVIEW_V1', 'Expedited Review Form', 'EXPEDITED', 1, true);
+  ('SCI_REVIEW_V1', 'نموذج المراجعة العلمية', 'SCIENTIFIC', 1, true),
+  ('ETH_REVIEW_V1', 'نموذج المراجعة الأخلاقية', 'ETHICS', 1, true),
+  ('EXP_REVIEW_V1', 'نموذج المراجعة المستعجلة', 'EXPEDITED', 1, true);
 
 -- Scientific Review Questions
 INSERT INTO committee.review_questions (form_id, question_code, question_text, question_type, display_order, is_required)

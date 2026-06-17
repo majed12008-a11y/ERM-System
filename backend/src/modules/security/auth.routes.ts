@@ -20,7 +20,7 @@ function parseCookies(header: string | undefined): Record<string, string> {
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
-    const result = await service.login(username, password, req.ip || '0.0.0.0');
+    const result = await service.login(username, password, req.ip || '0.0.0.0', req.headers['user-agent'] || '');
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
@@ -63,7 +63,12 @@ router.post('/refresh', async (req: Request, res: Response) => {
 router.post('/logout', authenticate, async (req: Request, res: Response) => {
   try {
     await service.logout((req as any).user.id);
-    res.clearCookie('refreshToken', { path: '/api/v1/security/auth' });
+    res.clearCookie('refreshToken', {
+      path: '/api/v1/security/auth',
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
     res.json(successResponse(null, 'Logged out'));
   } catch (err: any) {
     res.status(500).json(errorResponse(err.message));
@@ -84,7 +89,12 @@ router.post('/change-password', authenticate, async (req: Request, res: Response
     const user = (req as any).user;
     const { oldPassword, newPassword } = req.body;
     await service.changePassword(user.id, oldPassword, newPassword);
-    res.clearCookie('refreshToken', { path: '/api/v1/security/auth' });
+    res.clearCookie('refreshToken', {
+      path: '/api/v1/security/auth',
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
     res.json(successResponse(null, 'Password changed. Please login again.'));
   } catch (err: any) {
     res.status(err.status || 500).json(errorResponse(err.message));

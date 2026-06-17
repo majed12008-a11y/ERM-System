@@ -22,8 +22,8 @@ export class AuthRepository extends AuditableRepository {
   async getRecentFailedAttempts(userId: number, minutes: number): Promise<number> {
     const result = await this.query(
       `SELECT COUNT(*)::int as attempts FROM security.login_audit
-       WHERE user_id = $1 AND success = false AND login_time > now() - interval '${minutes} minutes'`,
-      [userId]
+       WHERE user_id = $1 AND success = false AND login_time > now() - make_interval(mins => $2)`,
+      [userId, minutes]
     );
     return result.rows[0].attempts;
   }
@@ -45,12 +45,14 @@ export class AuthRepository extends AuditableRepository {
     await this.query('UPDATE security.users SET last_login_at = now(), is_locked = false WHERE id = $1', [userId]);
   }
 
-  async createSession(userId: number, ip: string, userAgent: string) {
-    await this.query(
+  async createSession(userId: number, ip: string, userAgent: string): Promise<string> {
+    const result = await this.query(
       `INSERT INTO security.sessions (user_id, login_at, expires_at, ip_address, user_agent)
-       VALUES ($1, now(), now() + interval '7 days', $2::inet, $3)`,
+       VALUES ($1, now(), now() + interval '7 days', $2::inet, $3)
+       RETURNING session_token`,
       [userId, ip, userAgent]
     );
+    return result.rows[0]?.session_token;
   }
 
   async revokeAllSessions(userId: number) {
@@ -60,12 +62,13 @@ export class AuthRepository extends AuditableRepository {
     );
   }
 
-  async findValidSession(userId: number): Promise<any | null> {
+  async findValidSession(userId: number, sessionToken?: string): Promise<any | null> {
     const result = await this.query(
-      `SELECT id FROM security.sessions
+      `SELECT id, session_token FROM security.sessions
        WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+       ${sessionToken ? 'AND session_token = $2::uuid' : ''}
        ORDER BY login_at DESC LIMIT 1`,
-      [userId]
+      sessionToken ? [userId, sessionToken] : [userId]
     );
     return result.rows[0] || null;
   }

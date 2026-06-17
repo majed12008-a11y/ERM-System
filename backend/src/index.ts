@@ -11,6 +11,8 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { userContext } from './middleware/context';
 import { validateEnv } from './config/env';
 
+const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Too many login attempts. Try again later.' } });
+
 import securityRoutes from './modules/security';
 import coreRoutes from './modules/core';
 import committeeRoutes from './modules/committee';
@@ -51,6 +53,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(rateLimit({ windowMs: 60 * 1000, max: isProd ? 60 : 100, standardHeaders: true, legacyHeaders: false }));
 
+app.use('/api/v1/security/auth/login', loginLimiter);
 app.use('/api/v1/security', securityRoutes);
 app.use('/api/v1/core', coreRoutes);
 app.use('/api/v1/committee', committeeRoutes);

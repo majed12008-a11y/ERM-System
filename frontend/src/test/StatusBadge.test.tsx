@@ -5,11 +5,11 @@ import { StatusBadge } from '../components/StatusBadge'
 describe('StatusBadge', () => {
   it('renders status text', () => {
     render(<StatusBadge status="SUBMITTED" />)
-    expect(screen.getByText('SUBMITTED')).toBeInTheDocument()
+    expect(screen.getByText('Submitted')).toBeInTheDocument()
   })
 
   it('renders with replacement for underscores', () => {
     render(<StatusBadge status="UNDER_REVIEW" />)
-    expect(screen.getByText('UNDER REVIEW')).toBeInTheDocument()
+    expect(screen.getByText('Under Review')).toBeInTheDocument()
   })
 })

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Badge } from './ui/badge'
 
 const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'outline'> = {
@@ -12,9 +13,11 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | '
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation()
+
   return (
     <Badge variant={statusVariants[status] || 'outline'}>
-      {status.replace(/_/g, ' ')}
+      {status ? t(`status.${status}`, { defaultValue: status.replace(/_/g, ' ') }) : t('common.noData')}
     </Badge>
   )
 }

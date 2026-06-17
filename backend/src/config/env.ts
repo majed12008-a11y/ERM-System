@@ -12,7 +12,9 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  DB_ENCRYPTION_KEY: z.string().optional(),
+  DB_ENCRYPTION_KEY: process.env.NODE_ENV === 'production'
+    ? z.string().min(32, 'DB_ENCRYPTION_KEY is required in production and must be at least 32 characters')
+    : z.string().optional(),
 });
 
 let env: z.infer<typeof envSchema>;

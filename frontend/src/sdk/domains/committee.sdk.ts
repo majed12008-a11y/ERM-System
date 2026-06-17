@@ -3,7 +3,11 @@ import type { SuccessResponse } from '../core/types'
 
 export const committees = {
   listTypes() {
-    return api.get<SuccessResponse<any[]>>('/committee/committee-types')
+    return api.get<SuccessResponse<any[]>>('/committee/committees/committee-types')
+  },
+
+  listRoles() {
+    return api.get<SuccessResponse<any[]>>('/committee/committees/committee-roles')
   },
 
   list() {
@@ -86,6 +90,22 @@ export const meetings = {
 }
 
 export const members = {
+  listByCommittee(committeeId: number) {
+    return api.get<SuccessResponse<any[]>>(`/committee/committees/${committeeId}/members`)
+  },
+
+  add(committeeId: number, data: { user_id: number; role_id?: number }) {
+    return api.post<SuccessResponse<any>>(`/committee/committees/${committeeId}/members`, data)
+  },
+
+  updateRole(committeeId: number, memberId: number, data: { role_id: number }) {
+    return api.put<SuccessResponse<any>>(`/committee/committees/${committeeId}/members/${memberId}`, data)
+  },
+
+  remove(committeeId: number, memberId: number) {
+    return api.delete<SuccessResponse<null>>(`/committee/committees/${committeeId}/members/${memberId}`)
+  },
+
   getTerms(memberId: number) {
     return api.get<SuccessResponse<any[]>>(`/committee/members/${memberId}/terms`)
   },

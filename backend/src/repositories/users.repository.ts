@@ -62,24 +62,28 @@ export class UsersRepository extends AuditableRepository {
     first_name_ar?: string; last_name_ar?: string;
     first_name_en?: string; last_name_en?: string; mobile?: string;
   }, client?: PoolClient): Promise<any> {
-    const meta = this.createMeta();
     const result = await this.query(
       `INSERT INTO security.users
         (institution_id, department_id, username, email, password_hash,
-         first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, created_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         first_name_ar, last_name_ar, first_name_en, last_name_en, mobile)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id, uuid, username, email`,
       [data.institution_id, data.department_id || null, data.username, data.email,
        data.password_hash, data.first_name_ar || '', data.last_name_ar || '',
-       data.first_name_en || '', data.last_name_en || '', data.mobile || '',
-       meta.created_by, meta.created_at],
+       data.first_name_en || '', data.last_name_en || '', data.mobile || ''],
       client
     );
     return result.rows[0];
   }
 
   async update(id: number, data: any): Promise<any | null> {
-    const meta = this.updateMeta();
+    const params = [
+      data.email, data.first_name_ar, data.last_name_ar, data.first_name_en, data.last_name_en,
+      data.mobile,
+      data.institution_id || null,
+      data.department_id || null,
+      data.status, id
+    ]
     const result = await this.query(
       `UPDATE security.users SET
         email = COALESCE($1, email), first_name_ar = COALESCE($2, first_name_ar),
@@ -87,13 +91,10 @@ export class UsersRepository extends AuditableRepository {
         last_name_en = COALESCE($5, last_name_en), mobile = COALESCE($6, mobile),
         institution_id = COALESCE($7::int, institution_id),
         department_id = COALESCE($8::int, department_id),
-        status = COALESCE($9, status),
-        updated_at = $10, updated_by = $11
-       WHERE id = $12
+        status = COALESCE($9, status)
+       WHERE id = $10
        RETURNING id, uuid, username, email, first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status`,
-      [data.email, data.first_name_ar, data.last_name_ar, data.first_name_en, data.last_name_en,
-       data.mobile, data.institution_id, data.department_id, data.status,
-       meta.updated_at, meta.updated_by, id]
+      params
     );
     return result.rows[0] || null;
   }

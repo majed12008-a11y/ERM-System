@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
+import { Textarea } from '../../components/ui/textarea'
 import { reviewFormSchema, addQuestionSchema } from '../../lib/schemas'
 import { z } from 'zod'
 import { ClipboardList, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
@@ -30,7 +31,7 @@ export default function ReviewFormsPage() {
   })
   const questionForm = useForm<QuestionFormData>({
     resolver: zodResolver(addQuestionSchema),
-    defaultValues: { question_code: '', question_text: '', question_type: 'TEXT', is_required: true },
+    defaultValues: { question_code: '', question_text: '', question_type: 'TEXT', is_required: true, question_options: '' },
   })
 
   const { data: forms, isLoading } = useQuery({
@@ -142,18 +143,28 @@ export default function ReviewFormsPage() {
                   ) : <p className="text-sm text-slate-400 mb-3">{t('reviewForms.noQuestions')}</p>}
 
                   {addingQuestion === f.id ? (
-                    <form onSubmit={questionForm.handleSubmit(onAddQuestion)} className="flex gap-2 items-center border-t pt-2">
-                      <Input size={12} placeholder={t('reviewForms.questionCode')} {...questionForm.register('question_code')} className="text-xs w-24" />
-                      <Input size={30} placeholder={t('reviewForms.questionText')} {...questionForm.register('question_text')} className="text-xs flex-1" />
-                      <select {...questionForm.register('question_type')} className="p-1.5 border rounded text-xs">
-                        <option value="TEXT">{t('reviewForms.text')}</option>
-                        <option value="SCALE">{t('reviewForms.scale')}</option>
-                        <option value="BOOLEAN">{t('reviewForms.yesNo')}</option>
-                        <option value="CHOICE">{t('reviewForms.choice')}</option>
-                      </select>
-                      <label className="flex items-center gap-1 text-xs"><input type="checkbox" {...questionForm.register('is_required')} /> {t('reviewForms.required')}</label>
-                      <Button size="sm" type="submit" disabled={addQuestionMut.isPending}>{t('common.add')}</Button>
-                      <button type="button" className="text-xs text-slate-400" onClick={() => setAddingQuestion(null)}>{t('common.cancel')}</button>
+                    <form onSubmit={questionForm.handleSubmit(onAddQuestion)} className="border-t pt-2 space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <Input size={12} placeholder={t('reviewForms.questionCode')} {...questionForm.register('question_code')} className="text-xs w-24" />
+                        <Input size={30} placeholder={t('reviewForms.questionText')} {...questionForm.register('question_text')} className="text-xs flex-1" />
+                        <select {...questionForm.register('question_type')} className="p-1.5 border rounded text-xs">
+                          <option value="TEXT">{t('reviewForms.text')}</option>
+                          <option value="SCALE">{t('reviewForms.scale')}</option>
+                          <option value="BOOLEAN">{t('reviewForms.yesNo')}</option>
+                          <option value="CHOICE">{t('reviewForms.choice')}</option>
+                        </select>
+                        <label className="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" {...questionForm.register('is_required')} /> {t('reviewForms.required')}</label>
+                        <Button size="sm" type="submit" disabled={addQuestionMut.isPending}>{t('common.add')}</Button>
+                        <button type="button" className="text-xs text-slate-400" onClick={() => setAddingQuestion(null)}>{t('common.cancel')}</button>
+                      </div>
+                      {questionForm.watch('question_type') === 'CHOICE' && (
+                        <Textarea
+                          placeholder={t('reviewForms.optionsPlaceholder')}
+                          {...questionForm.register('question_options')}
+                          className="text-xs"
+                          rows={3}
+                        />
+                      )}
                     </form>
                   ) : (
                     <button className="text-xs text-blue-600 hover:underline mt-2 inline-block" onClick={() => { setAddingQuestion(f.id); questionForm.reset() }}>

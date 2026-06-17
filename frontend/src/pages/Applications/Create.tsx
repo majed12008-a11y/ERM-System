@@ -19,7 +19,7 @@ export default function ApplicationCreate() {
     defaultValues: { project_id: '', application_type: 'INITIAL', target_committee_id: '' },
   })
 
-  const { data: projects } = useQuery({
+  const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ['projects-dropdown'],
     queryFn: () => api.get('/core/projects').then((r) => r.data.data),
   })
@@ -39,18 +39,27 @@ export default function ApplicationCreate() {
     mutation.mutate(data)
   }
 
+  const noProjects = !projectsLoading && projects && projects.length === 0
+
   return (
     <div className="max-w-lg">
       <h1 className="text-2xl font-bold mb-6">{t('applications.new')}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 rounded-lg shadow space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">{t('applications.project')}</label>
-          <select {...register('project_id')} className="w-full p-2 border rounded text-sm">
-            <option value="">{t('applications.selectProject')}</option>
-            {(projects || []).map((p: any) => (
-              <option key={p.id} value={p.id}>{p.title_ar}</option>
-            ))}
-          </select>
+          {noProjects ? (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800 space-y-2">
+              <p>{t('applications.noProjects')}</p>
+              <a href="/projects/create" className="text-blue-600 hover:underline font-medium">{t('applications.createProject')}</a>
+            </div>
+          ) : (
+            <select {...register('project_id')} className="w-full p-2 border rounded text-sm" disabled={projectsLoading}>
+              <option value="">{t('applications.selectProject')}</option>
+              {(projects || []).map((p: any) => (
+                <option key={p.id} value={p.id}>{p.title_ar}</option>
+              ))}
+            </select>
+          )}
           {errors.project_id && <p className="text-red-500 text-xs">{errors.project_id.message}</p>}
         </div>
         <div>

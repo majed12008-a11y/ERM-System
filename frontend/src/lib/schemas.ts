@@ -91,6 +91,7 @@ export const addQuestionSchema = z.object({
   question_text: z.string({ message: 'Question text is required' }).min(1),
   question_type: z.enum(['TEXT', 'SCALE', 'BOOLEAN', 'CHOICE']).default('TEXT'),
   is_required: z.boolean().default(true),
+  question_options: z.string().optional().default(''),
 })
 
 export const savedSearchSchema = z.object({

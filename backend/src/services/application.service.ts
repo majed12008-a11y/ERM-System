@@ -52,7 +52,7 @@ export class ApplicationService {
         target_committee_id: data.target_committee_id,
       }, client);
 
-      await this.workflow.initWorkflow('APP_REVIEW', 'Application', newApp.id, client);
+      await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', newApp.id, client);
 
       return newApp;
     });
