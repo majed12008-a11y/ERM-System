@@ -1,3 +1,7 @@
+/*
+ * SDK الطلبات: دوال إدارة طلبات البحث.
+ * إنشاء، عرض، تحديث، وحذف الطلبات.
+ */
 import api from '../../api/client'
 import type {
   SuccessResponse,
@@ -5,11 +9,12 @@ import type {
   CreateApplicationRequest,
   CommitteeDecisionRequest,
   PaginationParams,
+  Pagination,
 } from '../core/types'
 
 export const applications = {
   list(params?: PaginationParams & { status?: string }) {
-    return api.get<SuccessResponse<Application[]> & { pagination?: any }>('/core/applications', { params })
+    return api.get<SuccessResponse<Application[]> & { pagination?: Pagination }>('/core/applications', { params })
   },
 
   getById(id: number) {
@@ -26,5 +31,13 @@ export const applications = {
 
   committeeDecision(id: number, data: CommitteeDecisionRequest) {
     return api.post<SuccessResponse<Application>>(`/core/applications/${id}/committee-decision`, data)
+  },
+
+  updateDraft(id: number, data: { application_type?: string; target_committee_id?: number; priority_level?: string; remarks?: string }) {
+    return api.put<SuccessResponse<Application>>(`/core/applications/${id}`, data)
+  },
+
+  submitDraft(id: number, data?: { transition_code?: string; comment?: string }) {
+    return api.post<SuccessResponse<Application>>(`/core/applications/${id}/submit`, data || {})
   },
 }

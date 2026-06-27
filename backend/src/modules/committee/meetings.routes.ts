@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createMeetingSchema, createAgendaSchema, addAttendanceSchema, createMinutesSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { CommitteeService } from '../../services/committee.service';
 
@@ -12,7 +14,7 @@ router.get('/committee/:committeeId', authenticate, async (req: Request, res: Re
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), validate(createMeetingSchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.createMeeting(req.body)));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
@@ -36,13 +38,13 @@ router.get('/:id/agenda', authenticate, async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/:id/agenda', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id/agenda', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), validate(createAgendaSchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.createAgenda(parseInt(String(req.params.id)), req.body)));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/:id/agenda/:agendaId/items', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id/agenda/:agendaId/items', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), validate(createAgendaSchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.addAgendaItem(parseInt(String(req.params.agendaId)), req.body)));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
@@ -54,7 +56,7 @@ router.get('/:id/attendance', authenticate, async (req: Request, res: Response) 
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/:id/attendance', authenticate, async (req: Request, res: Response) => {
+router.post('/:id/attendance', authenticate, validate(addAttendanceSchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.addAttendance(parseInt(String(req.params.id)), req.body)));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
@@ -66,7 +68,7 @@ router.get('/:id/minutes', authenticate, async (req: Request, res: Response) => 
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/:id/minutes', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id/minutes', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), validate(createMinutesSchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.createMinutes(parseInt(String(req.params.id)), req.body.minutes_text, (req as any).user)));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
@@ -78,7 +80,7 @@ router.patch('/:id/minutes/:minutesId/approve', authenticate, authorize('COMMITT
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
-router.patch('/:id', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
   try {
     res.json(successResponse(await service.updateMeeting(parseInt(String(req.params.id)), req.body)));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }

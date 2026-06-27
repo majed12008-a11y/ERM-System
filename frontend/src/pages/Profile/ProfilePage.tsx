@@ -1,3 +1,7 @@
+/*
+ * صفحة الملف الشخصي: عرض وتعديل معلومات المستخدم الشخصية،
+ * تغيير كلمة المرور، وإدارة الإعدادات.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'

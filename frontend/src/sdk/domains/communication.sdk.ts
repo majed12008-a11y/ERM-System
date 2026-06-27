@@ -1,3 +1,7 @@
+/*
+ * SDK المراسلات والإشعارات: دوال إدارة الرسائل
+ * الداخلية والإشعارات الفورية.
+ */
 import api from '../../api/client'
 import type { SuccessResponse, Notification, Message, SendMessageRequest, User } from '../core/types'
 

@@ -1,3 +1,7 @@
+/*
+ * صفحة إدارة الأدوار: إنشاء وتعديل الأدوار
+ * وتحديد الصلاحيات المرتبطة بكل دور.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'

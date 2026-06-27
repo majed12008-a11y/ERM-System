@@ -1,3 +1,9 @@
+/*
+ * القاعدة الأساسية لجميع المستودعات. توفر دوال
+ * query() و withTransaction() مع تتبع المستخدم
+ * الذي أجرى العملية (created_by, updated_by, deleted_by)
+ * باستخدام سياق الطلب الحالي (AsyncLocalStorage).
+ */
 import { QueryResult, PoolClient } from 'pg';
 import { query as dbQuery, withTransaction } from '../config/database';
 import { getUserId } from '../middleware/context';

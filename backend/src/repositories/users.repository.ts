@@ -3,9 +3,50 @@ import { AuditableRepository } from './auditable.repository';
 import { PaginationParams } from '../shared/pagination';
 
 export class UsersRepository extends AuditableRepository {
-  async findAll(params: PaginationParams): Promise<{ rows: any[]; total: number }> {
-    const countResult = await this.query('SELECT COUNT(*) FROM security.users');
+  private sortColumnMap: Record<string, string> = {
+    username: 'u.username',
+    email: 'u.email',
+    status: 'u.status',
+    institution_name: 'i.name_ar',
+    last_login_at: 'u.last_login_at',
+    display_name: 'u.first_name_ar',
+  };
+
+  async findAll(params: PaginationParams, filters: { search?: string; institution_id?: number; role_code?: string; sort_by?: string; sort_order?: string }): Promise<{ rows: any[]; total: number }> {
+    const conditions: string[] = [];
+    const condVals: any[] = [];
+
+    if (filters.search) {
+      const s = `%${filters.search}%`;
+      conditions.push(`(u.username ILIKE CAST($${conditions.length + 1} AS text) OR u.email ILIKE CAST($${conditions.length + 1} AS text) OR u.first_name_ar ILIKE CAST($${conditions.length + 1} AS text) OR u.last_name_ar ILIKE CAST($${conditions.length + 1} AS text) OR u.first_name_en ILIKE CAST($${conditions.length + 1} AS text) OR u.last_name_en ILIKE CAST($${conditions.length + 1} AS text))`);
+      condVals.push(s);
+    }
+
+    if (filters.institution_id) {
+      conditions.push(`u.institution_id = CAST($${conditions.length + 1} AS int)`);
+      condVals.push(filters.institution_id);
+    }
+
+    if (filters.role_code) {
+      conditions.push(`EXISTS (SELECT 1 FROM security.user_roles ur2 JOIN security.roles r2 ON ur2.role_id = r2.id WHERE ur2.user_id = u.id AND r2.code = CAST($${conditions.length + 1} AS text))`);
+      condVals.push(filters.role_code);
+    }
+
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    const countResult = conditions.length > 0
+      ? await this.query(`SELECT COUNT(*) FROM security.users u ${whereClause}`, condVals)
+      : await this.query('SELECT COUNT(*) FROM security.users');
     const total = parseInt(countResult.rows[0].count);
+
+    const limit = params.limit;
+    const offset = (params.page - 1) * params.limit;
+    const dataVals = [...condVals, limit, offset];
+    const limitIdx = conditions.length + 1;
+    const offsetIdx = conditions.length + 2;
+
+    const sortColumn = this.sortColumnMap[filters.sort_by || ''] || 'u.created_at';
+    const sortOrder = filters.sort_order === 'asc' ? 'ASC' : 'DESC';
 
     const result = await this.query(
       `SELECT u.id, u.uuid, u.username, u.email, u.first_name_ar, u.last_name_ar,
@@ -16,10 +57,11 @@ export class UsersRepository extends AuditableRepository {
        LEFT JOIN security.institutions i ON u.institution_id = i.id
        LEFT JOIN security.user_roles ur ON ur.user_id = u.id
        LEFT JOIN security.roles r ON ur.role_id = r.id
+       ${whereClause}
        GROUP BY u.id, i.name_ar
-       ORDER BY u.created_at DESC
-       LIMIT $1 OFFSET $2`,
-      [params.limit, (params.page - 1) * params.limit]
+       ORDER BY ${sortColumn} ${sortOrder}
+       LIMIT CAST($${limitIdx} AS int) OFFSET CAST($${offsetIdx} AS int)`,
+      dataVals
     );
     return { rows: result.rows, total };
   }
@@ -29,6 +71,7 @@ export class UsersRepository extends AuditableRepository {
       `SELECT u.id, u.uuid, u.username, u.email, u.first_name_ar, u.last_name_ar,
               u.first_name_en, u.last_name_en, u.mobile, u.status, u.is_locked,
               u.is_email_verified, u.last_login_at, u.created_at,
+              u.institution_id,
               i.name_ar as institution_name, d.name_ar as department_name
        FROM security.users u
        LEFT JOIN security.institutions i ON u.institution_id = i.id
@@ -56,6 +99,17 @@ export class UsersRepository extends AuditableRepository {
     return result.rows.length > 0;
   }
 
+    /**
+   * إنشاء مستخدم جديد في قاعدة البيانات
+   *
+   * تستدعي الدالة security.fn_register_user (SECURITY DEFINER) بدلاً من
+   * جملة INSERT المباشرة. السبب: PostgreSQL 18.3 على Windows لديه خلل
+   * في تقييم سياسات FOR INSERT الخاصة بـ RLS، حيث يرفض جميع عمليات
+   * INSERT حتى مع وجود WITH CHECK (true). دالة SECURITY DEFINER تتجاوز
+   * RLS لأنها تنفذ بصلاحيات مالك الجدول.
+   *
+   * @see backend/seed/33-fix-register-rls.sql
+   */
   async create(data: {
     institution_id: number; department_id?: number;
     username: string; email: string; password_hash: string;
@@ -63,11 +117,9 @@ export class UsersRepository extends AuditableRepository {
     first_name_en?: string; last_name_en?: string; mobile?: string;
   }, client?: PoolClient): Promise<any> {
     const result = await this.query(
-      `INSERT INTO security.users
-        (institution_id, department_id, username, email, password_hash,
-         first_name_ar, last_name_ar, first_name_en, last_name_en, mobile)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, uuid, username, email`,
+      `SELECT * FROM security.fn_register_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+
+
       [data.institution_id, data.department_id || null, data.username, data.email,
        data.password_hash, data.first_name_ar || '', data.last_name_ar || '',
        data.first_name_en || '', data.last_name_en || '', data.mobile || ''],

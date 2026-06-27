@@ -1,3 +1,8 @@
+/*
+ * نظام تسجيل الأحداث (Logging) باستخدام Pino.
+ * يدعم مستويات متعددة (info، warn، error، fatal)
+ * وتنسيق JSON للإنتاج و pino-pretty للتطوير.
+ */
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { env } from './env';

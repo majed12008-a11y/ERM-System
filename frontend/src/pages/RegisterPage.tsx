@@ -1,7 +1,11 @@
+/*
+ * صفحة إنشاء حساب جديد: نموذج تسجيل متعدد الخطوات
+ * لمستخدمي النظام (باحثين، مشرفين، إداريين).
+ */
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -16,8 +20,8 @@ type RegisterFormData = z.input<typeof registerSchema>
 
 export default function RegisterPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -40,13 +44,31 @@ export default function RegisterPage() {
     try {
       const { confirmPassword, ...body } = data
       await api.post('/security/auth/register', body)
+      setRegisteredEmail(data.email)
       toast.success(t('register.success'))
-      navigate('/login')
     } catch (err: any) {
       toast.error(err.response?.data?.error || t('register.failed'))
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted px-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <CardTitle className="text-blue-700 text-xl sm:text-2xl">{t('app.title')}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div className="text-blue-600 text-4xl">✉</div>
+            <p className="text-slate-700">{t('verifyEmail.sent', { email: registeredEmail })}</p>
+            <p className="text-sm text-slate-500">{t('verifyEmail.sentInstructions')}</p>
+            <Link to="/login"><Button>{t('verifyEmail.goToLogin')}</Button></Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

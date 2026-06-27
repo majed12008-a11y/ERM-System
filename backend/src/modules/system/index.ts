@@ -1,3 +1,7 @@
+/*
+ * وحدة النظام: عمليات البحث المحفوظة،
+ * إعدادات المستخدم، وخدمات النظام العامة.
+ */
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { successResponse, errorResponse } from '../../shared/utils';

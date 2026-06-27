@@ -1,3 +1,8 @@
+/*
+ * نقطة الدخول الرئيسية للخادم (Express).
+ * يهيئ Middleware النظام (CORS، Helmet، التحكم بالمعدل، المصادقة)
+ * ويسجل جميع المسارات للوحدات المختلفة، ثم يبدأ الخادم على المنفذ المحدد.
+ */
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -9,7 +14,8 @@ import { httpLogger, logger } from './config/logger';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { userContext } from './middleware/context';
-import { validateEnv } from './config/env';
+import { env, validateEnv } from './config/env';
+import pool from './config/database';
 
 const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Too many login attempts. Try again later.' } });
 
@@ -27,14 +33,23 @@ import integrationRoutes from './modules/integration';
 import systemRoutes from './modules/system';
 import referenceRoutes from './modules/reference';
 
-process.on('uncaughtException', (err) => { logger.error({ err }, 'Uncaught exception'); });
-process.on('unhandledRejection', (err: any) => { logger.error({ err }, 'Unhandled rejection'); });
+import path from 'path';
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err, stack: err.stack }, 'Uncaught exception — exiting');
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  const detail = reason instanceof Error ? { err: reason, stack: reason.stack } : { reason: String(reason) };
+  logger.error(detail, 'Unhandled promise rejection');
+});
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000');
-const isProd = process.env.NODE_ENV === 'production';
-
 validateEnv();
+const isProd = env.NODE_ENV === 'production';
+
+if (isProd) {
+  app.use(express.static(path.join(__dirname, '../public')));
+}
 
 app.use((req, res, next) => {
   const header = req.headers['x-request-id'];
@@ -42,7 +57,8 @@ app.use((req, res, next) => {
   (req as any).requestId = requestId;
   req.id = requestId;
   res.setHeader('X-Request-Id', requestId);
-  userContext.run({ userId: 0, requestId }, () => next());
+  const sourceIp = req.ip || req.socket.remoteAddress || '0.0.0.0';
+  userContext.run({ userId: 0, requestId, sourceIp }, () => next());
 });
 app.use(httpLogger);
 app.use(helmet({
@@ -50,10 +66,10 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: isProd ? 'same-origin' : 'cross-origin' },
 }));
 app.use(cors({
-  origin: isProd ? process.env.CORS_ORIGIN?.split(',') || 'http://localhost:5173' : '*',
+  origin: isProd ? env.CORS_ORIGIN?.split(',') || 'http://localhost:5173' : 'http://localhost:5173',
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(rateLimit({ windowMs: 60 * 1000, max: isProd ? 60 : 100, standardHeaders: true, legacyHeaders: false }));
 
 app.use('/api/v1/security/auth/login', loginLimiter);
@@ -87,14 +103,18 @@ app.get('/api/v1/health', async (req, res) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
-  logger.info({ port: PORT, NODE_ENV: process.env.NODE_ENV || 'development' }, 'Ethics ERM API started');
+const server = app.listen(env.PORT, () => {
+  logger.info({ port: env.PORT, NODE_ENV: env.NODE_ENV }, 'Ethics ERM API started');
 });
 
-function shutdown(signal: string) {
+async function shutdown(signal: string) {
   logger.info({ signal }, 'Shutting down gracefully...');
-  server.close(() => {
+  server.close(async () => {
     logger.info('Server closed');
+    try {
+      await pool.end();
+      logger.info('Database pool drained');
+    } catch { /* pool already closed */ }
     process.exit(0);
   });
   setTimeout(() => { logger.error('Forced shutdown'); process.exit(1); }, 10000).unref();

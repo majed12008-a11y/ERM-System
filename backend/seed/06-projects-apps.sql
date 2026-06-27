@@ -1,6 +1,8 @@
 -- ============================================================
 -- 06-PROJECTS AND APPLICATIONS
 -- ============================================================
+-- بيانات تجريبية للمشاريع والطلبات البحثية مع حالاتها المختلفة
+-- (معتمد، معلق، قيد المراجعة).
 
 -- PROJECT 1: Pharmacogenomics study (completed, approved)
 INSERT INTO core.projects (institution_id, project_code, title_ar, title_en,

@@ -1,6 +1,8 @@
 -- ============================================================
 -- 07-WORKFLOW INSTANCES AND ACTIONS
 -- ============================================================
+-- نماذج سير العمل الفعلية: أمثلة على حالات Workflow
+-- للمشاريع والطلبات مع إجراءات المستخدمين.
 
 -- Workflow Instance for Application 1 (APPROVED)
 -- Instances track the current state of each application in the workflow

@@ -1,5 +1,9 @@
+/*
+ * SDK الإدارة: دوال لوحة التحكم، الإحصائيات،
+ * سجلات التدقيق، وإعدادات النظام.
+ */
 import api from '../../api/client'
-import type { SuccessResponse, AdminStats, AuditLogEntry, PaginationParams } from '../core/types'
+import type { SuccessResponse, AdminStats, AuditLogEntry, PaginationParams, RecentActivity, Pagination } from '../core/types'
 
 export const admin = {
   getStats() {
@@ -7,7 +11,7 @@ export const admin = {
   },
 
   getAuditLog(params?: PaginationParams & { action?: string; user_id?: number }) {
-    return api.get<SuccessResponse<AuditLogEntry[]> & { pagination?: any }>('/admin/audit-log', { params })
+    return api.get<SuccessResponse<AuditLogEntry[]> & { pagination?: Pagination }>('/admin/audit-log', { params })
   },
 
   getDistinctActions() {
@@ -19,6 +23,6 @@ export const admin = {
   },
 
   getRecentActivity() {
-    return api.get<SuccessResponse<any[]>>('/admin/recent-activity')
+    return api.get<SuccessResponse<RecentActivity[]>>('/admin/recent-activity')
   },
 }

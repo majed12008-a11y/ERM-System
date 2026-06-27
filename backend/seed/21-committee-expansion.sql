@@ -183,7 +183,8 @@ FROM security.user_roles ur
 JOIN security.roles r ON r.id = ur.role_id
 JOIN security.role_permissions rp ON rp.role_id = (SELECT id FROM security.roles WHERE code = 'ETHICS_ADMIN')
 WHERE ur.user_id IN (SELECT id FROM security.users WHERE username IN ('sanaa_admin', 'aden_admin'))
-  AND r.code = 'ETHICS_ADMIN';
+  AND r.code = 'ETHICS_ADMIN'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ============================================================
 -- 4. NEW COMMITTEES
@@ -328,8 +329,8 @@ WHERE c.committee_code = 'IRB-HADHRAMOUT-01'
 
 -- Helper function variables pattern: role assignments by committee
 -- Chair assignments
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, '2024-01-01'::date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -338,8 +339,8 @@ WHERE c.committee_code IN ('SRC-KSU-01', 'DSMB-KSU-01', 'IACUC-KSU-01', 'COIC-KS
                            'IRB-HADHRAMOUT-01', 'IRB-TAIZ-01')
   AND u.username IN ('chairperson', 'sanaa_chair') AND cr.role_code = 'CHAIR';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, '2024-06-01'::date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -347,8 +348,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code IN ('IRB-SANAA-01', 'REC-SANAA-01')
   AND u.username = 'sanaa_chair' AND cr.role_code = 'CHAIR';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, '2024-06-01'::date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -357,8 +358,8 @@ WHERE c.committee_code IN ('IRB-ADEN-01', 'REC-ADEN-01')
   AND u.username = 'aden_chair' AND cr.role_code = 'CHAIR';
 
 -- Secretary assignments
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -366,8 +367,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code IN ('IRB-SANAA-01', 'REC-SANAA-01', 'IRB-TAIZ-01')
   AND u.username = 'sanaa_admin' AND cr.role_code = 'SECRETARY';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -375,8 +376,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code IN ('IRB-ADEN-01', 'REC-ADEN-01')
   AND u.username = 'aden_admin' AND cr.role_code = 'SECRETARY';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -385,8 +386,8 @@ WHERE c.committee_code IN ('SRC-KSU-01', 'DSMB-KSU-01', 'IACUC-KSU-01', 'COIC-KS
   AND u.username = 'ethics_admin' AND cr.role_code = 'SECRETARY';
 
 -- Member assignments
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -394,8 +395,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code IN ('IRB-SANAA-01', 'REC-SANAA-01')
   AND u.username IN ('sanaa_reviewer1', 'sanaa_reviewer2') AND cr.role_code = 'MEMBER';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -403,8 +404,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code IN ('IRB-ADEN-01', 'REC-ADEN-01')
   AND u.username IN ('aden_reviewer1', 'aden_reviewer2') AND cr.role_code = 'MEMBER';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -412,8 +413,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code = 'SRC-KSU-01'
   AND u.username IN ('reviewer1', 'reviewer3', 'ksu_reviewer4') AND cr.role_code = 'MEMBER';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -421,8 +422,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code = 'DSMB-KSU-01'
   AND u.username = 'reviewer2' AND cr.role_code = 'MEMBER';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -430,8 +431,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code = 'IACUC-KSU-01'
   AND u.username IN ('reviewer1', 'ksu_animal_researcher') AND cr.role_code = 'MEMBER';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
@@ -439,8 +440,8 @@ CROSS JOIN committee.committee_roles cr
 WHERE c.committee_code = 'COIC-KSU-01'
   AND u.username = 'reviewer3' AND cr.role_code = 'MEMBER';
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT DISTINCT cm.id, cr.id, cm.membership_start_date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT DISTINCT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id

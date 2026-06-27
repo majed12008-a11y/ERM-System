@@ -1,6 +1,8 @@
 -- ============================================================
 -- 04-DOCUMENT TYPES
 -- ============================================================
+-- أنواع المستندات المطلوبة في النظام.
+-- تحدد أنواع الملفات المرفقة لكل طلب بحث.
 
 INSERT INTO documents.document_types (type_code, type_name_ar, type_name_en, description, is_required) VALUES
   ('PROTOCOL', 'بروتوكول البحث', 'Research Protocol', 'بروتوكول البحث الكامل', true),

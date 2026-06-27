@@ -1,5 +1,9 @@
+/*
+ * SDK السلامة: دوال إدارة المخاطر، الأحداث الضارة،
+ * والإجراءات التصحيحية.
+ */
 import api from '../../api/client'
-import type { SuccessResponse, RiskRegister, AdverseEvent } from '../core/types'
+import type { SuccessResponse, RiskRegister, AdverseEvent, RiskMitigation, RiskIncident, CorrectiveAction } from '../core/types'
 
 export const safety = {
   getAdverseEvents() {
@@ -11,14 +15,14 @@ export const safety = {
   },
 
   getSafetyReports() {
-    return api.get<SuccessResponse<any[]>>('/safety/safety-reports')
+    return api.get<SuccessResponse<AdverseEvent[]>>('/safety/safety-reports')
   },
 
   getRiskRegister() {
     return api.get<SuccessResponse<RiskRegister[]>>('/safety/risk-register')
   },
 
-  createRiskEntry(data: { risk_title: string; risk_level: string; description: string }) {
+  createRiskEntry(data: { risk_title: string; risk_level: string; risk_description?: string }) {
     return api.post<SuccessResponse<RiskRegister>>('/safety/risk-register', data)
   },
 
@@ -31,26 +35,26 @@ export const safety = {
   },
 
   getMitigations(riskId: number) {
-    return api.get<SuccessResponse<any[]>>(`/safety/risk-register/${riskId}/mitigations`)
+    return api.get<SuccessResponse<RiskMitigation[]>>(`/safety/risk-register/${riskId}/mitigations`)
   },
 
-  addMitigation(riskId: number, data: { description: string }) {
-    return api.post<SuccessResponse<any>>(`/safety/risk-register/${riskId}/mitigations`, data)
+  addMitigation(riskId: number, data: { mitigation_plan: string; responsible_party?: number; status?: string }) {
+    return api.post<SuccessResponse<RiskMitigation>>(`/safety/risk-register/${riskId}/mitigations`, data)
   },
 
   getIncidents() {
-    return api.get<SuccessResponse<any[]>>('/safety/risk-incidents')
+    return api.get<SuccessResponse<RiskIncident[]>>('/safety/incidents')
   },
 
-  reportIncident(data: { title: string; description: string; severity: string }) {
-    return api.post<SuccessResponse<any>>('/safety/risk-incidents', data)
+  reportIncident(data: { incident_code: string; risk_id: number; incident_date: string; description: string; severity: string }) {
+    return api.post<SuccessResponse<RiskIncident>>('/safety/incidents', data)
   },
 
   getCorrectiveActions() {
-    return api.get<SuccessResponse<any[]>>('/safety/corrective-actions')
+    return api.get<SuccessResponse<CorrectiveAction[]>>('/safety/corrective-actions')
   },
 
-  createCorrectiveAction(data: { incident_id: number; action: string; due_date: string }) {
-    return api.post<SuccessResponse<any>>('/safety/corrective-actions', data)
+  createCorrectiveAction(data: { incident_id: number; action_plan: string; assigned_to: number; due_date?: string }) {
+    return api.post<SuccessResponse<CorrectiveAction>>('/safety/corrective-actions', data)
   },
 }

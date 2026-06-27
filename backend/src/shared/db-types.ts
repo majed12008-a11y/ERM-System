@@ -1,3 +1,7 @@
+/*
+ * تعريفات أنواع قاعدة البيانات: تطابق بنية جداول
+ * الطلبات والمشاريع في قاعدة البيانات.
+ */
 export interface ApplicationRow {
   id: number;
   application_number: string;

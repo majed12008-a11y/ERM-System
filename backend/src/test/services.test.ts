@@ -44,7 +44,7 @@ describe('ApplicationService', () => {
   describe('1. Authorization: updateStatus blocks non-privileged roles', () => {
     it('allows ETHICS_ADMIN to update status', async () => {
       mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'UNDER_REVIEW' });
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'] };
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
 
       const result = await service.updateStatus(1, { status: 'UNDER_REVIEW' }, user);
 
@@ -53,7 +53,7 @@ describe('ApplicationService', () => {
     });
 
     it('blocks RESEARCHER with 403', async () => {
-      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'] };
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
       const err = await service.updateStatus(1, { status: 'UNDER_REVIEW' }, user)
         .catch(e => e);
       expect(err.status).toBe(403);
@@ -61,7 +61,7 @@ describe('ApplicationService', () => {
     });
 
     it('blocks REVIEWER with 403', async () => {
-      const user = { id: 24, uuid: '', institution_id: 1, username: 'reviewer', email: 'rev@test.com', status: 'ACTIVE', roles: ['REVIEWER'] };
+      const user = { id: 24, uuid: '', institution_id: 1, username: 'reviewer', email: 'rev@test.com', status: 'ACTIVE', roles: ['REVIEWER'], is_email_verified: true };
       const err = await service.updateStatus(1, { status: 'UNDER_REVIEW' }, user)
         .catch(e => e);
       expect(err.status).toBe(403);
@@ -79,7 +79,7 @@ describe('ApplicationService', () => {
 
     it('updateStatus throws 404 when application not found', async () => {
       mockRepo.updateStatus.mockResolvedValue(null);
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'] };
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
       const err = await service.updateStatus(999, { status: 'APPROVED' }, user)
         .catch(e => e);
       expect(err.status).toBe(404);
@@ -100,7 +100,7 @@ describe('ApplicationService', () => {
       mockRepo.generateApplicationNumber.mockResolvedValue('APP-2025-001');
       mockRepo.create.mockResolvedValue({ id: 100, application_number: 'APP-2025-001' });
 
-      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'] };
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
       const data = { project_id: 35, application_type: 'INITIAL', target_committee_id: 3 };
       const result = await service.create(data, user);
 
@@ -126,7 +126,7 @@ describe('ApplicationService', () => {
       mockRepo.create.mockResolvedValue({ id: 101 });
       mockWorkflow.initWorkflow.mockRejectedValue(new Error('Workflow engine error'));
 
-      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'] };
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
       const data = { project_id: 35, application_type: 'INITIAL', target_committee_id: 3 };
 
       await expect(service.create(data, user)).rejects.toThrow('Workflow engine error');
@@ -137,7 +137,7 @@ describe('ApplicationService', () => {
 
   describe('4. Input Validation: committeeDecision rejects invalid states', () => {
     it('throws 400 for invalid decision value', async () => {
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'] };
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
       const err = await service.committeeDecision(1, 'INVALID', undefined, user)
         .catch(e => e);
       expect(err.status).toBe(400);
@@ -147,7 +147,7 @@ describe('ApplicationService', () => {
     it('throws 400 when reviews still pending', async () => {
       mockRepo.findById.mockResolvedValue({ id: 1 });
       mockRepo.countPendingReviews.mockResolvedValue(2);
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'] };
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
 
       const err = await service.committeeDecision(1, 'APPROVED', undefined, user)
         .catch(e => e);
@@ -159,7 +159,7 @@ describe('ApplicationService', () => {
       mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, application_number: 'APP-2024-001' });
       mockRepo.countPendingReviews.mockResolvedValue(0);
       mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'APPROVED' });
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'] };
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
 
       await service.committeeDecision(1, 'APPROVED', 'Looks good', user);
 

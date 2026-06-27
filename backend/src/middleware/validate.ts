@@ -1,3 +1,8 @@
+/*
+ * وسيط للتحقق من صحة البيانات المدخلة باستخدام Zod schema.
+ * يقارن req.body/query/params مع المخطط ويعيد خطأ 400
+ * إذا كانت البيانات غير صحيحة.
+ */
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { errorResponse } from '../shared/utils';

@@ -1,3 +1,8 @@
+/*
+ * نظام المراسلات والاتصالات الداخلية بين المستخدمين.
+ * يدعم إرسال الرسائل والردود وإدارة المحادثات
+ * مع ربطها بالطلبات والمشاريع واللجان.
+ */
 import { withTransaction } from '../config/database';
 import { CommunicationRepository } from '../repositories/communication.repository';
 

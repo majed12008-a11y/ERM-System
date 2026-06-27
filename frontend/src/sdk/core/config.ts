@@ -1,3 +1,6 @@
+/*
+ * إعدادات SDK: تكوين عنوان URL الأساسي للـ API.
+ */
 export interface SdkConfig {
   baseURL?: string
 }

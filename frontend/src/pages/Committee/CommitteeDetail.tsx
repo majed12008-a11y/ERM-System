@@ -1,3 +1,7 @@
+/*
+ * صفحة تفاصيل اللجنة: معلومات اللجنة، الأعضاء، الصلاحيات،
+ * والطلبات المرتبطة بها.
+ */
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -11,8 +15,8 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import {
   ArrowLeft, Users, Building2, Tag, CalendarDays, UserPlus, Trash2,
-  Eye, CalendarPlus, GraduationCap, Award, AlertTriangle, FileText,
-  Plus, X
+  Eye, CalendarPlus, Award, AlertTriangle, FileText,
+  Plus
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -583,16 +587,16 @@ function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qua
   const [showForm, setShowForm] = useState(false)
   const [specialization, setSpecialization] = useState('')
   const [degree, setDegree] = useState('')
-  const [institution, setInstitution] = useState('')
-  const [year, setYear] = useState('')
+  const [institutionName, setInstitutionName] = useState('')
+  const [experienceYears, setExperienceYears] = useState('')
 
   function handleSubmit() {
     if (!specialization || !degree) return
-    onAdd({ specialization, academic_degree: degree, institution: institution || null, year_obtained: year ? parseInt(year) : null })
+    onAdd({ specialization, academic_degree: degree, institution_name: institutionName || null, experience_years: experienceYears ? parseInt(experienceYears) : null })
     setSpecialization('')
     setDegree('')
-    setInstitution('')
-    setYear('')
+    setInstitutionName('')
+    setExperienceYears('')
     setShowForm(false)
   }
 
@@ -619,11 +623,11 @@ function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qua
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-slate-500">{t('committeeDetail.institution')}</label>
-              <input value={institution} onChange={e => setInstitution(e.target.value)} className="w-full p-1.5 border rounded text-sm" />
+              <input value={institutionName} onChange={e => setInstitutionName(e.target.value)} className="w-full p-1.5 border rounded text-sm" />
             </div>
             <div>
-              <label className="text-xs text-slate-500">{t('committeeDetail.year')}</label>
-              <input type="number" value={year} onChange={e => setYear(e.target.value)} className="w-full p-1.5 border rounded text-sm" />
+              <label className="text-xs text-slate-500">{t('committeeDetail.experienceYears')}</label>
+              <input type="number" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} className="w-full p-1.5 border rounded text-sm" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -644,7 +648,7 @@ function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qua
                 <span className="font-medium">{q.specialization}</span>
                 <StatusBadge status={q.is_verified ? 'VERIFIED' : 'PENDING'} />
               </div>
-              <p className="text-xs text-slate-500">{q.academic_degree}{q.institution ? ` - ${q.institution}` : ''}{q.year_obtained ? ` (${q.year_obtained})` : ''}</p>
+              <p className="text-xs text-slate-500">{q.academic_degree}{q.institution_name ? ` - ${q.institution_name}` : ''}{q.experience_years ? ` (${q.experience_years} ${t('committeeDetail.years')})` : ''}</p>
             </div>
           ))}
         </div>

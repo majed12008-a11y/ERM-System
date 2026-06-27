@@ -1,3 +1,7 @@
+/*
+ * مستودع طلبات البحث: CRUD مع الترقيم والبحث والتصفية.
+ * يدير دورة حياة الطلب بالكامل مع ربطه بالباحثين والمشرفين.
+ */
 import { PoolClient } from 'pg';
 import { AuditableRepository } from './auditable.repository';
 import { ApplicationRow } from '../shared/db-types';
@@ -109,6 +113,45 @@ export class ApplicationRepository extends AuditableRepository
       client
     );
     return result.rows[0];
+  }
+
+  async update(id: number, data: Partial<{ application_type: string; target_committee_id: number; priority_level: string; remarks: string }>, client?: PoolClient): Promise<ApplicationRow | null> {
+    const meta = this.updateMeta();
+    const fields: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (data.application_type !== undefined) {
+      fields.push(`application_type = $${idx++}`);
+      values.push(data.application_type);
+    }
+    if (data.target_committee_id !== undefined) {
+      fields.push(`target_committee_id = $${idx++}`);
+      values.push(data.target_committee_id);
+    }
+    if (data.priority_level !== undefined) {
+      fields.push(`priority_level = $${idx++}`);
+      values.push(data.priority_level);
+    }
+    if (data.remarks !== undefined) {
+      fields.push(`remarks = $${idx++}`);
+      values.push(data.remarks);
+    }
+
+    if (fields.length === 0) return null;
+
+    fields.push(`updated_at = $${idx++}`);
+    values.push(meta.updated_at);
+    fields.push(`updated_by = $${idx++}`);
+    values.push(meta.updated_by);
+
+    values.push(id);
+    const result = await this.query(
+      `UPDATE core.applications SET ${fields.join(', ')} WHERE id = $${idx} AND current_status = 'DRAFT' RETURNING *`,
+      values,
+      client
+    );
+    return result.rows[0] || null;
   }
 
   async generateApplicationNumber(client: PoolClient): Promise<string> {

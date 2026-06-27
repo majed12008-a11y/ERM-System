@@ -1,3 +1,7 @@
+/*
+ * وحدة سير العمل: إدارة مسارات العمل وحالاتها
+ * والمهام المرتبطة بالطلبات والمشاريع.
+ */
 import { Router } from 'express';
 import workflowRoutes from './workflow.routes';
 

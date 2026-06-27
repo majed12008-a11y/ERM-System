@@ -1,3 +1,8 @@
+/*
+ * سياق المصادقة: إدارة حالة تسجيل الدخول على مستوى التطبيق.
+ * يوفر بيانات المستخدم الحالي، دوال تسجيل الدخول/الخروج،
+ * والتحقق من صلاحية التوكن.
+ */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import api, { setAccessToken, getAccessToken } from '../api/client'
 
@@ -7,6 +12,7 @@ interface User {
   username: string
   email: string
   institution_id: number
+  is_email_verified: boolean
   roles: string[]
   permissions: string[]
 }

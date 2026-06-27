@@ -1,3 +1,8 @@
+/*
+ * مستودع الصلاحيات: إدارة الأدوار والأذونات.
+ * يوفر دوال للتحقق من صلاحيات المستخدمين
+ * وإدارة تعيين الأدوار.
+ */
 import { AuditableRepository } from './auditable.repository';
 
 export class AuthorizationRepository extends AuditableRepository {

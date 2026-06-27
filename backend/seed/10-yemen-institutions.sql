@@ -2,6 +2,8 @@
 -- 10-YEMEN-INSTITUTIONS
 -- Yemeni institutions and departments for the ERM system
 -- ============================================================
+-- بيانات المؤسسات اليمنية (الجامعات، المراكز البحثية، المستشفيات)
+-- والإدارات التابعة لها.
 
 -- Yemeni Universities
 INSERT INTO security.institutions (institution_type_id, code, name_ar, name_en, email, phone, address, is_active)

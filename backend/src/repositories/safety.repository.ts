@@ -1,3 +1,7 @@
+/*
+ * مستودع السلامة: سجل المخاطر، الحوادث،
+ * الإجراءات التصحيحية والوقائية.
+ */
 import { AuditableRepository } from './auditable.repository';
 
 export class SafetyRepository extends AuditableRepository {
@@ -22,7 +26,7 @@ export class SafetyRepository extends AuditableRepository {
     const result = await this.query(
       `INSERT INTO safety.risk_register
         (risk_code, risk_title, risk_description, likelihood, impact, risk_level, owner_id, status, created_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, CASE WHEN $4 * $5 >= 9 THEN 'HIGH' WHEN $4 * $5 >= 4 THEN 'MEDIUM' ELSE 'LOW' END), $7, COALESCE($8, 'IDENTIFIED'), $9, $10)
+       VALUES ($1::varchar, $2::varchar, $3::text, $4::integer, $5::integer, COALESCE($6::varchar, CASE WHEN $4::integer * $5::integer >= 9 THEN 'HIGH' WHEN $4::integer * $5::integer >= 4 THEN 'MEDIUM' ELSE 'LOW' END), $7::integer, COALESCE($8::varchar, 'IDENTIFIED'), $9, $10)
        RETURNING *`,
       [risk_code, risk_title, risk_description, likelihood, impact, risk_level, owner_id, status, meta.created_by, meta.created_at]
     );
@@ -117,6 +121,17 @@ export class SafetyRepository extends AuditableRepository {
         (incident_id, action_code, description, assigned_to, priority, due_date, status, created_by, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'OPEN', $7, $8) RETURNING *`,
       [data.incident_id, data.action_code, data.description, data.assigned_to, data.priority, data.due_date, meta.created_by, meta.created_at]
+    );
+    return result.rows[0];
+  }
+
+  async createAdverseEvent(data: any, userId: number): Promise<any> {
+    const result = await this.query(
+      `INSERT INTO safety.adverse_events
+        (application_id, event_number, event_date, event_type, severity, expectedness, relatedness, description, outcome_status, reported_by, reported_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now()) RETURNING *`,
+      [data.application_id, data.event_number, data.event_date, data.event_type, data.severity,
+       data.expectedness, data.relatedness, data.description, data.outcome_status, userId]
     );
     return result.rows[0];
   }

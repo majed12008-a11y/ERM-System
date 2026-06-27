@@ -1,3 +1,7 @@
+/*
+ * صفحة نماذج المراجعة: إدارة نماذج مراجعة الطلبات،
+ * الأسئلة، والتقييمات.
+ */
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'

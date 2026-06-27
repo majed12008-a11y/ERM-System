@@ -1,3 +1,8 @@
+/*
+ * نظام الإشعارات: إرسال إشعارات عبر Server-Sent Events (SSE)،
+ * إنشاء إشعارات في قاعدة البيانات، وإذاعة الأحداث
+ * للوحة التحكم للمستخدمين المتصلين.
+ */
 import { Response } from 'express';
 import { PoolClient } from 'pg';
 import { query } from '../config/database';

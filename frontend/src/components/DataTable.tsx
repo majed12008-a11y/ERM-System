@@ -22,17 +22,29 @@ interface DataTableProps<T> {
   pageSize?: number
   emptyMessage?: string
   loading?: boolean
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  sortKey?: string | null
+  sortDir?: 'asc' | 'desc'
+  onSortChange?: (key: string) => void
 }
 
 function DataTableInner<T extends Record<string, any>>({
-  columns, data, onRowClick, searchable, pageSize = 20, emptyMessage, loading
+  columns, data, onRowClick, searchable, pageSize = 20, emptyMessage, loading,
+  searchValue: externalSearch, onSearchChange,
+  sortKey: externalSortKey, sortDir: externalSortDir, onSortChange
 }: DataTableProps<T>) {
   const { t } = useTranslation()
-  const [search, setSearch] = useState('')
+  const [internalSearch, setInternalSearch] = useState('')
+  const search = externalSearch !== undefined ? externalSearch : internalSearch
+  const setSearch = onSearchChange || setInternalSearch
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const isSortControlled = onSortChange !== undefined
+  const [internalSortKey, setInternalSortKey] = useState<string | null>(null)
+  const [internalSortDir, setInternalSortDir] = useState<'asc' | 'desc'>('asc')
+  const sortKey = isSortControlled ? externalSortKey ?? null : internalSortKey
+  const sortDir = isSortControlled ? externalSortDir ?? 'asc' : internalSortDir
 
   const filterOptions = useMemo(() => {
     const opts: Record<string, string[]> = {}
@@ -59,7 +71,7 @@ function DataTableInner<T extends Record<string, any>>({
         result = result.filter(item => String(item[key] ?? '') === value)
       }
     })
-    if (sortKey) {
+    if (!isSortControlled && sortKey) {
       result = [...result].sort((a, b) => {
         const av = String(a[sortKey] ?? '')
         const bv = String(b[sortKey] ?? '')
@@ -79,13 +91,17 @@ function DataTableInner<T extends Record<string, any>>({
   }
 
   function handleSort(key: string) {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    if (isSortControlled) {
+      onSortChange(key)
     } else {
-      setSortKey(key)
-      setSortDir('asc')
+      if (internalSortKey === key) {
+        setInternalSortDir(d => d === 'asc' ? 'desc' : 'asc')
+      } else {
+        setInternalSortKey(key)
+        setInternalSortDir('asc')
+      }
+      setPage(0)
     }
-    setPage(0)
   }
 
   if (loading) {

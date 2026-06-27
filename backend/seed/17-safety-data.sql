@@ -72,7 +72,7 @@ BEGIN
   SELECT id INTO v_psych_id FROM safety.risk_categories WHERE category_code = 'PSYCHOLOGICAL';
 
   -- For assessment 1 (APP-2024-001)
-  SELECT id INTO v_assessment1 FROM safety.risk_assessments ra
+  SELECT ra.id INTO v_assessment1 FROM safety.risk_assessments ra
     JOIN core.applications a ON a.id = ra.application_id
     WHERE a.application_number = 'APP-2024-001';
 
@@ -86,7 +86,7 @@ BEGIN
   VALUES (v_assessment1, v_data_id, 'تشفير جميع بيانات المرضى وفصل المعلومات الشخصية عن البيانات السريرية', v_researcher1, '2024-04-01'::date, 'COMPLETED');
 
   -- For assessment 2 (APP-2024-002)
-  SELECT id INTO v_assessment2 FROM safety.risk_assessments ra
+  SELECT ra.id INTO v_assessment2 FROM safety.risk_assessments ra
     JOIN core.applications a ON a.id = ra.application_id
     WHERE a.application_number = 'APP-2024-002';
 
@@ -100,7 +100,7 @@ BEGIN
   VALUES (v_assessment2, v_data_id, 'تطبيق نظام إدارة بيانات آمن مع صلاحيات وصول محددة لأفراد فريق البحث فقط', v_researcher1, '2024-06-30'::date, 'COMPLETED');
 
   -- For assessment 3 (APP-2024-003)
-  SELECT id INTO v_assessment3 FROM safety.risk_assessments ra
+  SELECT ra.id INTO v_assessment3 FROM safety.risk_assessments ra
     JOIN core.applications a ON a.id = ra.application_id
     WHERE a.application_number = 'APP-2024-003';
 
@@ -111,7 +111,7 @@ BEGIN
   VALUES (v_assessment3, v_data_id, 'مراجعة وتحديث نموذج الموافقة المستنيرة ليشمل المعلومات الجديدة عن المخاطر', v_ethics_admin, '2024-09-10'::date, 'OPEN');
 
   -- For assessment 4 (APP-2024-005)
-  SELECT id INTO v_assessment4 FROM safety.risk_assessments ra
+  SELECT ra.id INTO v_assessment4 FROM safety.risk_assessments ra
     JOIN core.applications a ON a.id = ra.application_id
     WHERE a.application_number = 'APP-2024-005';
 

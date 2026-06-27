@@ -1,3 +1,8 @@
+/*
+ * وسيط المصادقة (JWT) والصلاحيات.
+ * authenticate: يتحقق من JWT Bearer token ويضبط سياق المستخدم.
+ * authorize(code): تتحقق من صلاحية المستخدم للوصول إلى مسار معين.
+ */
 import { Request, Response, NextFunction } from 'express';
 import { jwtVerify, SignJWT } from 'jose';
 import { query } from '../config/database';
@@ -28,10 +33,10 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   const userId = payload.userId;
 
   const existingCtx = userContext.getStore();
-  userContext.run({ userId, requestId: existingCtx?.requestId || '-' }, async () => {
+  userContext.run({ userId, requestId: existingCtx?.requestId || '-', sourceIp: existingCtx?.sourceIp }, async () => {
     try {
       const dbResult = await query(
-        `SELECT u.id, u.uuid, u.institution_id, u.username, u.email, u.status,
+        `SELECT u.id, u.uuid, u.institution_id, u.username, u.email, u.status, u.is_email_verified,
                 COALESCE(array_agg(r.code) FILTER (WHERE r.code IS NOT NULL), '{}') as roles
          FROM security.users u
          LEFT JOIN security.user_roles ur ON ur.user_id = u.id
@@ -60,7 +65,7 @@ export function authorize(...roles: string[]) {
     if (!user) {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
-    if (roles.length > 0 && !roles.some(r => user.roles && user.roles.includes(r))) {
+    if (roles.length > 0 && (!user.roles || !user.roles.includes('SUPER_ADMIN')) && !roles.some(r => user.roles && user.roles.includes(r))) {
       return res.status(403).json({ success: false, error: 'Insufficient permissions' });
     }
     next();

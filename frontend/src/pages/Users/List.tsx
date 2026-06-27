@@ -1,3 +1,7 @@
+/*
+ * صفحة إدارة المستخدمين: عرض وإنشاء وتحرير المستخدمين
+ * مع إدارة الأدوار والصلاحيات.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -6,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import api from '../../api/client'
 import DataTable from '../../components/DataTable'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePermission } from '../../hooks/usePermission'
 import { createUserSchema } from '../../lib/schemas'
 import { z } from 'zod'
@@ -18,6 +22,13 @@ export default function UserList() {
   const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [editUserId, setEditUserId] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [institutionFilter, setInstitutionFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const canCreate = usePermission('user.create')
   const canUpdate = usePermission('user.update')
 
@@ -33,9 +44,14 @@ export default function UserList() {
   const editRoleCodes = editForm.watch('role_codes')
 
   const { data, isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => api.get('/security/users').then((r) => r.data.data),
+    queryKey: ['users', searchQuery, institutionFilter, roleFilter, statusFilter, page, sortKey, sortDir],
+    queryFn: () => api.get('/security/users', { params: { search: searchQuery || undefined, institution_id: institutionFilter || undefined, role_code: roleFilter || undefined, status: statusFilter || undefined, page, limit: 20, sort_by: sortKey || undefined, sort_order: sortKey ? sortDir : undefined } }).then((r) => r.data),
+    placeholderData: (prev) => prev,
   })
+
+  const users = data?.data || []
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 }
+  const totalPages = pagination.totalPages || 1
 
   const { data: editUser } = useQuery({
     queryKey: ['user', editUserId],
@@ -92,6 +108,21 @@ export default function UserList() {
     const current = editRoleCodes || []
     if (current.includes(code)) editForm.setValue('role_codes', current.filter((c: string) => c !== code), { shouldDirty: true })
     else editForm.setValue('role_codes', [...current, code], { shouldDirty: true })
+  }
+
+  function onSearchChange(val: string) {
+    setSearchQuery(val)
+    setPage(1)
+  }
+
+  function handleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+    setPage(1)
   }
 
   return (
@@ -205,21 +236,78 @@ export default function UserList() {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="relative flex-1 max-w-xs">
+          <input
+            placeholder={t('common.search')}
+            value={searchQuery}
+            onChange={e => onSearchChange(e.target.value)}
+            className="w-full pl-3 pr-8 h-9 text-sm border rounded"
+          />
+        </div>
+        <select value={institutionFilter} onChange={e => { setInstitutionFilter(e.target.value); setPage(1) }}
+          className="p-1.5 border rounded text-sm bg-white max-w-[200px]">
+          <option value="">{t('users.allInstitutions')}</option>
+          {(institutions || []).map((i: any) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
+        </select>
+        <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1) }}
+          className="p-1.5 border rounded text-sm bg-white max-w-[180px]">
+          <option value="">{t('users.allRoles')}</option>
+          {(roles || []).filter((r: any) => r.is_active).map((r: any) => (
+            <option key={r.code} value={r.code}>{r.name_ar || r.code}</option>
+          ))}
+        </select>
+        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+          className="p-1.5 border rounded text-sm bg-white max-w-[150px]">
+          <option value="">{t('users.allStatuses')}</option>
+          <option value="ACTIVE">{t('common.active')}</option>
+          <option value="INACTIVE">{t('common.inactive')}</option>
+          <option value="SUSPENDED">{t('common.suspended')}</option>
+        </select>
+      </div>
+
         <DataTable
-          searchable
+          searchable={false}
           loading={isLoading}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={handleSort}
           columns={[
+            { key: 'display_name', label: t('users.name'), sortable: true, render: (i) => `${i.first_name_ar} ${i.last_name_ar}`.trim() || i.username },
             { key: 'username', label: t('users.username'), sortable: true },
             { key: 'email', label: t('users.email'), sortable: true },
-            { key: 'status', label: t('users.status'), filterable: true, sortable: true, render: (i) => <span className={`text-xs px-2 py-1 rounded ${i.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{i.status}</span> },
+            { key: 'status', label: t('users.status'), sortable: true, render: (i) => <span className={`text-xs px-2 py-1 rounded ${i.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{i.status}</span> },
             { key: 'roles', label: t('users.roles'), render: (i) => (i.roles || []).join(', ') },
             { key: 'institution_name', label: t('users.institution'), sortable: true },
             { key: 'last_login_at', label: t('users.lastLogin'), sortable: true, render: (i) => i.last_login_at ? new Date(i.last_login_at).toLocaleDateString() : '\u2014' },
             ...(canUpdate ? [{ key: 'actions' as string, label: '', render: (i: any) => <button onClick={() => setEditUserId(i.id)} className="text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button> }] : []),
           ]}
-          data={data || []}
+          data={users}
           emptyMessage={t('users.empty')}
         />
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-2 text-sm text-slate-500">
+          <span>{t('dataTable.records', { count: pagination.total })}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page <= 1}
+              className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span>{t('dataTable.pageOf', { page, total: totalPages })}</span>
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+              className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

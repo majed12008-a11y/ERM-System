@@ -1,3 +1,8 @@
+/*
+ * مستودع المستندات والملفات: رفع، تنزيل،
+ * حذف منطقي، وتصنيف المستندات حسب أنواعها
+ * وارتباطها بالكيانات المختلفة.
+ */
 import { AuditableRepository } from './auditable.repository';
 import { PaginationParams } from '../shared/pagination';
 
@@ -75,7 +80,7 @@ export class DocumentRepository extends AuditableRepository {
   }
 
   async getTypes(): Promise<any[]> {
-    const result = await this.query('SELECT * FROM documents.document_types WHERE is_active = TRUE');
+    const result = await this.query('SELECT * FROM documents.document_types ORDER BY type_name_ar');
     return result.rows;
   }
 

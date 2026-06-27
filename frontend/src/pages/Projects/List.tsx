@@ -1,3 +1,7 @@
+/*
+ * صفحة المشاريع: عرض وإنشاء المشاريع البحثية المرتبطة
+ * بطلبات البحث مع الترقيم والبحث.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'

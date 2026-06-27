@@ -1,3 +1,7 @@
+/*
+ * وحدة التكامل: إدارة الأحداث الصادرة للتكامل
+ * مع الأنظمة الخارجية.
+ */
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { successResponse, errorResponse } from '../../shared/utils';

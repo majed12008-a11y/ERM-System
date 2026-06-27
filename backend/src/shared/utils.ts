@@ -1,3 +1,8 @@
+/*
+ * دوال مساعدة مشتركة لتنسيق استجابات API.
+ * successResponse: تعيد استجابة نجاح بصيغة موحدة.
+ * errorResponse: تعيد استجابة خطأ بصيغة موحدة.
+ */
 export function successResponse<T>(data: T, message?: string) {
   return { success: true, data, message };
 }

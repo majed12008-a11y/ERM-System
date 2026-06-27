@@ -1,3 +1,7 @@
+/*
+ * صفحة السجل: عرض سجل جميع الطلبات والأحداث
+ * مع إمكانية التصفية والبحث.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import api from '../../api/client'

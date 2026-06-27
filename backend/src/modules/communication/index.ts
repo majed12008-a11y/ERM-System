@@ -1,3 +1,7 @@
+/*
+ * وحدة المراسلات: إدارة الرسائل الداخلية بين المستخدمين
+ * ونظام الإشعارات الفورية (SSE) للوحة التحكم.
+ */
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { successResponse, errorResponse } from '../../shared/utils';

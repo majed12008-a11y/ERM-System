@@ -305,42 +305,42 @@ INSERT INTO reference.status_types (status_type_code, status_type_name, descript
 -- USER PROFILES
 -- ============================================================
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1012345678', 'ذكر', '1980-05-15'::date, 'SA', 'أستاذ دكتور', 'الصيدلة السريرية',
+SELECT u.id, '1012345678', 'MALE', '1980-05-15'::date, 'SA', 'أستاذ دكتور', 'الصيدلة السريرية',
   'أستاذ الصيدلة السريرية بجامعة الملك سعود. له أكثر من 25 بحثاً منشوراً في مجال علم الوراثة الدوائي.'
 FROM security.users u WHERE u.username = 'researcher1';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1023456789', 'أنثى', '1985-11-20'::date, 'SA', 'دكتورة', 'طب الأسنان',
+SELECT u.id, '1023456789', 'FEMALE', '1985-11-20'::date, 'SA', 'دكتورة', 'طب الأسنان',
   'أستاذ مساعد في طب الأسنان بجامعة الملك سعود. مهتمة بأبحاث الميكروبيوم الفموي.'
 FROM security.users u WHERE u.username = 'researcher2';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1034567890', 'ذكر', '1975-03-10'::date, 'SA', 'أستاذ دكتور', 'الطب الباطني',
+SELECT u.id, '1034567890', 'MALE', '1975-03-10'::date, 'SA', 'أستاذ دكتور', 'الطب الباطني',
   'أستاذ الطب الباطني ورئيس اللجنة المؤسسية لمراجعة الأخلاقيات. خبرة 20 عاماً في المجال.'
 FROM security.users u WHERE u.username = 'chairperson';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1045678901', 'ذكر', '1982-07-22'::date, 'SA', 'أستاذ مشارك', 'علم الأدوية',
+SELECT u.id, '1045678901', 'MALE', '1982-07-22'::date, 'SA', 'أستاذ مشارك', 'علم الأدوية',
   'أستاذ مشارك في علم الأدوية. مراجع علمي معتمد في العديد من المجلات العلمية.'
 FROM security.users u WHERE u.username = 'reviewer1';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1056789012', 'أنثى', '1988-09-15'::date, 'SA', 'أستاذ مساعد', 'الأخلاقيات الحيوية',
+SELECT u.id, '1056789012', 'FEMALE', '1988-09-15'::date, 'SA', 'أستاذ مساعد', 'الأخلاقيات الحيوية',
   'أستاذ مساعد في الأخلاقيات الحيوية. عضو في اللجنة المؤسسية لمراجعة الأخلاقيات منذ 2022.'
 FROM security.users u WHERE u.username = 'reviewer2';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1067890123', 'ذكر', '1978-01-30'::date, 'SA', 'أستاذ', 'الإحصاء الحيوي',
+SELECT u.id, '1067890123', 'MALE', '1978-01-30'::date, 'SA', 'أستاذ', 'الإحصاء الحيوي',
   'أستاذ الإحصاء الحيوي بجامعة الملك سعود. خبير في تحليل البيانات السريرية.'
 FROM security.users u WHERE u.username = 'reviewer3';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, '1078901234', 'ذكر', '1970-12-05'::date, 'SA', 'أستاذ دكتور', 'إدارة الرعاية الصحية',
+SELECT u.id, '1078901234', 'MALE', '1970-12-05'::date, 'SA', 'أستاذ دكتور', 'إدارة الرعاية الصحية',
   'مشرف الأخلاقيات بالجامعة. خبرة 25 عاماً في إدارة المؤسسات الصحية والأكاديمية.'
 FROM security.users u WHERE u.username = 'ethics_admin';
 
 INSERT INTO security.user_profiles (user_id, national_id, gender, date_of_birth, nationality_code, academic_title, specialization, biography)
-SELECT u.id, NULL, 'ذكر', '1990-06-18'::date, 'SA', NULL, 'تقنية المعلومات',
+SELECT u.id, NULL, 'MALE', '1990-06-18'::date, 'SA', NULL, 'تقنية المعلومات',
   'مدير النظام. مسؤول عن البنية التحتية التقنية للنظام.'
 FROM security.users u WHERE u.username = 'admin';
 

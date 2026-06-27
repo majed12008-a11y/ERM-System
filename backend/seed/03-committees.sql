@@ -1,6 +1,7 @@
 -- ============================================================
 -- 03-COMMITTEES AND COMMITTEE MEMBERS
 -- ============================================================
+-- هيكل اللجان: تعريف اللجان، الأعضاء، الأدوار داخل اللجنة.
 
 -- Committee Types
 INSERT INTO committee.committee_types (type_code, type_name, description) VALUES
@@ -30,26 +31,29 @@ WHERE c.committee_code = 'IRB-KSU-01'
   AND u.username IN ('chairperson', 'reviewer1', 'reviewer2', 'reviewer3', 'ethics_admin');
 
 -- Assign Roles to Committee Members
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT cm.id, cr.id, '2024-01-01'::date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
 CROSS JOIN committee.committee_roles cr
-WHERE c.committee_code = 'IRB-KSU-01' AND u.username = 'chairperson' AND cr.role_code = 'CHAIR';
+WHERE c.committee_code = 'IRB-KSU-01' AND u.username = 'chairperson' AND cr.role_code = 'CHAIR'
+ON CONFLICT (member_id, role_id) DO NOTHING;
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT cm.id, cr.id, '2024-01-01'::date, true, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
 CROSS JOIN committee.committee_roles cr
-WHERE c.committee_code = 'IRB-KSU-01' AND u.username = 'ethics_admin' AND cr.role_code = 'SECRETARY';
+WHERE c.committee_code = 'IRB-KSU-01' AND u.username = 'ethics_admin' AND cr.role_code = 'SECRETARY'
+ON CONFLICT (member_id, role_id) DO NOTHING;
 
-INSERT INTO committee.member_roles (member_id, role_id, start_date, is_primary, is_active)
-SELECT cm.id, cr.id, '2024-01-01'::date, false, true
+INSERT INTO committee.committee_member_roles (member_id, role_id)
+SELECT cm.id, cr.id
 FROM committee.committee_members cm
 JOIN committee.committees c ON c.id = cm.committee_id
 JOIN security.users u ON u.id = cm.user_id
 CROSS JOIN committee.committee_roles cr
-WHERE c.committee_code = 'IRB-KSU-01' AND u.username IN ('reviewer1', 'reviewer2', 'reviewer3') AND cr.role_code = 'MEMBER';
+WHERE c.committee_code = 'IRB-KSU-01' AND u.username IN ('reviewer1', 'reviewer2', 'reviewer3') AND cr.role_code = 'MEMBER'
+ON CONFLICT (member_id, role_id) DO NOTHING;

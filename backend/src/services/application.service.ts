@@ -1,3 +1,8 @@
+/*
+ * إدارة طلبات البحث: إنشاء، تقديم، مراجعة، اعتماد، رفض.
+ * تتحقق من صحة البيانات وترسل الإشعارات للمستخدمين المعنيين.
+ * تخضع جميع العمليات لسياسات RLS.
+ */
 import { ApplicationRepository } from '../repositories/application.repository';
 import { ApplicationRow } from '../shared/db-types';
 import { AuthUser } from '../shared/types';
@@ -40,6 +45,7 @@ export class ApplicationService {
     project_id: number;
     application_type: string;
     target_committee_id: number;
+    save_as_draft?: boolean;
   }, user: AuthUser): Promise<ApplicationRow> {
     const app = await withTransaction(async (client) => {
       const applicationNumber = await this.repo.generateApplicationNumber(client);
@@ -52,7 +58,9 @@ export class ApplicationService {
         target_committee_id: data.target_committee_id,
       }, client);
 
-      await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', newApp.id, client);
+      if (!data.save_as_draft) {
+        await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', newApp.id, client);
+      }
 
       return newApp;
     });
@@ -60,6 +68,76 @@ export class ApplicationService {
     broadcastDashboardEvent('dashboard-stats', {});
 
     return app;
+  }
+
+  async updateDraft(
+    id: number,
+    data: { application_type?: string; target_committee_id?: number; priority_level?: string; remarks?: string },
+    user: AuthUser
+  ): Promise<ApplicationRow> {
+    const app = await this.repo.findById(id);
+    if (!app) {
+      const err = new Error('Application not found') as any;
+      err.status = 404;
+      throw err;
+    }
+    if (app.current_status !== 'DRAFT') {
+      const err = new Error('Only draft applications can be edited') as any;
+      err.status = 400;
+      throw err;
+    }
+    if (app.submitted_by !== user.id && !user.roles.some((r: string) => ['SUPER_ADMIN', 'ETHICS_ADMIN'].includes(r))) {
+      const err = new Error('Not authorized to edit this draft') as any;
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await this.repo.update(id, data);
+    if (!updated) {
+      const err = new Error('Failed to update draft') as any;
+      err.status = 400;
+      throw err;
+    }
+    return updated;
+  }
+
+  async submitDraft(
+    id: number,
+    body: { transition_code?: string; comment?: string },
+    user: AuthUser
+  ): Promise<ApplicationRow> {
+    const app = await this.repo.findById(id);
+    if (!app) {
+      const err = new Error('Application not found') as any;
+      err.status = 404;
+      throw err;
+    }
+    if (app.current_status !== 'DRAFT') {
+      const err = new Error('Only draft applications can be submitted') as any;
+      err.status = 400;
+      throw err;
+    }
+    if (app.submitted_by !== user.id) {
+      const err = new Error('Only the owner can submit this draft') as any;
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await withTransaction(async (client) => {
+      const updated = await this.repo.updateStatus(id, 'SUBMITTED', client);
+      if (!updated) {
+        const err = new Error('Failed to submit draft') as any;
+        err.status = 400;
+        throw err;
+      }
+
+      await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', id, client);
+
+      return updated;
+    });
+
+    broadcastDashboardEvent('dashboard-stats', {});
+    return updated;
   }
 
   async updateStatus(

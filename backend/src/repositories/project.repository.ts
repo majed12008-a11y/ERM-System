@@ -1,3 +1,8 @@
+/*
+ * مستودع المشاريع البحثية: إدارة المشاريع المرتبطة
+ * بطلبات البحث المعتمدة. يشمل CRUD مع ربط
+ * بالفريق البحثي والموارد.
+ */
 import { PoolClient } from 'pg';
 import { AuditableRepository } from './auditable.repository';
 import { PaginationParams } from '../shared/pagination';

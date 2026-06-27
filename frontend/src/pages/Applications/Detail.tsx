@@ -1,5 +1,9 @@
+/*
+ * صفحة تفاصيل طلب البحث: عرض كامل للطلب مع المستندات،
+ * المراجعات، سير العمل، وإمكانية تحديث الحالة.
+ */
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,11 +12,13 @@ import { toast } from 'sonner'
 import api from '../../api/client'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { StatusBadge } from '../../components/StatusBadge'
+import RiskAssessment from '../../components/RiskAssessment'
+import ConsentTab from '../../components/ConsentTab'
 import { useAuth } from '../../context/AuthContext'
 import { workflowTransitionSchema, reviewSubmissionSchema, committeeDecisionSchema } from '../../lib/schemas'
 import {
   ArrowLeft, FileText, User, Calendar, Building2,
-  BookOpen, Users, FileUp, Gavel
+  BookOpen, Users, FileUp, Gavel, Pencil, Send
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -27,6 +33,7 @@ export default function ApplicationDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
 
   const transitionForm = useForm<TransitionFormData>({
     resolver: zodResolver(workflowTransitionSchema),
@@ -94,7 +101,11 @@ export default function ApplicationDetail() {
       comment: data.comment || undefined,
     }).then(() => {
       toast.success(t('applications.statusUpdated'))
-      window.location.reload()
+      queryClient.invalidateQueries({ queryKey: ['application', id] })
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance', 'Application', id] })
+      queryClient.invalidateQueries({ queryKey: ['available-transitions', 'Application', id] })
+      queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
+      transitionForm.reset()
     }).catch((err: any) => {
       toast.error(err.response?.data?.error || t('applications.statusUpdateFailed'))
     })
@@ -135,6 +146,9 @@ export default function ApplicationDetail() {
       toast.success(t('applications.reviewSubmitted'))
       submitReviewForm.reset()
       setFormAnswers({})
+      queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
+      queryClient.invalidateQueries({ queryKey: ['recommendations', id] })
+      queryClient.invalidateQueries({ queryKey: ['my-reviews'] })
     } catch (err: any) {
       toast.error(err.response?.data?.error || t('applications.reviewFailed'))
     } finally {
@@ -150,7 +164,10 @@ export default function ApplicationDetail() {
     api.post(`/core/applications/${id}/committee-decision`, { decision: data.decision, notes: data.notes })
       .then(() => {
         toast.success(t('applications.decisionSubmitted', { status: data.decision }))
-        window.location.reload()
+        queryClient.invalidateQueries({ queryKey: ['application', id] })
+        queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
+        queryClient.invalidateQueries({ queryKey: ['pending-review-count', id] })
+        decisionForm.reset()
       }).catch((err: any) => {
         toast.error(err.response?.data?.error || t('applications.decisionFailed'))
       }).finally(() => setDeciding(false))
@@ -185,6 +202,13 @@ export default function ApplicationDetail() {
         <h1 className="text-2xl font-bold">{t('applications.number')}{app.application_number}</h1>
         <div className="flex items-center gap-3">
           <StatusBadge status={app.current_status} />
+          {app.current_status === 'DRAFT' && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate(`/applications/${id}/edit`)}>
+                <Pencil className="w-4 h-4 mr-1" /> {t('applications.editDraft')}
+              </Button>
+            </div>
+          )}
           {canTransition && (
             <form onSubmit={transitionForm.handleSubmit(onTransition)} className="flex items-center gap-2">
               <select {...transitionForm.register('transition_code')} className="text-sm border rounded p-1.5">
@@ -242,6 +266,20 @@ export default function ApplicationDetail() {
                 <div><dt className="text-slate-500 text-xs">{t('applications.riskLevel')}</dt><dd className="font-medium">{app.project_risk_level || '\u2014'}</dd></div>
                 <div className="col-span-2"><dt className="text-slate-500 text-xs">{t('applications.objectives')}</dt><dd className="font-medium text-sm">{app.project_objectives || '\u2014'}</dd></div>
               </dl>
+            </CardContent>
+          </Card>
+
+          <RiskAssessment applicationId={id!} reviewerId={user?.id} />
+
+          <Card>
+            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4" /> {t('consent.title')}</CardTitle></CardHeader>
+            <CardContent>
+              <ConsentTab
+                applicationId={id!}
+                canAssign={user?.role === 'ETHICS_ADMIN' || user?.role === 'COMMITTEE_CHAIR' || user?.role === 'SUPER_ADMIN'}
+                canReview={user?.role === 'REVIEWER' || user?.role === 'COMMITTEE_CHAIR' || user?.role === 'ETHICS_ADMIN' || user?.role === 'SUPER_ADMIN'}
+                reviewerId={user?.id}
+              />
             </CardContent>
           </Card>
 

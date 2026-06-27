@@ -1,3 +1,8 @@
+/*
+ * مستودع المراسلات: إدارة المحادثات والرسائل
+ * بين المستخدمين مع ربطها بالكيانات
+ * (الطلبات والمشاريع واللجان).
+ */
 import { PoolClient } from 'pg';
 import { AuditableRepository } from './auditable.repository';
 

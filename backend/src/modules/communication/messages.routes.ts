@@ -11,11 +11,23 @@ const MSG_UPLOAD_DIR = path.resolve('uploads/messages');
 if (!fs.existsSync(MSG_UPLOAD_DIR)) {
   fs.mkdirSync(MSG_UPLOAD_DIR, { recursive: true });
 }
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain', 'application/zip'];
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, MSG_UPLOAD_DIR),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).replace(/[^a-zA-Z0-9.]/g, '');
+    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '');
+    cb(null, `${Date.now()}-${base}${ext}`);
+  },
 });
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) { cb(null, true); return; }
+    cb(new Error(`File type ${file.mimetype} not allowed`));
+  },
+});
 const service = new CommunicationService();
 
 router.get('/messages', authenticate, async (req: Request, res: Response) => {

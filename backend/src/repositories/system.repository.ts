@@ -1,3 +1,7 @@
+/*
+ * مستودع خدمات النظام: عمليات البحث المحفوظة،
+ * إعدادات المستخدمين، والخدمات العامة للنظام.
+ */
 import { PoolClient } from 'pg';
 import { AuditableRepository } from './auditable.repository';
 
@@ -59,7 +63,7 @@ export class SystemRepository extends AuditableRepository {
   }
 
   async getConfig(): Promise<any[]> {
-    const result = await this.query('SELECT * FROM system.system_config ORDER BY key');
+    const result = await this.query('SELECT * FROM system.system_config ORDER BY config_key');
     return result.rows;
   }
 }

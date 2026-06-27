@@ -1,3 +1,8 @@
+/*
+ * إدارة المشاريع البحثية المرتبطة بطلبات البحث.
+ * توفر دوال CRUD مع التحقق من الصلاحيات عبر RLS
+ * ومعالجة حالة المشروع وسير العمل.
+ */
 import { ProjectRepository } from '../repositories/project.repository';
 import { AuthUser } from '../shared/types';
 import { PaginationParams, paginatedResult, PaginatedResult } from '../shared/pagination';

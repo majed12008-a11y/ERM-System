@@ -1,3 +1,7 @@
+/*
+ * وحدة التقارير: إحصائيات لوحة التحكم، تقارير الطلبات
+ * والمشاريع واللجان، ولوحة بيانات فاعلة (Dashboard SSE).
+ */
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { successResponse, errorResponse, paginatedResponse } from '../../shared/utils';

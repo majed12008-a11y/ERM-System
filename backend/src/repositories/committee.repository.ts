@@ -1,3 +1,8 @@
+/*
+ * مستودع اللجان: إدارة بيانات اللجان والأعضاء
+ * والاجتماعات والمراجعات والقرارات.
+ * يعتبر أكبر مستودع في النظام بسبب تعقيد علاقات اللجان.
+ */
 import { AuditableRepository } from './auditable.repository';
 
 export interface CommitteeRow {
@@ -36,7 +41,7 @@ export class CommitteeRepository extends AuditableRepository {
 
   async findById(id: number): Promise<any | null> {
     const result = await this.query(
-      `SELECT c.*, i.name_ar as institution_name,
+      `SELECT c.*, i.name_ar as institution_name, ct.type_name as committee_type_name,
               (SELECT json_agg(json_build_object('user_id', cm.user_id, 'username', u.username, 'role', cr.role_name))
                FROM committee.committee_members cm
                JOIN security.users u ON cm.user_id = u.id
@@ -45,6 +50,7 @@ export class CommitteeRepository extends AuditableRepository {
                WHERE cm.committee_id = c.id AND cm.is_active = TRUE) as members
        FROM committee.committees c
        LEFT JOIN security.institutions i ON c.institution_id = i.id
+       LEFT JOIN committee.committee_types ct ON c.committee_type_id = ct.id
        WHERE c.id = $1`,
       [id]
     );
@@ -167,9 +173,9 @@ export class MemberRepository extends AuditableRepository {
   async createTerm(memberId: number, data: any): Promise<any> {
     const meta = this.createMeta();
     const result = await this.query(
-      `INSERT INTO committee.member_terms (member_id, start_date, end_date, appointment_decision_no, termination_decision_no, notes, created_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [memberId, data.start_date, data.end_date, data.appointment_decision_no, data.termination_decision_no, data.notes, meta.created_by, meta.created_at]
+      `INSERT INTO committee.member_terms (member_id, start_date, end_date, appointment_decision_no, termination_decision_no, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [memberId, data.start_date, data.end_date, data.appointment_decision_no, data.termination_decision_no, meta.created_by, meta.created_at]
     );
     return result.rows[0];
   }
@@ -190,9 +196,9 @@ export class MemberRepository extends AuditableRepository {
     const meta = this.createMeta();
     const result = await this.query(
       `INSERT INTO committee.member_qualifications
-        (member_id, specialization, academic_degree, institution, year_obtained, is_verified, verified_by, created_by, created_at)
+        (member_id, specialization, academic_degree, institution_name, experience_years, is_verified, verified_by, created_by, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [memberId, data.specialization, data.academic_degree, data.institution, data.year_obtained, data.is_verified || false, verifiedBy, meta.created_by, meta.created_at]
+      [memberId, data.specialization, data.academic_degree, data.institution_name, data.experience_years, data.is_verified || false, verifiedBy, meta.created_by, meta.created_at]
     );
     return result.rows[0];
   }
@@ -213,9 +219,9 @@ export class MemberRepository extends AuditableRepository {
     const meta = this.createMeta();
     const result = await this.query(
       `INSERT INTO committee.member_conflicts
-        (member_id, entity_type, entity_id, conflict_type, description, declared_by, created_by, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [memberId, data.entity_type, data.entity_id, data.conflict_type, data.description, userId, meta.created_by, meta.created_at]
+        (member_id, entity_type, entity_id, conflict_type, description, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [memberId, data.entity_type, data.entity_id, data.conflict_type, data.description, meta.created_by, meta.created_at]
     );
     return result.rows[0];
   }
@@ -355,9 +361,11 @@ export class ReviewRepository extends AuditableRepository {
   }
 
   async getScore(assignmentId: number): Promise<any | null> {
+    const assignment = await this.findAssignmentById(assignmentId);
+    if (!assignment) return null;
     const result = await this.query(
-      `SELECT * FROM committee.review_scores WHERE review_id = $1`,
-      [assignmentId]
+      `SELECT * FROM committee.review_scores WHERE application_id = $1 AND reviewer_id = $2`,
+      [assignment.application_id, assignment.reviewer_id]
     );
     return result.rows[0] || null;
   }
@@ -366,43 +374,45 @@ export class ReviewRepository extends AuditableRepository {
     const assignment = await this.findAssignmentById(assignmentId);
     if (!assignment) throw Object.assign(new Error('Assignment not found'), { status: 404 });
 
-    await this.query(
-      `INSERT INTO committee.review_recommendations (application_id, reviewer_id, recommendation_type, justification)
-       VALUES ($1, $2, $3, $4)`,
-      [assignment.application_id, userId, data.recommendation_type, data.justification || null]
-    );
-
-    if (data.comment_text) {
-      await this.query(
-        `INSERT INTO committee.review_comments (application_id, reviewer_id, comment_text, is_internal)
+    await this.withTransaction(async (client) => {
+      await client.query(
+        `INSERT INTO committee.review_recommendations (application_id, reviewer_id, recommendation_type, justification)
          VALUES ($1, $2, $3, $4)`,
-        [assignment.application_id, userId, data.comment_text, data.is_internal || false]
+        [assignment.application_id, userId, data.recommendation_type, data.justification || null]
       );
-    }
 
-    if (data.answers && Array.isArray(data.answers)) {
-      for (const a of data.answers) {
-        await this.query(
-          `INSERT INTO committee.review_answers (review_id, review_type, question_id, answer_text, answer_score)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [assignmentId, assignment.review_type, a.question_id, a.answer_text || null, a.answer_score || null]
+      if (data.comment_text) {
+        await client.query(
+          `INSERT INTO committee.review_comments (application_id, reviewer_id, comment_text, is_internal)
+           VALUES ($1, $2, $3, $4)`,
+          [assignment.application_id, userId, data.comment_text, data.is_internal || false]
         );
       }
-      const scoreResult = await this.query(
-        `SELECT COALESCE(AVG(answer_score), 0) as avg_score FROM committee.review_answers WHERE review_id = $1 AND answer_score IS NOT NULL`,
+
+      if (data.answers && Array.isArray(data.answers)) {
+        for (const a of data.answers) {
+          await client.query(
+            `INSERT INTO committee.review_answers (review_id, review_type, question_id, answer_text, answer_score)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [assignmentId, assignment.review_type, a.question_id, a.answer_text || null, a.answer_score || null]
+          );
+        }
+        const scoreResult = await client.query(
+          `SELECT COALESCE(AVG(answer_score), 0) as avg_score FROM committee.review_answers WHERE review_id = $1 AND answer_score IS NOT NULL`,
+          [assignmentId]
+        );
+        await client.query(
+          `INSERT INTO committee.review_scores (application_id, reviewer_id, review_type, score)
+           VALUES ($1, $2, $3, $4)`,
+          [assignment.application_id, userId, assignment.review_type, scoreResult.rows[0].avg_score]
+        );
+      }
+
+      await client.query(
+        `UPDATE committee.review_assignments SET status_code = 'COMPLETED', updated_at = now() WHERE id = $1`,
         [assignmentId]
       );
-      await this.query(
-        `INSERT INTO committee.review_scores (application_id, reviewer_id, review_type, score)
-         VALUES ($1, $2, $3, $4)`,
-        [assignment.application_id, userId, assignment.review_type, scoreResult.rows[0].avg_score]
-      );
-    }
-
-    await this.query(
-      `UPDATE committee.review_assignments SET status_code = 'COMPLETED', updated_at = now() WHERE id = $1`,
-      [assignmentId]
-    );
+    });
   }
 }
 
@@ -423,9 +433,10 @@ export class MeetingRepository extends AuditableRepository {
 
   async findById(id: number): Promise<any | null> {
     const result = await this.query(
-      `SELECT cm.*, c.committee_name, c.committee_type
+      `SELECT cm.*, c.committee_name_ar as committee_name, ct.type_name as committee_type
        FROM committee.committee_meetings cm
        LEFT JOIN committee.committees c ON cm.committee_id = c.id
+       LEFT JOIN committee.committee_types ct ON c.committee_type_id = ct.id
        WHERE cm.id = $1`,
       [id]
     );
@@ -436,7 +447,7 @@ export class MeetingRepository extends AuditableRepository {
     const meta = this.createMeta();
     const result = await this.query(
       `INSERT INTO committee.committee_meetings (committee_id, meeting_number, meeting_date, location, created_by, created_at)
-       VALUES ($1, 'MTG-' || $1 || '-' || to_char(now(), 'YYYYMMDD'), $2, $3, $4, $5)
+       VALUES ($1::bigint, 'MTG-' || $1::text || '-' || to_char(now(), 'YYYYMMDD'), $2::timestamptz, $3, $4, $5)
        RETURNING *`,
       [data.committee_id, data.meeting_date, data.location || null, meta.created_by, meta.created_at]
     );
@@ -449,13 +460,11 @@ export class MeetingRepository extends AuditableRepository {
     const updates = Object.keys(data).filter(k => allowed.includes(k));
     if (updates.length === 0) return null;
 
-    const sets = updates.map((k, i) => `${k}=$${i + 2}`);
-    const vals = updates.map(k => data[k]);
-    vals.push(meta.updated_at, meta.updated_by, id);
-
+    const vals: any[] = [];
+    const sets = updates.map(k => { vals.push(data[k]); return `${k}=$${vals.length}`; });
     const result = await this.query(
-      `UPDATE committee.committee_meetings SET ${sets.join(', ')}, updated_at=$${updates.length + 1}, updated_by=$${updates.length + 2} WHERE id=$${updates.length + 3} RETURNING *`,
-      vals
+      `UPDATE committee.committee_meetings SET ${sets.join(', ')}, updated_at=$${vals.length + 1}, updated_by=$${vals.length + 2} WHERE id=$${vals.length + 3} RETURNING *`,
+      [...vals, meta.updated_at, meta.updated_by, id]
     );
     return result.rows[0] || null;
   }

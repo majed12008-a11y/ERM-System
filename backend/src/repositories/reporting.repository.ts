@@ -1,3 +1,7 @@
+/*
+ * مستودع التقارير: إحصائيات لوحة التحكم،
+ * تقارير الطلبات والمشاريع واللجان.
+ */
 import { AuditableRepository } from './auditable.repository';
 
 export class ReportingRepository extends AuditableRepository {
@@ -76,13 +80,13 @@ export class ReportingRepository extends AuditableRepository {
     const offset = (params.page - 1) * params.limit;
     const result = await this.query(
       `SELECT a.id, a.application_number, a.current_status, a.application_type, a.created_at, a.updated_at,
-              p.title_ar as project_title, p.title_en as project_title_en, c.committee_name
+              p.title_ar as project_title, p.title_en as project_title_en, c.committee_name_ar as committee_name
        FROM core.applications a
-       LEFT JOIN core.projects p ON a.project_id = p.id
-       LEFT JOIN committee.committees c ON a.target_committee_id = c.id
-       ${where}
-       ORDER BY a.created_at DESC
-       LIMIT $${idx} OFFSET $${idx + 1}`,
+        LEFT JOIN core.projects p ON a.project_id = p.id
+        LEFT JOIN committee.committees c ON a.target_committee_id = c.id
+        ${where}
+        ORDER BY a.created_at DESC
+        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...values, params.limit, offset]
     );
 
@@ -94,7 +98,7 @@ export class ReportingRepository extends AuditableRepository {
       `SELECT c.*,
               (SELECT COUNT(*)::int FROM committee.review_assignments ra WHERE ra.application_id IN (SELECT id FROM core.applications WHERE target_committee_id = c.id)) as total_reviews,
               (SELECT COUNT(*)::int FROM committee.committee_meetings cm WHERE cm.committee_id = c.id) as total_meetings
-       FROM committee.committees c ORDER BY c.committee_name`
+       FROM committee.committees c ORDER BY c.committee_name_ar`
     );
     return result.rows;
   }
@@ -120,7 +124,7 @@ export class ReportingRepository extends AuditableRepository {
   async getExportData(): Promise<any[]> {
     const result = await this.query(
       `SELECT a.application_number, a.current_status, a.application_type, a.created_at,
-              p.title_ar as project_title, c.committee_name, u.username as submitted_by
+              p.title_ar as project_title, c.committee_name_ar as committee_name, u.username as submitted_by
        FROM core.applications a
        LEFT JOIN core.projects p ON a.project_id = p.id
        LEFT JOIN committee.committees c ON a.target_committee_id = c.id

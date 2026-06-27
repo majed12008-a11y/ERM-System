@@ -1,3 +1,7 @@
+/*
+ * نظام التقارير والإحصائيات: تقارير عن الطلبات،
+ * المشاريع، أداء اللجان، وإحصائيات النظام.
+ */
 import { ReportingRepository } from '../repositories/reporting.repository';
 
 export class ReportingService {

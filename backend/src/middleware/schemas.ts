@@ -1,3 +1,7 @@
+/*
+ * مخططات Zod للتحقق من صحة البيانات المدخلة في جميع نقاط النهاية
+ * مثل تسجيل الدخول والتسجيل وتغيير كلمة المرور وتحديث الملف الشخصي.
+ */
 import { z } from 'zod';
 
 export const loginSchema = z.object({
@@ -14,7 +18,7 @@ export const createUserSchema = z.object({
   first_name_en: z.string().max(100).optional().default(''),
   last_name_en: z.string().max(100).optional().default(''),
   mobile: z.string().max(20).optional().default(''),
-  institution_id: z.string().optional(),
+  institution_id: z.string().min(1, 'Institution is required'),
   department_id: z.string().optional(),
   role_codes: z.array(z.string()).optional().default([]),
 });
@@ -136,4 +140,207 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, 'Verification token is required'),
+});
+
+export const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Current password is required').max(200),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(100),
+});
+
+export const createMeetingSchema = z.object({
+  committee_id: z.coerce.number().positive(),
+  meeting_number: z.string().min(1).max(100),
+  meeting_date: z.string().min(1),
+  location: z.string().max(500).optional(),
+  meeting_status: z.string().optional(),
+});
+
+export const createAgendaSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().optional(),
+});
+
+export const addAttendanceSchema = z.object({
+  user_id: z.coerce.number().positive(),
+  attendance_status: z.string().min(1).max(50),
+});
+
+export const createMinutesSchema = z.object({
+  minutes_text: z.string().min(1),
+});
+
+export const createVotingSessionSchema = z.object({
+  meeting_id: z.coerce.number().positive(),
+  title: z.string().min(1).max(500),
+  description: z.string().optional(),
+});
+
+export const castVoteSchema = z.object({
+  vote_value: z.string().min(1).max(50),
+  comments: z.string().optional(),
+});
+
+export const createTermSchema = z.object({
+  start_date: z.string().min(1),
+  end_date: z.string().optional(),
+  role_id: z.coerce.number().positive(),
+});
+
+export const createQualificationSchema = z.object({
+  qualification_type: z.string().min(1).max(100),
+  description: z.string().optional(),
+});
+
+export const createConflictSchema = z.object({
+  conflict_type: z.string().min(1).max(100),
+  description: z.string().optional(),
+});
+
+export const createAdverseEventSchema = z.object({
+  application_id: z.coerce.number().positive(),
+  event_number: z.string().min(1).max(100),
+  event_type: z.string().min(1).max(100),
+  severity: z.string().min(1).max(50),
+  description: z.string().min(1),
+  participant_reference: z.string().optional(),
+  event_date: z.string().min(1),
+  expectedness: z.string().optional(),
+  relatedness: z.string().optional(),
+  outcome_status: z.string().optional(),
+});
+
+export const createRiskIncidentSchema = z.object({
+  risk_id: z.coerce.number().positive().optional(),
+  title: z.string().min(1).max(300),
+  description: z.string().min(1),
+  severity: z.string().max(50).optional(),
+});
+
+export const createCorrectiveActionSchema = z.object({
+  description: z.string().min(1),
+  assigned_to: z.coerce.number().positive(),
+  due_date: z.string().min(1),
+  priority: z.string().optional(),
+});
+
+export const createRoleSchema = z.object({
+  code: z.string().min(1).max(100),
+  name_ar: z.string().min(1).max(200),
+  name_en: z.string().max(200).optional(),
+  description: z.string().optional(),
+});
+
+export const createPermissionSchema = z.object({
+  permission_code: z.string().min(1).max(100),
+  module_name: z.string().min(1).max(100),
+  action_name: z.string().min(1).max(100),
+  description: z.string().optional(),
+});
+
+export const setRolePermissionsSchema = z.object({
+  permission_ids: z.array(z.coerce.number().positive()).min(1),
+});
+
+export const upsertProfileSchema = z.object({
+  national_id: z.string().max(50).optional(),
+  passport_number: z.string().max(50).optional(),
+  gender: z.enum(['MALE', 'FEMALE']).optional(),
+  date_of_birth: z.string().optional(),
+  nationality_code: z.string().max(10).optional(),
+  academic_title: z.string().max(200).optional(),
+  specialization: z.string().max(500).optional(),
+  biography: z.string().max(2000).optional(),
+});
+
+export const riskItemInputSchema = z.object({
+  risk_category_id: z.coerce.number().positive(),
+  risk_description: z.string().min(1, 'Risk description is required').max(2000),
+  probability: z.coerce.number().int().min(1).max(5),
+  severity: z.coerce.number().int().min(1).max(5),
+  mitigation_plan: z.string().max(2000).optional(),
+  residual_probability: z.coerce.number().int().min(1).max(5).optional().nullable(),
+  residual_severity: z.coerce.number().int().min(1).max(5).optional().nullable(),
+  is_acceptable: z.boolean().optional().default(false),
+});
+
+export const createEthicsRiskAssessmentSchema = z.object({
+  application_id: z.coerce.number().positive(),
+  ethics_review_id: z.coerce.number().positive().optional().nullable(),
+  scientific_review_id: z.coerce.number().positive().optional().nullable(),
+  overall_risk_level: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  recommendation: z.string().max(100).optional(),
+  summary: z.string().max(2000).optional(),
+  items: z.array(riskItemInputSchema).optional().default([]),
+});
+
+export const addRiskItemSchema = riskItemInputSchema;
+
+export const updateRiskItemSchema = riskItemInputSchema.partial();
+
+export const createConsentTemplateSchema = z.object({
+  code: z.string().min(1).max(50),
+  name_ar: z.string().min(1).max(500),
+  name_en: z.string().min(1).max(500),
+  description: z.string().max(2000).optional(),
+  consent_type: z.enum(['WRITTEN', 'ELECTRONIC', 'VERBAL', 'GUARDIAN', 'ASSENT', 'WAIVER', 'DEFERRED']),
+});
+
+export const updateConsentTemplateSchema = createConsentTemplateSchema.partial();
+
+export const createConsentVersionSchema = z.object({
+  version_no: z.coerce.number().int().positive(),
+  language: z.enum(['ar', 'en']),
+  title: z.string().min(1).max(500),
+  content: z.string().optional(),
+  document_id: z.coerce.number().positive().optional().nullable(),
+  effective_from: z.string().optional().nullable(),
+  change_summary: z.string().max(2000).optional(),
+});
+
+export const updateConsentVersionSchema = createConsentVersionSchema.partial();
+
+export const assignConsentSchema = z.object({
+  application_id: z.coerce.number().positive(),
+  consent_version_id: z.coerce.number().positive(),
+  is_required: z.boolean().optional().default(true),
+});
+
+export const replaceConsentVersionSchema = z.object({
+  consent_version_id: z.coerce.number().positive(),
+});
+
+export const createConsentReviewSchema = z.object({
+  application_consent_id: z.coerce.number().positive(),
+  decision: z.enum(['APPROVED', 'MINOR_REVISION', 'MAJOR_REVISION', 'REJECTED']),
+  comment: z.string().min(1).max(2000),
+});
+
+export const updateConsentReviewSchema = z.object({
+  decision: z.enum(['APPROVED', 'MINOR_REVISION', 'MAJOR_REVISION', 'REJECTED']).optional(),
+  comment: z.string().min(1).max(2000).optional(),
+});
+
+export const updateApplicationStatusSchema = z.object({
+  status: z.string().max(50).optional(),
+  transition_code: z.string().optional(),
+  comment: z.string().max(2000).optional(),
+  remarks: z.string().max(2000).optional(),
+}).refine(data => data.status || data.transition_code, {
+  message: 'Either status or transition_code is required',
+});
+
+export const updateApplicationSchema = z.object({
+  application_type: z.enum(['INITIAL', 'AMENDMENT', 'RENEWAL', 'EXPEDITED']).optional(),
+  target_committee_id: z.coerce.number().positive().optional(),
+  priority_level: z.string().max(50).optional(),
+  remarks: z.string().max(2000).optional(),
+});
+
+export const submitApplicationSchema = z.object({
+  transition_code: z.string().optional(),
+  comment: z.string().max(2000).optional(),
 });

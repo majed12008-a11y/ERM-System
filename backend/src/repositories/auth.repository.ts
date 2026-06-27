@@ -1,3 +1,7 @@
+/*
+ * مستودع المصادقة: التحقق من بيانات المستخدم (اسم المستخدم وكلمة المرور)،
+ * إدارة الرموز (refresh tokens)، تسجيل جلسات تسجيل الدخول.
+ */
 import { PoolClient } from 'pg';
 import { AuditableRepository } from './auditable.repository';
 
@@ -156,5 +160,41 @@ export class AuthRepository extends AuditableRepository {
       [tokenHash, passwordHash]
     );
     return result.rows[0]?.fn_reset_password === true;
+  }
+
+  async saveEmailVerificationToken(userId: number, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.query(
+      `INSERT INTO security.email_verification_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [userId, tokenHash, expiresAt.toISOString()]
+    );
+  }
+
+  async findValidEmailVerificationToken(tokenHash: string): Promise<{ id: number; user_id: number } | null> {
+    const result = await this.query(
+      `SELECT id, user_id FROM security.email_verification_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()`,
+      [tokenHash]
+    );
+    return result.rows[0] || null;
+  }
+
+  async useEmailVerificationToken(tokenId: number): Promise<void> {
+    await this.query(
+      'UPDATE security.email_verification_tokens SET used_at = now() WHERE id = $1',
+      [tokenId]
+    );
+  }
+
+  async markEmailVerified(userId: number): Promise<void> {
+    await this.query('SELECT security.fn_verify_email($1)', [userId]);
+  }
+
+  async isEmailVerified(userId: number): Promise<boolean> {
+    const result = await this.query(
+      'SELECT is_email_verified FROM security.users WHERE id = $1',
+      [userId]
+    );
+    return result.rows[0]?.is_email_verified === true;
   }
 }

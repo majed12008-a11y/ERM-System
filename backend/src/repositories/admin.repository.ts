@@ -1,3 +1,7 @@
+/*
+ * مستودع لوحة التحكم: إحصائيات النظام،
+ * إدارة المستخدمين، إعدادات النظام.
+ */
 import { AuditableRepository } from './auditable.repository';
 
 export class AdminRepository extends AuditableRepository {
@@ -11,7 +15,7 @@ export class AdminRepository extends AuditableRepository {
          reviews.total AS reviews_total,
          meetings.total AS meetings_total
        FROM (
-         SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE is_active = TRUE)::int AS active FROM security.users
+         SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'ACTIVE')::int AS active FROM security.users
        ) users,
        LATERAL (SELECT COUNT(*)::int AS total FROM core.applications) applications,
        LATERAL (SELECT COUNT(*)::int AS total FROM core.projects) projects,
@@ -37,21 +41,24 @@ export class AdminRepository extends AuditableRepository {
     const values: any[] = [];
     let idx = 1;
 
-    if (params.action) { conditions.push(`al.action_type = $${idx++}`); values.push(params.action); }
+    if (params.action) { conditions.push(`al.operation_type = $${idx++}`); values.push(params.action); }
     if (params.userId) { conditions.push(`al.user_id = $${idx++}`); values.push(params.userId); }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : 'WHERE 1=1';
 
-    const countResult = await this.query(`SELECT COUNT(*) FROM system.audit_log al ${where}`, values);
+    const countResult = await this.query(`SELECT COUNT(*) FROM audit.audit_logs al ${where}`, values);
     const total = parseInt(countResult.rows[0].count);
 
     const offset = (params.page - 1) * params.limit;
     const result = await this.query(
-      `SELECT al.*, u.username
-       FROM system.audit_log al
+      `SELECT al.id, al.operation_type AS action_type, al.entity_name AS entity_type,
+              al.entity_id, al.event_timestamp AS created_at,
+              al.user_id, u.username,
+              al.source_ip, al.old_values, al.new_values
+       FROM audit.audit_logs al
        LEFT JOIN security.users u ON al.user_id = u.id
        ${where}
-       ORDER BY al.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+       ORDER BY al.event_timestamp DESC LIMIT $${idx} OFFSET $${idx + 1}`,
       [...values, params.limit, offset]
     );
 
@@ -59,24 +66,28 @@ export class AdminRepository extends AuditableRepository {
   }
 
   async getDistinctActions(): Promise<string[]> {
-    const result = await this.query(`SELECT DISTINCT action_type FROM system.audit_log ORDER BY action_type`);
-    return result.rows.map(r => r.action_type);
+    const result = await this.query(
+      `SELECT DISTINCT operation_type FROM audit.audit_logs ORDER BY operation_type`
+    );
+    return result.rows.map(r => r.operation_type);
   }
 
   async getOnlineUsers(): Promise<number> {
     const result = await this.query(
-      `SELECT COUNT(DISTINCT user_id)::int as count FROM system.audit_log
-       WHERE created_at >= now() - interval '15 minutes'`
+      `SELECT COUNT(DISTINCT user_id)::int as count FROM audit.audit_logs
+       WHERE event_timestamp >= now() - interval '15 minutes'`
     );
     return result.rows[0].count;
   }
 
   async getRecentActivity(): Promise<any[]> {
     const result = await this.query(
-      `SELECT al.*, u.username
-       FROM system.audit_log al
+      `SELECT al.id, al.operation_type AS action_type, al.entity_name AS entity_type,
+              al.entity_id, al.event_timestamp AS created_at,
+              al.user_id, u.username
+       FROM audit.audit_logs al
        LEFT JOIN security.users u ON al.user_id = u.id
-       ORDER BY al.created_at DESC LIMIT 20`
+       ORDER BY al.event_timestamp DESC LIMIT 20`
     );
     return result.rows;
   }

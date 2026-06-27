@@ -1,3 +1,7 @@
+/*
+ * دوال التشفير وفك التشفير للبيانات الحساسة.
+ * تستخدم AES-256-GCM مع مفتاح مشتق من JWT_SECRET.
+ */
 import * as crypto from 'crypto';
 import { env } from '../config/env';
 import { logger } from '../config/logger';

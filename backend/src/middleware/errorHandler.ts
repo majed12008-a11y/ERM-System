@@ -1,3 +1,8 @@
+/*
+ * معالجة الأخطاء العامة.
+ * يلتقط الاستثناءات غير المعالجة ويعيد رسالة خطأ منسقة
+ * بتنسيق { success: false, error: message }.
+ */
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../config/logger';
 

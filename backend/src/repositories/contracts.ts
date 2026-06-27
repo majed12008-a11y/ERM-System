@@ -1,3 +1,8 @@
+/*
+ * تعريف عقود (Interfaces) المستودعات.
+ * تحدد العقود IReadRepository, IWriteRepository, IPaginatedReadRepository,
+ * ISoftDeleteRepository لجميع المستودعات في النظام.
+ */
 import { PoolClient } from 'pg';
 import { PaginationParams } from '../shared/pagination';
 

@@ -1,3 +1,7 @@
+/*
+ * وحدة البيانات المرجعية: استعلامات للمؤسسات،
+ * التصنيفات، والبيانات الأساسية للنظام.
+ */
 import { Router, Request, Response } from 'express';
 import { query } from '../../config/database';
 import { authenticate } from '../../middleware/auth';
@@ -35,11 +39,12 @@ router.get('/professions', authenticate, async (_req: Request, res: Response) =>
 router.get('/licenses', authenticate, async (req: Request, res: Response) => {
   try {
     const result = await query(
-      `SELECT lr.*, pr.name_ar as profession_name, u.name_ar as user_name
-       FROM reference.licenses_registry lr
-       JOIN reference.professions_registry pr ON lr.profession_id = pr.id
-       JOIN security.users u ON lr.user_id = u.id
-       ORDER BY lr.created_at DESC`
+      `SELECT lr.*, pr.name_ar as profession_name,
+              CONCAT(u.first_name_ar, ' ', u.last_name_ar) as user_name
+        FROM reference.licenses_registry lr
+        JOIN reference.professions_registry pr ON lr.profession_id = pr.id
+        JOIN security.users u ON lr.user_id = u.id
+        ORDER BY lr.created_at DESC`
     );
     res.json(successResponse(result.rows));
   } catch (err: any) {

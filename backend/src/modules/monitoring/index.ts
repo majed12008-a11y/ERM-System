@@ -1,3 +1,7 @@
+/*
+ * وحدة المراقبة: سجلات التدقيق، مراقبة أداء النظام،
+ * وإحصائيات الاستخدام.
+ */
 import { Router, Request, Response } from 'express';
 import { query } from '../../config/database';
 import { authenticate, authorize } from '../../middleware/auth';

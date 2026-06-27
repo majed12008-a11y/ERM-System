@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createRiskIncidentSchema, createCorrectiveActionSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { SafetyService } from '../../services/safety.service';
 
@@ -11,7 +13,7 @@ router.get('/risk-register', authenticate, async (req: Request, res: Response) =
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/risk-register', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/risk-register', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), validate(createRiskIncidentSchema), async (req: Request, res: Response) => {
   try { res.status(201).json(successResponse(await service.createRisk(req.body, (req as any).user))); }
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
@@ -44,7 +46,7 @@ router.get('/risk-incidents', authenticate, async (req: Request, res: Response) 
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/risk-incidents', authenticate, async (req: Request, res: Response) => {
+router.post('/risk-incidents', authenticate, validate(createRiskIncidentSchema), async (req: Request, res: Response) => {
   try { res.status(201).json(successResponse(await service.createIncident(req.body, (req as any).user))); }
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
@@ -54,7 +56,7 @@ router.get('/corrective-actions', authenticate, async (req: Request, res: Respon
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/corrective-actions', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/corrective-actions', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), validate(createCorrectiveActionSchema), async (req: Request, res: Response) => {
   try { res.status(201).json(successResponse(await service.createCorrectiveAction(req.body))); }
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });

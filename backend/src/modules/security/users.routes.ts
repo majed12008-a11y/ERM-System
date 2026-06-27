@@ -14,7 +14,12 @@ const adminRoles = ['SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'];
 router.get('/', authenticate, authorize(...adminRoles), async (req: Request, res: Response) => {
   try {
     const params = parsePagination(req.query);
-    const result = await service.getAll(params);
+    const search = req.query.search as string | undefined;
+    const institution_id = req.query.institution_id ? parseInt(req.query.institution_id as string) : undefined;
+    const role_code = req.query.role_code as string | undefined;
+    const sort_by = req.query.sort_by as string | undefined;
+    const sort_order = req.query.sort_order as string | undefined;
+    const result = await service.getAll(params, { search, institution_id, role_code, sort_by, sort_order });
     res.json({ success: true, ...result });
   } catch (err: any) {
     res.status(500).json(errorResponse(err.message));

@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { upsertProfileSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { UsersService } from '../../services/users.service';
 
@@ -16,7 +18,7 @@ router.get('/profile', authenticate, async (req: Request, res: Response) => {
   }
 });
 
-router.put('/profile', authenticate, async (req: Request, res: Response) => {
+router.put('/profile', authenticate, validate(upsertProfileSchema), async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const result = await service.upsertProfile(user.id, req.body);

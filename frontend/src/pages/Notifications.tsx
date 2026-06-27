@@ -1,3 +1,7 @@
+/*
+ * صفحة الإشعارات: عرض وإدارة جميع الإشعارات
+ * المرسلة للمستخدم الحالي.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'

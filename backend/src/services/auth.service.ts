@@ -1,3 +1,9 @@
+/*
+ * نظام المصادقة: تسجيل الدخول، تسجيل مستخدم جديد،
+ * Refresh Token، تغيير كلمة المرور، التحقق من البريد الإلكتروني.
+ * يستخدم Argon2 لتشفير كلمات المرور و Jose لإدارة JWT.
+ */
+import * as argon2 from 'argon2';
 import { jwtVerify } from 'jose';
 import { createHash, randomBytes } from 'crypto';
 import { AuthRepository } from '../repositories/auth.repository';
@@ -6,7 +12,8 @@ import { AuthUser } from '../shared/types';
 import { generateTokens, signToken } from '../middleware/auth';
 import { env } from '../config/env';
 import { withTransaction } from '../config/database';
-import { hashPassword, verifyPassword } from '../config/password';
+import { runWithUserId } from '../middleware/context';
+import { sendVerificationEmail, sendPasswordResetEmail } from './email.service';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -44,7 +51,7 @@ export class AuthService {
       throw Object.assign(new Error('Account is not active'), { status: 403 });
     }
 
-    const valid = await verifyPassword(password, user.password_hash);
+    const valid = await argon2.verify(user.password_hash, password);
     if (!valid) {
       await this.repo.logLoginAttempt(username, user.id, false, ip, 'Invalid password');
       const failCount = await this.repo.getRecentFailedAttempts(user.id, LOCK_DURATION_MINUTES);
@@ -56,7 +63,7 @@ export class AuthService {
     }
 
     await this.repo.logLoginAttempt(username, user.id, true, ip);
-    await this.repo.updateLoginSuccess(user.id);
+    await runWithUserId(user.id, () => this.repo.updateLoginSuccess(user.id));
 
     const sessionToken = await this.repo.createSession(user.id, ip, userAgent);
     const { accessToken, refreshToken } = await generateTokens(user.id, sessionToken);
@@ -94,7 +101,8 @@ export class AuthService {
     const permissions = await this.repo.getPermissions(user.id);
     return {
       id: user.id, uuid: user.uuid, username: user.username, email: user.email,
-      institution_id: user.institution_id, roles: user.roles, permissions,
+      institution_id: user.institution_id, is_email_verified: user.is_email_verified,
+      roles: user.roles, permissions,
     };
   }
 
@@ -107,17 +115,17 @@ export class AuthService {
     if (strengthError) throw Object.assign(new Error(strengthError), { status: 400 });
 
     const hash = await this.repo.getPasswordHash(userId);
-    const valid = await verifyPassword(oldPassword, hash!);
+    const valid = await argon2.verify(hash!, oldPassword);
     if (!valid) throw Object.assign(new Error('Current password is incorrect'), { status: 400 });
 
     const recentHashes = await this.repo.getRecentPasswordHashes(userId, PASSWORD_HISTORY_CHECK);
     for (const h of recentHashes) {
-      if (await verifyPassword(newPassword, h)) {
+      if (await argon2.verify(h, newPassword)) {
         throw Object.assign(new Error('Password has been used recently. Choose a different one.'), { status: 400 });
       }
     }
 
-    const newHash = await hashPassword(newPassword);
+    const newHash = await argon2.hash(newPassword);
     await this.repo.updatePassword(userId, newHash);
     await this.repo.revokeAllSessions(userId);
   }
@@ -135,7 +143,7 @@ export class AuthService {
     const exists = await this.repo.checkExistingUser(data.username, data.email);
     if (exists) throw Object.assign(new Error('Username or email already exists'), { status: 409 });
 
-    const password_hash = await hashPassword(data.password);
+    const password_hash = await argon2.hash(data.password);
     const userRepo = new UsersRepository();
 
     const user = await withTransaction(async (client) => {
@@ -159,7 +167,40 @@ export class AuthService {
       return newUser;
     });
 
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationHash = createHash('sha256').update(verificationToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await this.repo.saveEmailVerificationToken(user.id, verificationHash, expiresAt);
+
+    sendVerificationEmail(user.email, verificationToken).catch(() => {});
     return { userId: user.id, username: user.username, email: user.email };
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const record = await this.repo.findValidEmailVerificationToken(tokenHash);
+    if (!record) throw Object.assign(new Error('Invalid or expired verification token'), { status: 400 });
+
+    await this.repo.useEmailVerificationToken(record.id);
+    await this.repo.markEmailVerified(record.user_id);
+  }
+
+  async resendVerificationEmail(userId: number): Promise<{ verificationToken: string }> {
+    const verified = await this.repo.isEmailVerified(userId);
+    if (verified) throw Object.assign(new Error('Email is already verified'), { status: 400 });
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await this.repo.saveEmailVerificationToken(userId, tokenHash, expiresAt);
+
+    const userRepo = new UsersRepository();
+    const user = await userRepo.findById(userId);
+    if (user) {
+      const sent = await sendVerificationEmail(user.email, token);
+      if (!sent) throw Object.assign(new Error('Failed to send verification email — check SMTP configuration'), { status: 500 });
+    }
+    return { verificationToken: token };
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -174,7 +215,7 @@ export class AuthService {
 
     await this.repo.saveResetToken(user.id, tokenHash, expiresAt);
 
-    // TODO: send email with reset link in production
+    sendPasswordResetEmail(user.email, token).catch(() => {});
     return { message: 'If the email exists, a reset link has been sent.' };
   }
 
@@ -183,7 +224,7 @@ export class AuthService {
     if (strengthError) throw Object.assign(new Error(strengthError), { status: 400 });
 
     const tokenHash = createHash('sha256').update(token).digest('hex');
-    const hash = await hashPassword(newPassword);
+    const hash = await argon2.hash(newPassword);
     const success = await this.repo.resetPasswordWithToken(tokenHash, hash);
     if (!success) throw Object.assign(new Error('Invalid or expired reset token'), { status: 400 });
   }

@@ -1,3 +1,8 @@
+/*
+ * Hook للاتصال بلوحة البيانات الفاعلة عبر SSE.
+ * يستمع للأحداث من الخادم ويحدّث بيانات الاستعلامات (React Query)
+ * تلقائياً عند حدوث تغييرات.
+ */
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getAccessToken } from '../api/client'

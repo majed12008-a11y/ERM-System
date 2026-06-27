@@ -1,3 +1,7 @@
+/*
+ * وحدة الأمان: المصادقة (تسجيل الدخول)، إدارة المستخدمين،
+ * الأدوار، الصلاحيات، المسؤوليات، والملفات الشخصية.
+ */
 import { Router } from 'express';
 import authRoutes from './auth.routes';
 import userRoutes from './users.routes';

@@ -1,3 +1,7 @@
+/*
+ * صفحة الرسائل: إدارة المحادثات والرسائل الداخلية
+ * بين المستخدمين مع إمكانية الرد والبحث.
+ */
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'

@@ -1,11 +1,29 @@
+/*
+ * وحدة الإدارة: لوحة التحكم، إحصائيات النظام،
+ * إعدادات البريد/الرسائل/الإشعارات، النسخ الاحتياطي،
+ * إدارة البيانات المرجعية.
+ */
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { successResponse, errorResponse, paginatedResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { AdminService } from '../../services/admin.service';
+import emailConfigRoutes from './email-config.routes';
+import smsConfigRoutes from './sms-config.routes';
+import pushConfigRoutes from './push-config.routes';
+import systemConfigRoutes from './system-config.routes';
+import backupRoutes from './backup.routes';
+import referenceDataRoutes from './reference-data.routes';
 
 const router = Router();
 const service = new AdminService();
+
+router.use('/email-config', emailConfigRoutes);
+router.use('/sms-config', smsConfigRoutes);
+router.use('/push-config', pushConfigRoutes);
+router.use('/system-config', systemConfigRoutes);
+router.use('/backup', backupRoutes);
+router.use('/reference-data', referenceDataRoutes);
 
 router.get('/stats', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
   try {

@@ -1,7 +1,13 @@
+/*
+ * إدارة الاتصال بقاعدة بيانات PostgreSQL.
+ * تستخدم Pool لإدارة الاتصالات. توفر دالة query() للاستعلامات العادية
+ * و withTransaction() للمعاملات. تضبط متغيرات RLS (app.user_id)
+ * لكل استعلام لتقييد الوصول حسب صلاحيات المستخدم الحالي.
+ */
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { env } from './env';
 import { logger } from './logger';
-import { getUserId, getRequestId } from '../middleware/context';
+import { getUserId, getRequestId, getSourceIp } from '../middleware/context';
 import { createHash } from 'crypto';
 
 function sqlHash(text: string): string {
@@ -44,10 +50,12 @@ function formatDuration(ms: number): string {
 export async function query(text: string, params?: any[]): Promise<QueryResult> {
   const start = Date.now();
   const userId = getUserId();
+  const sourceIp = getSourceIp();
   const requestId = getRequestId();
   const client = await pool.connect();
   try {
     await client.query(`SELECT set_config('app.user_id', $1, false)`, [String(userId)]);
+    await client.query(`SELECT set_config('app.source_ip', $1, false)`, [sourceIp]);
     const result = await client.query(text, params);
     return result;
   } catch (err: any) {
@@ -74,10 +82,12 @@ export async function withTransaction<T>(
   const start = Date.now();
   const client = await pool.connect();
   const userId = getUserId();
+  const sourceIp = getSourceIp();
   const requestId = getRequestId();
   try {
     await client.query('BEGIN');
     await client.query(`SELECT set_config('app.user_id', $1, true)`, [String(userId)]);
+    await client.query(`SELECT set_config('app.source_ip', $1, true)`, [sourceIp]);
     const result = await fn(client);
     await client.query('COMMIT');
     const duration = Date.now() - start;

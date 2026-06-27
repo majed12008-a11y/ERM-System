@@ -1,3 +1,7 @@
+/*
+ * صفحة إعادة تعيين كلمة المرور: إدخال كلمة مرور جديدة
+ * بعد النقر على رابط إعادة التعيين المرسل عبر البريد.
+ */
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'

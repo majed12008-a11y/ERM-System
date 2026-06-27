@@ -222,11 +222,10 @@ BEGIN
   SELECT id INTO v_researcher1 FROM security.users WHERE username = 'researcher1';
   SELECT id INTO v_app2_id FROM core.applications WHERE application_number = 'APP-2024-002';
 
-  INSERT INTO monitoring.protocol_violations (application_id, violation_date, severity, description, reported_by, reported_at, corrective_action, status_code)
+  INSERT INTO monitoring.protocol_violations (application_id, violation_date, severity, description, corrective_action_required, status_code, created_by)
   VALUES (v_app2_id, '2024-09-20'::date, 'MAJOR',
-    'تم تضمين مريضة رقم 118 في الدراسة رغم استيفائها لمعيار استبعاد (ارتفاع إنزيمات الكبد > 3 أضعاف الحد الأعلى الطبيعي). تم إيقافها فور اكتشاف المخالفة.',
-    v_researcher1, '2024-09-20 09:00:00+03'::timestamptz,
-    'تم إيقاف المريضة عن العلاج وإحالتها لطبيب الكبد. سيتم تدريب فريق البحث على مراجعة معايير الاستبعاد بدقة قبل التسجيل.', 'CLOSED');
+    'تم تضمين مريضة رقم 118 في الدراسة رغم استيفائها لمعيار استبعاد (ارتفاع إنزيمات الكبد > 3 أضعاف الحد الأعلى الطبيعي). تم إيقافها فور اكتشاف المخالفة. الإجراء التصحيحي: تم إيقاف المريضة عن العلاج وإحالتها لطبيب الكبد. سيتم تدريب فريق البحث على مراجعة معايير الاستبعاد بدقة قبل التسجيل.',
+    true, 'CLOSED', v_researcher1);
 END $$;
 
 -- ============================================================

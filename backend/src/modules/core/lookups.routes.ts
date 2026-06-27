@@ -16,7 +16,7 @@ router.get('/research-categories', authenticate, async (_req: Request, res: Resp
 
 router.get('/risk-classifications', authenticate, async (_req: Request, res: Response) => {
   try {
-    const result = await query('SELECT * FROM core.risk_classifications ORDER BY risk_score');
+    const result = await query('SELECT id, code, name_ar, name_en, severity_level, description, is_active FROM core.risk_classifications ORDER BY severity_level');
     res.json(successResponse(result.rows));
   } catch (err: any) {
     res.status(500).json(errorResponse(err.message));

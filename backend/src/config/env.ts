@@ -1,3 +1,8 @@
+/*
+ * التحقق من صحة متغيرات البيئة المطلوبة (PORT, DB_HOST, DB_PORT,
+ * DB_NAME, DB_USER, DB_PASSWORD, JWT_SECRET) باستخدام Zod.
+ * يتحقق من وجود جميع المتغيرات قبل بدء تشغيل الخادم.
+ */
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -12,6 +17,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  BACKUP_DIR: z.string().default('backups'),
+  PG_BIN_PATH: z.string().default(''),
+  DATABASE_URL: z.string().default(''),
   DB_ENCRYPTION_KEY: process.env.NODE_ENV === 'production'
     ? z.string().min(32, 'DB_ENCRYPTION_KEY is required in production and must be at least 32 characters')
     : z.string().optional(),

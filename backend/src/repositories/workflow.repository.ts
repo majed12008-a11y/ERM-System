@@ -1,3 +1,8 @@
+/*
+ * مستودع سير العمل (Workflow): إنشاء حالات workflow،
+ * تنفيذ المهام، متابعة التقدم. يربط بين تعريفات
+ * Workflow والكيانات (الطلبات والمشاريع).
+ */
 import { PoolClient } from 'pg';
 import { AuditableRepository } from './auditable.repository';
 

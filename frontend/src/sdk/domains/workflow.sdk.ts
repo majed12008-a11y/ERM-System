@@ -1,20 +1,24 @@
+/*
+ * SDK سير العمل: دوال إدارة تعريفات workflow
+ * وحالات workflow والانتقالات بينها.
+ */
 import api from '../../api/client'
-import type { SuccessResponse } from '../core/types'
+import type { SuccessResponse, WorkflowDefinition, WorkflowInstance, WorkflowTransition } from '../core/types'
 
 export const workflow = {
   getDefinitions() {
-    return api.get<SuccessResponse<any[]>>('/workflow/definitions')
+    return api.get<SuccessResponse<WorkflowDefinition[]>>('/workflow/definitions')
   },
 
   getInstance(entityType: string, entityId: number) {
-    return api.get<SuccessResponse<any>>(`/workflow/instances/${entityType}/${entityId}`)
+    return api.get<SuccessResponse<WorkflowInstance>>(`/workflow/instances/${entityType}/${entityId}`)
   },
 
   getAvailableTransitions(entityType: string, entityId: number) {
-    return api.get<SuccessResponse<any[]>>(`/workflow/available-transitions/${entityType}/${entityId}`)
+    return api.get<SuccessResponse<WorkflowTransition[]>>(`/workflow/available-transitions/${entityType}/${entityId}`)
   },
 
   executeTransition(data: { entity_type: string; entity_id: number; transition: string; comment?: string }) {
-    return api.post<SuccessResponse<any>>('/workflow/execute-transition', data)
+    return api.post<SuccessResponse<WorkflowInstance>>('/workflow/execute-transition', data)
   },
 }

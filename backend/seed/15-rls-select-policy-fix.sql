@@ -8,6 +8,8 @@
 -- SET deleted_at = now(), the SELECT policy sees the NEW row
 -- with non-null deleted_at, and is_active_row() returns false,
 -- causing:
+-- إصلاح سياسات RLS التي تمنع UPDATE SET deleted_at في PostgreSQL 18.
+-- استراتيجيتان: toggle_policy أو user_can_see_soft_deleted.
 --   ERROR: new row violates row-level security policy
 --
 -- FIX PATTERNS:

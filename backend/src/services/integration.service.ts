@@ -1,3 +1,7 @@
+/*
+ * التكامل مع الأنظمة الخارجية: إدارة نقاط النهاية
+ * الخارجية، تحويل البيانات، وتسجيل سجلات التكامل.
+ */
 import { IntegrationRepository } from '../repositories/integration.repository';
 
 export class IntegrationService {

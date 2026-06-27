@@ -1,3 +1,7 @@
+/*
+ * صفحة التقارير: تقارير وإحصائيات عن الطلبات والمشاريع
+ * واللجان مع إمكانية التصفية والبحث.
+ */
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'

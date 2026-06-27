@@ -1,11 +1,16 @@
+/*
+ * صفحة عرض طلبات البحث: جدول مزود بالترقيم والبحث والتصفية
+ * حسب الحالة والنوع والتاريخ.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import DataTable from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
-import { Plus } from 'lucide-react'
+import { Plus, Pencil, Send } from 'lucide-react'
 import { usePermission } from '../../hooks/usePermission'
+import { Button } from '../../components/ui/button'
 
 export default function ApplicationList() {
   const { t } = useTranslation()
@@ -38,6 +43,22 @@ export default function ApplicationList() {
             { key: 'current_status', label: t('applications.status'), filterable: true, sortable: true, render: (i) => <StatusBadge status={i.current_status} /> },
             { key: 'submitted_by_username', label: t('applications.submittedBy'), sortable: true },
             { key: 'created_at', label: t('applications.date'), sortable: true, render: (i) => new Date(i.created_at).toLocaleDateString() },
+            { key: 'actions', label: '', render: (i: any) => (
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                {i.current_status === 'DRAFT' && (
+                  <>
+                    <button onClick={() => navigate(`/applications/${i.id}/edit`)}
+                      className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded" title={t('applications.edit')}>
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => navigate(`/applications/${i.id}/edit`)}
+                      className="p-1 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded" title={t('applications.submit')}>
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+            )},
           ]}
           data={data || []}
           onRowClick={(item) => navigate(`/applications/${item.id}`)}

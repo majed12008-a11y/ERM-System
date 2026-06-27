@@ -1,3 +1,7 @@
+/*
+ * صفحة اللجان: قائمة اللجان مع إمكانية إنشاء لجان جديدة،
+ * عرض التفاصيل، وإدارة الأعضاء.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -164,7 +168,7 @@ export default function Committees() {
           { key: 'committee_type_name', label: t('committees.type'), filterable: true },
           { key: 'institution_name', label: t('committees.institution'), sortable: true },
           { key: 'member_count', label: t('committees.members') },
-          ...(canUpdate ? [{ key: 'actions' as string, label: '', render: (i: any) => <button onClick={() => openEdit(i)} className="text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button> }] : []),
+          ...(canUpdate ? [{ key: 'actions' as string, label: '', render: (i: any) => <button onClick={(e) => { e.stopPropagation(); openEdit(i) }} className="text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button> }] : []),
         ]}
         data={committees || []}
         emptyMessage={t('committees.empty')}

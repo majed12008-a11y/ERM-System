@@ -1,3 +1,7 @@
+/*
+ * صفحة إنشاء مشروع: نموذج إنشاء مشروع بحثي جديد
+ * مرتبط بطلب بحث.
+ */
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'

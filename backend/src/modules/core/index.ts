@@ -1,3 +1,7 @@
+/*
+ * الوحدة الأساسية: طلبات البحث والمشاريع والبيانات المرجعية.
+ * تشمل العمليات الأساسية للنظام.
+ */
 import { Router } from 'express';
 import projectRoutes from './projects.routes';
 import applicationRoutes from './applications.routes';

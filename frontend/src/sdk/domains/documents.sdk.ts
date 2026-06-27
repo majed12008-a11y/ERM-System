@@ -1,13 +1,17 @@
+/*
+ * SDK المستندات: دوال رفع وتنزيل وإدارة الملفات
+ * والمستندات المرتبطة بالطلبات واللجان.
+ */
 import api from '../../api/client'
-import type { SuccessResponse, Document, DocumentSignature } from '../core/types'
+import type { SuccessResponse, Document, DocumentSignature, DocumentType, DocumentClassification, Pagination } from '../core/types'
 
 export const documents = {
   list(params?: { page?: number; limit?: number }) {
-    return api.get<SuccessResponse<Document[]> & { pagination?: any }>('/documents', { params })
+    return api.get<SuccessResponse<Document[]> & { pagination?: Pagination }>('/documents', { params })
   },
 
   getTypes() {
-    return api.get<SuccessResponse<any[]>>('/documents/types')
+    return api.get<SuccessResponse<DocumentType[]>>('/documents/types')
   },
 
   upload(formData: FormData) {
@@ -17,7 +21,7 @@ export const documents = {
   },
 
   getClassifications() {
-    return api.get<SuccessResponse<any[]>>('/documents/classifications')
+    return api.get<SuccessResponse<DocumentClassification[]>>('/documents/classifications')
   },
 
   getByEntity(entityType: string, entityId: number) {

@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createPermissionSchema, setRolePermissionsSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { AuthorizationService } from '../../services/authorization.service';
 
@@ -12,7 +14,7 @@ router.get('/', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN'), as
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/', authenticate, authorize('SUPER_ADMIN'), async (req: Request, res: Response) => {
+router.post('/', authenticate, authorize('SUPER_ADMIN'), validate(createPermissionSchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.createPermission(req.body), 'Permission created'));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
@@ -31,7 +33,7 @@ router.get('/role/:roleId', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/role/:roleId', authenticate, authorize('SUPER_ADMIN'), async (req: Request, res: Response) => {
+router.put('/role/:roleId', authenticate, authorize('SUPER_ADMIN'), validate(setRolePermissionsSchema), async (req: Request, res: Response) => {
   try {
     const { permission_ids } = req.body;
     await service.setRolePermissions(parseInt(String(req.params.roleId)), permission_ids);

@@ -1,3 +1,7 @@
+/*
+ * صفحة المستندات: رفع، تنزيل، إدارة الملفات
+ * مع تصنيفها حسب الأنواع والكيانات المرتبطة.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'

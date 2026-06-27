@@ -1,6 +1,8 @@
 -- ============================================================
 -- 05-WORKFLOW
 -- ============================================================
+-- تعريف مسارات العمل (Workflow Definitions): الموافقات، المراجعات،
+-- خطوات سير العمل لكل نوع من أنواع الطلبات.
 
 -- Workflow definition
 INSERT INTO workflow.workflows (workflow_code, workflow_name, entity_type, version_no, is_active)

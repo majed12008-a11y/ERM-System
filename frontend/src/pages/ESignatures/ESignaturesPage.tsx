@@ -1,3 +1,7 @@
+/*
+ * صفحة التوقيعات الإلكترونية: إدارة وعرض التوقيعات
+ * الإلكترونية للمستندات والموافقات.
+ */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/client'

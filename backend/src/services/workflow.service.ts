@@ -1,3 +1,8 @@
+/*
+ * إدارة سير العمل (Workflow): إنشاء حالات Workflow،
+ * تنفيذ المهام، متابعة الحالة. يربط بين تعريفات
+ * workflow والطلبات والمشاريع.
+ */
 import { PoolClient } from 'pg';
 import { WorkflowRepository } from '../repositories/workflow.repository';
 import { AuthUser } from '../shared/types';

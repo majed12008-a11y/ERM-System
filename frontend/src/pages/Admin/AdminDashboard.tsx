@@ -1,3 +1,7 @@
+/*
+ * لوحة تحكم الإدارة: إحصائيات النظام، إدارة المستخدمين،
+ * إعدادات البريد والإشعارات والنسخ الاحتياطي.
+ */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../api/client'

@@ -1,3 +1,7 @@
+/*
+ * صفحة تفاصيل المشروع: عرض معلومات المشروع والفريق
+ * والتقارير والملفات المرتبطة.
+ */
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'

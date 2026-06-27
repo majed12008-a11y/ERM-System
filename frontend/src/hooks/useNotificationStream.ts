@@ -1,3 +1,7 @@
+/*
+ * Hook للاتصال بخدمة الإشعارات الفورية عبر SSE.
+ * يستمع للإشعارات الجديدة ويحدّث قائمة الإشعارات تلقائياً.
+ */
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getAccessToken } from '../api/client'

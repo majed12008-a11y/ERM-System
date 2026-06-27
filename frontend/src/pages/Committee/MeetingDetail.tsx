@@ -1,9 +1,14 @@
+/*
+ * صفحة تفاصيل الاجتماع: جدول الأعمال، الحضور، محضر الاجتماع،
+ * والمرفقات مع إمكانية التحرير.
+ */
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
@@ -55,7 +60,11 @@ export default function MeetingDetail() {
 
   const updateMeeting = useMutation({
     mutationFn: (data: any) => api.patch(`/committee/meetings/${id}`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['meeting', id] }) },
+    onSuccess: () => {
+      setStatusFilter('')
+      queryClient.invalidateQueries({ queryKey: ['meeting', id] })
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || err.message),
   })
 
   const [statusFilter, setStatusFilter] = useState('')
@@ -91,54 +100,82 @@ export default function MeetingDetail() {
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({})
 
   async function onAgenda(data: { title: string; description?: string }) {
-    await api.post(`/committee/meetings/${id}/agenda`, data)
-    agendaForm.reset()
-    queryClient.invalidateQueries({ queryKey: ['meeting-agenda'] })
+    try {
+      await api.post(`/committee/meetings/${id}/agenda`, data)
+      agendaForm.reset()
+      queryClient.invalidateQueries({ queryKey: ['meeting-agenda'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   async function onItem(data: { title: string; application_id?: string }, agendaId: number) {
-    await api.post(`/committee/meetings/${id}/agenda/${agendaId}/items`, { title: data.title, application_id: data.application_id || null })
-    itemForm.reset()
-    setActiveAgendaId(null)
-    queryClient.invalidateQueries({ queryKey: ['meeting-agenda'] })
+    try {
+      await api.post(`/committee/meetings/${id}/agenda/${agendaId}/items`, { title: data.title, application_id: data.application_id || null })
+      itemForm.reset()
+      setActiveAgendaId(null)
+      queryClient.invalidateQueries({ queryKey: ['meeting-agenda'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   async function onAttendance(data: z.input<typeof attendanceSchema>) {
-    await api.post(`/committee/meetings/${id}/attendance`, { user_id: parseInt(data.user_id), attendance_status: data.attendance_status, remarks: data.remarks })
-    attendForm.reset()
-    queryClient.invalidateQueries({ queryKey: ['meeting-attendance'] })
+    try {
+      await api.post(`/committee/meetings/${id}/attendance`, { user_id: parseInt(data.user_id), attendance_status: data.attendance_status, remarks: data.remarks })
+      attendForm.reset()
+      queryClient.invalidateQueries({ queryKey: ['meeting-attendance'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   async function onMinutes(data: { minutes_text: string }) {
-    await api.post(`/committee/meetings/${id}/minutes`, data)
-    minutesForm.reset()
-    queryClient.invalidateQueries({ queryKey: ['meeting-minutes'] })
+    try {
+      await api.post(`/committee/meetings/${id}/minutes`, data)
+      minutesForm.reset()
+      queryClient.invalidateQueries({ queryKey: ['meeting-minutes'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   async function approveMinutes(minutesId: number) {
-    await api.patch(`/committee/meetings/${id}/minutes/${minutesId}/approve`)
-    queryClient.invalidateQueries({ queryKey: ['meeting-minutes'] })
+    try {
+      await api.patch(`/committee/meetings/${id}/minutes/${minutesId}/approve`)
+      queryClient.invalidateQueries({ queryKey: ['meeting-minutes'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   async function onNewVote(data: { application_id: string }) {
-    await api.post('/committee/voting/sessions', { application_id: parseInt(data.application_id), meeting_id: parseInt(id!), voting_type: 'MAJORITY' })
-    voteForm.reset()
-    queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+    try {
+      await api.post('/committee/voting/sessions', { application_id: parseInt(data.application_id), meeting_id: parseInt(id!), voting_type: 'MAJORITY' })
+      voteForm.reset()
+      queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   async function castVote(sessionId: number, voteValue: string) {
     try {
       await api.post(`/committee/voting/sessions/${sessionId}/vote`, { vote_value: voteValue })
-      setVoteErrors({ ...voteErrors, [sessionId]: '' })
+      setVoteErrors((prev: Record<string, string>) => ({ ...prev, [sessionId]: '' }))
       queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
     } catch (err: any) {
-      setVoteErrors({ ...voteErrors, [sessionId]: err.response?.data?.error || t('meetings.voteFailed') })
+      setVoteErrors((prev: Record<string, string>) => ({ ...prev, [sessionId]: err.response?.data?.error || t('meetings.voteFailed') }))
     }
   }
 
   async function closeSession(sessionId: number) {
-    await api.patch(`/committee/voting/sessions/${sessionId}/close`)
-    queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+    try {
+      await api.patch(`/committee/voting/sessions/${sessionId}/close`)
+      queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('meetings.saveFailed'))
+    }
   }
 
   if (isLoading) return <PageSkeleton />

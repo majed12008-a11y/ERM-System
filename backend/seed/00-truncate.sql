@@ -1,164 +1,174 @@
 -- ============================================================
 -- TRUNCATE ALL TABLES (order by dependency, children first)
 -- ============================================================
+-- تفريغ جميع الجداول من البيانات مع إعادة تعيين المتسلسلات (sequences).
+-- يُستخدم قبل إعادة تشغيل البذور من البداية لضمان بيئة نظيفة.
 -- Document templates / generated / access / versions
-TRUNCATE TABLE documents.generated_documents CASCADE;
-TRUNCATE TABLE documents.document_access CASCADE;
-TRUNCATE TABLE documents.document_approvals CASCADE;
-TRUNCATE TABLE documents.document_audit CASCADE;
-TRUNCATE TABLE documents.document_versions CASCADE;
-TRUNCATE TABLE documents.document_signatures CASCADE;
-TRUNCATE TABLE documents.documents CASCADE;
-TRUNCATE TABLE documents.templates CASCADE;
-TRUNCATE TABLE documents.document_types CASCADE;
+TRUNCATE TABLE documents.generated_documents RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.document_access RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.document_approvals RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.document_audit RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.document_versions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.document_signatures RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.documents RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.templates RESTART IDENTITY CASCADE;
+TRUNCATE TABLE documents.document_types RESTART IDENTITY CASCADE;
 
 -- Voting
-TRUNCATE TABLE committee.votes CASCADE;
-TRUNCATE TABLE committee.voting_sessions CASCADE;
+TRUNCATE TABLE committee.votes RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.voting_sessions RESTART IDENTITY CASCADE;
 
 -- Meeting minutes / attendance / agenda
-TRUNCATE TABLE committee.agenda_items CASCADE;
-TRUNCATE TABLE committee.meeting_minutes CASCADE;
-TRUNCATE TABLE committee.quorum_logs CASCADE;
-TRUNCATE TABLE committee.attendance_logs CASCADE;
-TRUNCATE TABLE committee.meeting_agendas CASCADE;
-TRUNCATE TABLE committee.committee_meetings CASCADE;
+TRUNCATE TABLE committee.agenda_items RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.meeting_minutes RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.quorum_logs RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.attendance_logs RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.meeting_agendas RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.committee_meetings RESTART IDENTITY CASCADE;
 
 -- Reviews
-TRUNCATE TABLE committee.review_answers CASCADE;
-TRUNCATE TABLE committee.review_comments CASCADE;
-TRUNCATE TABLE committee.review_recommendations CASCADE;
-TRUNCATE TABLE committee.review_scores CASCADE;
-TRUNCATE TABLE committee.review_conflicts CASCADE;
-TRUNCATE TABLE committee.review_assignments CASCADE;
-TRUNCATE TABLE committee.ethics_reviews CASCADE;
-TRUNCATE TABLE committee.scientific_reviews CASCADE;
-TRUNCATE TABLE committee.review_questions CASCADE;
-TRUNCATE TABLE committee.review_forms CASCADE;
+TRUNCATE TABLE committee.consent_review_comments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_consents RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.consent_template_versions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.consent_templates RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.ethics_risk_items RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.ethics_risk_assessments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_answers RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_comments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_recommendations RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_scores RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_conflicts RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_assignments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.ethics_reviews RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.scientific_reviews RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_questions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.review_forms RESTART IDENTITY CASCADE;
 
 -- Committee members
-TRUNCATE TABLE committee.member_roles CASCADE;
-TRUNCATE TABLE committee.member_conflicts CASCADE;
-TRUNCATE TABLE committee.member_qualifications CASCADE;
-TRUNCATE TABLE committee.member_terms CASCADE;
-TRUNCATE TABLE committee.committee_members CASCADE;
-TRUNCATE TABLE committee.committee_roles CASCADE;
-TRUNCATE TABLE committee.committees CASCADE;
-TRUNCATE TABLE committee.committee_types CASCADE;
+TRUNCATE TABLE committee.committee_member_roles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.member_conflicts RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.member_qualifications RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.member_terms RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.committee_members RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.committee_roles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.committees RESTART IDENTITY CASCADE;
+TRUNCATE TABLE committee.committee_types RESTART IDENTITY CASCADE;
 
 -- Workflow
-TRUNCATE TABLE workflow.workflow_escalations CASCADE;
-TRUNCATE TABLE workflow.workflow_variables CASCADE;
-TRUNCATE TABLE workflow.workflow_history CASCADE;
-TRUNCATE TABLE workflow.workflow_comments CASCADE;
-TRUNCATE TABLE workflow.workflow_actions CASCADE;
-TRUNCATE TABLE workflow.workflow_tasks CASCADE;
-TRUNCATE TABLE workflow.workflow_instances CASCADE;
-TRUNCATE TABLE workflow.workflow_sla CASCADE;
-TRUNCATE TABLE workflow.workflow_transitions CASCADE;
-TRUNCATE TABLE workflow.workflow_states CASCADE;
-TRUNCATE TABLE workflow.workflows CASCADE;
+TRUNCATE TABLE workflow.workflow_escalations RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_variables RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_history RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_comments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_actions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_tasks RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_instances RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_sla RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_transitions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflow_states RESTART IDENTITY CASCADE;
+TRUNCATE TABLE workflow.workflows RESTART IDENTITY CASCADE;
 
 -- Applications
-TRUNCATE TABLE core.amendment_requests CASCADE;
-TRUNCATE TABLE core.application_amendments CASCADE;
-TRUNCATE TABLE core.application_versions CASCADE;
-TRUNCATE TABLE core.application_checklists CASCADE;
-TRUNCATE TABLE core.application_sections CASCADE;
-TRUNCATE TABLE core.application_validations CASCADE;
-TRUNCATE TABLE core.application_history CASCADE;
-TRUNCATE TABLE core.closure_requests CASCADE;
-TRUNCATE TABLE core.renewal_requests CASCADE;
-TRUNCATE TABLE core.applications CASCADE;
+TRUNCATE TABLE core.amendment_requests RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_amendments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_versions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_checklists RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_sections RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_validations RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.application_history RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.closure_requests RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.renewal_requests RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.applications RESTART IDENTITY CASCADE;
 
 -- Projects
-TRUNCATE TABLE core.project_site_investigators CASCADE;
-TRUNCATE TABLE core.project_team_members CASCADE;
-TRUNCATE TABLE core.project_status_history CASCADE;
-TRUNCATE TABLE core.project_versions CASCADE;
-TRUNCATE TABLE core.project_attachments CASCADE;
-TRUNCATE TABLE core.project_funding_sources CASCADE;
-TRUNCATE TABLE core.project_keywords CASCADE;
-TRUNCATE TABLE core.project_tags CASCADE;
-TRUNCATE TABLE core.project_sites CASCADE;
-TRUNCATE TABLE core.projects CASCADE;
+TRUNCATE TABLE core.project_site_investigators RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_team_members RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_status_history RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_versions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_attachments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_funding_sources RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_keywords RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_tags RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.project_sites RESTART IDENTITY CASCADE;
+TRUNCATE TABLE core.projects RESTART IDENTITY CASCADE;
 
 -- Safety
-TRUNCATE TABLE safety.safety_followups CASCADE;
-TRUNCATE TABLE safety.serious_adverse_events CASCADE;
-TRUNCATE TABLE safety.adverse_events CASCADE;
-TRUNCATE TABLE safety.mitigation_actions CASCADE;
-TRUNCATE TABLE safety.safety_committee_reviews CASCADE;
-TRUNCATE TABLE safety.safety_reports CASCADE;
-TRUNCATE TABLE safety.risk_assessments CASCADE;
-TRUNCATE TABLE safety.risk_categories CASCADE;
+TRUNCATE TABLE safety.safety_followups RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.serious_adverse_events RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.adverse_events RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.mitigation_actions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.safety_committee_reviews RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.safety_reports RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.risk_assessments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE safety.risk_categories RESTART IDENTITY CASCADE;
 
 -- Monitoring
-TRUNCATE TABLE monitoring.inspection_reports CASCADE;
-TRUNCATE TABLE monitoring.inspections CASCADE;
-TRUNCATE TABLE monitoring.corrective_actions CASCADE;
-TRUNCATE TABLE monitoring.preventive_actions CASCADE;
-TRUNCATE TABLE monitoring.monitoring_findings CASCADE;
-TRUNCATE TABLE monitoring.monitoring_visits CASCADE;
-TRUNCATE TABLE monitoring.monitoring_plans CASCADE;
-TRUNCATE TABLE monitoring.protocol_violations CASCADE;
-TRUNCATE TABLE monitoring.deviations CASCADE;
-TRUNCATE TABLE monitoring.compliance_reviews CASCADE;
+TRUNCATE TABLE monitoring.inspection_reports RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.inspections RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.corrective_actions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.preventive_actions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.monitoring_findings RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.monitoring_visits RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.monitoring_plans RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.protocol_violations RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.deviations RESTART IDENTITY CASCADE;
+TRUNCATE TABLE monitoring.compliance_reviews RESTART IDENTITY CASCADE;
 
 -- Messages / notifications
-TRUNCATE TABLE communication.notification_logs CASCADE;
-TRUNCATE TABLE communication.notifications CASCADE;
-TRUNCATE TABLE communication.notification_templates CASCADE;
-TRUNCATE TABLE communication.notification_channels CASCADE;
-TRUNCATE TABLE communication.announcements CASCADE;
-TRUNCATE TABLE communication.message_attachments CASCADE;
-TRUNCATE TABLE communication.message_recipients CASCADE;
-TRUNCATE TABLE communication.messages CASCADE;
+TRUNCATE TABLE communication.notification_logs RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.notifications RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.notification_templates RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.notification_channels RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.announcements RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.message_attachments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.message_recipients RESTART IDENTITY CASCADE;
+TRUNCATE TABLE communication.messages RESTART IDENTITY CASCADE;
 
 -- User roles / permissions
-TRUNCATE TABLE security.api_keys CASCADE;
-TRUNCATE TABLE security.access_policies CASCADE;
-TRUNCATE TABLE security.role_permissions CASCADE;
-TRUNCATE TABLE security.user_roles CASCADE;
-TRUNCATE TABLE security.password_history CASCADE;
-TRUNCATE TABLE security.sessions CASCADE;
-TRUNCATE TABLE security.user_profiles CASCADE;
-TRUNCATE TABLE security.login_audit CASCADE;
-TRUNCATE TABLE security.security_events CASCADE;
+TRUNCATE TABLE security.api_keys RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.access_policies RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.role_permissions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.user_roles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.password_history RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.sessions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.user_profiles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.login_audit RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.security_events RESTART IDENTITY CASCADE;
 
 -- Users
-TRUNCATE TABLE security.users CASCADE;
-TRUNCATE TABLE security.departments CASCADE;
-TRUNCATE TABLE security.institutions CASCADE;
-TRUNCATE TABLE security.institution_types CASCADE;
-TRUNCATE TABLE security.roles CASCADE;
-TRUNCATE TABLE security.permissions CASCADE;
+TRUNCATE TABLE security.users RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.departments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.institutions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.institution_types RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.roles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE security.permissions RESTART IDENTITY CASCADE;
 
 -- Reference
-TRUNCATE TABLE reference.application_statuses CASCADE;
-TRUNCATE TABLE reference.risk_levels CASCADE;
-TRUNCATE TABLE reference.priority_levels CASCADE;
-TRUNCATE TABLE reference.vote_types CASCADE;
-TRUNCATE TABLE reference.lookup_categories CASCADE;
-TRUNCATE TABLE reference.lookup_values CASCADE;
-TRUNCATE TABLE reference.workflow_statuses CASCADE;
-TRUNCATE TABLE reference.document_statuses CASCADE;
-TRUNCATE TABLE reference.committee_decision_types CASCADE;
-TRUNCATE TABLE reference.review_statuses CASCADE;
+TRUNCATE TABLE reference.application_statuses RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.risk_levels RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.priority_levels RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.vote_types RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.lookup_categories RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.lookup_values RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.workflow_statuses RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.document_statuses RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.committee_decision_types RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.review_statuses RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.academic_titles RESTART IDENTITY CASCADE;
 
 -- Reporting
-TRUNCATE TABLE reporting.report_executions CASCADE;
-TRUNCATE TABLE reporting.report_definitions CASCADE;
-TRUNCATE TABLE reporting.kpi_results CASCADE;
-TRUNCATE TABLE reporting.dashboard_widgets CASCADE;
-TRUNCATE TABLE reporting.analytics_snapshots CASCADE;
+TRUNCATE TABLE reporting.report_executions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reporting.report_definitions RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reporting.kpi_results RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reporting.dashboard_widgets RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reporting.analytics_snapshots RESTART IDENTITY CASCADE;
 
 -- Reference
-TRUNCATE TABLE reference.notification_statuses CASCADE;
-TRUNCATE TABLE reference.status_types CASCADE;
+TRUNCATE TABLE reference.notification_statuses RESTART IDENTITY CASCADE;
+TRUNCATE TABLE reference.status_types RESTART IDENTITY CASCADE;
 
 -- Audit
-TRUNCATE TABLE audit.audit_details CASCADE;
-TRUNCATE TABLE audit.entity_changes CASCADE;
-TRUNCATE TABLE audit.audit_logs CASCADE;
-TRUNCATE TABLE system.audit_log CASCADE;
+TRUNCATE TABLE audit.audit_details RESTART IDENTITY CASCADE;
+TRUNCATE TABLE audit.entity_changes RESTART IDENTITY CASCADE;
+TRUNCATE TABLE audit.audit_logs RESTART IDENTITY CASCADE;
+TRUNCATE TABLE system.push_config RESTART IDENTITY CASCADE;
+TRUNCATE TABLE system.audit_log RESTART IDENTITY CASCADE;

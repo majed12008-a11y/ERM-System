@@ -5815,7 +5815,7 @@ CREATE TABLE reference.institutions_registry (
     type character varying(100) NOT NULL,
     address text,
     city character varying(100),
-    country character varying(100) DEFAULT 'Saudi Arabia'::character varying NOT NULL,
+    country character varying(100) DEFAULT 'Yemen'::character varying NOT NULL,
     phone character varying(50),
     email character varying(200),
     website character varying(200),

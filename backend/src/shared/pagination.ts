@@ -1,3 +1,8 @@
+/*
+ * دوال مساعدة للترقيم (Pagination).
+ * تحول معاملات الصفحات والحدود إلى OFFSET/LIMIT
+ * لإستخدامها في استعلامات قاعدة البيانات.
+ */
 export interface PaginationParams {
   page: number;
   limit: number;

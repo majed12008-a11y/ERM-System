@@ -1,3 +1,7 @@
+/*
+ * لوحة البيانات الرئيسية: إحصائيات ومخططات ونظرة عامة
+ * على حالة النظام والطلبات والمشاريع.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'

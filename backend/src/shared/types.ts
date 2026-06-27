@@ -1,3 +1,7 @@
+/*
+ * تعريفات الأنواع المشتركة (TypeScript interfaces)
+ * المستخدمة عبر النظام بأكمله (المستخدم، AuthUser، المستندات).
+ */
 export interface User {
   id: number;
   uuid: string;
@@ -14,6 +18,7 @@ export interface AuthUser {
   username: string;
   email: string;
   status: string;
+  is_email_verified: boolean;
   roles: string[];
 }
 

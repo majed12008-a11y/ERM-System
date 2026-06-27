@@ -389,7 +389,7 @@ CREATE TABLE reference.institutions_registry (
   type               VARCHAR(100) NOT NULL,
   address            TEXT,
   city               VARCHAR(100),
-  country            VARCHAR(100) NOT NULL DEFAULT 'Saudi Arabia',
+  country            VARCHAR(100) NOT NULL DEFAULT 'Yemen',
   phone              VARCHAR(50),
   email              VARCHAR(200),
   website            VARCHAR(200),

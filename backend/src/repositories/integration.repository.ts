@@ -1,3 +1,7 @@
+/*
+ * مستودع التكامل: إدارة الأحداث الصادرة (Event Outbox)
+ * للتكامل مع الأنظمة الخارجية.
+ */
 import { AuditableRepository } from './auditable.repository';
 
 export class IntegrationRepository extends AuditableRepository {

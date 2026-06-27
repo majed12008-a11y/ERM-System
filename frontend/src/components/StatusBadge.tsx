@@ -10,6 +10,20 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | '
   CONDITIONAL: 'default',
   WITHDRAWN: 'outline',
   CLOSED: 'secondary',
+  PENDING: 'secondary',
+  ACCEPTED: 'success',
+  RECOMMEND_APPROVE: 'success',
+  RECOMMEND_CONDITIONAL: 'default',
+  RECOMMEND_REJECT: 'destructive',
+  DEFER: 'warning',
+  ACCREDITED: 'success',
+  SUSPENDED: 'destructive',
+  EXPIRED: 'outline',
+  REVOKED: 'destructive',
+  OPEN: 'secondary',
+  MET: 'success',
+  OVERDUE: 'destructive',
+  WAIVED: 'outline',
 }
 
 export function StatusBadge({ status }: { status: string }) {

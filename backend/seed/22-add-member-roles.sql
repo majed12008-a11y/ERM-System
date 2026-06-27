@@ -9,5 +9,5 @@ ALTER TABLE committee.committee_members
 -- Update existing members with role from member_roles (if any were seeded)
 UPDATE committee.committee_members cm
   SET role_id = mr.role_id
-  FROM committee.member_roles mr
+  FROM committee.committee_member_roles mr
   WHERE mr.member_id = cm.id AND cm.role_id IS NULL;

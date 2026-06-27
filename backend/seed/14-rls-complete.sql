@@ -7,6 +7,8 @@
 --   C. Complete security.users policies (SELECT, UPDATE)
 --   D. Policies for 7 tables with ENABLE RLS but no policies
 -- ============================================================
+-- إكمال سياسات RLS: تعريف fn_is_admin()، سياسات SELECT/UPDATE
+-- للمستخدمين، وسياسات للجداول التي تم تفعيل RLS عليها بدون سياسات.
 
 BEGIN;
 
@@ -31,7 +33,7 @@ AS $$
   );
 $$;
 
-COMMENT ON FUNCTION system.fn_is_admin IS
+COMMENT ON FUNCTION system.fn_is_admin(p_user_id BIGINT) IS
   'Returns true if the user holds any administrative role. SECURITY DEFINER to bypass RLS on user_roles.';
 
 -- ============================================================

@@ -3,6 +3,8 @@
 -- Adds unified audit columns + soft delete to 80 transaction tables
 -- Excludes: history/log tables, audit tables, reference, junction, system
 -- ============================================================
+-- تفعيل الحذف الناعم (Soft Delete): إضافة أعمدة deleted_at / deleted_by
+-- لـ 80 جدول معاملات. يستثني جداول التاريخ والمراجع والأنظمة.
 -- Migration Type: Additive (safe to run on production)
 -- PostgreSQL 18.3 compatible
 -- ============================================================

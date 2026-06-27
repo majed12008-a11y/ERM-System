@@ -1,3 +1,7 @@
+/*
+ * Hook للتحقق من صلاحية المستخدم.
+ * تعيد true إذا كان المستخدم يملك الصلاحية المحددة.
+ */
 import { useAuth } from '../context/AuthContext'
 
 export function usePermission(permissionCode: string): boolean {

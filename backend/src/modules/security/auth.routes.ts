@@ -1,13 +1,17 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '../../middleware/schemas';
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, changePasswordSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { env } from '../../config/env';
 import { AuthService } from '../../services/auth.service';
 
 const router = Router();
 const service = new AuthService();
+
+const registerLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Too many registration attempts. Try again later.' } });
+const forgotLimiter = rateLimit({ windowMs: 60 * 1000, max: 3, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Too many password reset requests. Try again later.' } });
 
 function parseCookies(header: string | undefined): Record<string, string> {
   if (!header) return {};
@@ -36,7 +40,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
   }
 });
 
-router.post('/register', validate(registerSchema), async (req: Request, res: Response) => {
+router.post('/register', registerLimiter, validate(registerSchema), async (req: Request, res: Response) => {
   try {
     const { username, email, password, first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, institution_id } = req.body;
     const result = await service.register({
@@ -49,7 +53,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
   }
 });
 
-router.post('/forgot-password', validate(forgotPasswordSchema), async (req: Request, res: Response) => {
+router.post('/forgot-password', forgotLimiter, validate(forgotPasswordSchema), async (req: Request, res: Response) => {
   try {
     const result = await service.forgotPassword(req.body.email);
     res.json(successResponse(result, result.message));
@@ -102,7 +106,25 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
   }
 });
 
-router.post('/change-password', authenticate, async (req: Request, res: Response) => {
+router.post('/verify-email', validate(verifyEmailSchema), async (req: Request, res: Response) => {
+  try {
+    await service.verifyEmail(req.body.token);
+    res.json(successResponse(null, 'Email verified successfully'));
+  } catch (err: any) {
+    res.status(err.status || 500).json(errorResponse(err.message));
+  }
+});
+
+router.post('/resend-verification', authenticate, async (req: Request, res: Response) => {
+  try {
+    const result = await service.resendVerificationEmail((req as any).user.id);
+    res.json(successResponse(result, 'Verification email resent'));
+  } catch (err: any) {
+    res.status(err.status || 500).json(errorResponse(err.message));
+  }
+});
+
+router.post('/change-password', authenticate, validate(changePasswordSchema), async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const { oldPassword, newPassword } = req.body;

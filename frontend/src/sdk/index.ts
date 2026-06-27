@@ -1,6 +1,8 @@
 // ─── SDK — ERM Ethics API TypeScript Client ───
 // Generated from OpenAPI 3.1 Contract (v1.0.0)
 // Domain-isolated, type-safe, RBAC-aligned.
+// عميل TypeScript لواجهة برمجة التطبيقات (API) لنظام ERM Ethics.
+// معزول حسب المجال، آمن الأنواع، ومتوافق مع RBAC.
 
 export { configureSdk, getConfig } from './core/config'
 export * from './core/types'

@@ -1,3 +1,7 @@
+/*
+ * خدمات النظام العامة: إدارة حالة النظام،
+ * إعادة التشغيل، ومهام الصيانة الدورية.
+ */
 import { SystemRepository } from '../repositories/system.repository';
 
 export class SystemService {

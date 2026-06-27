@@ -1,3 +1,7 @@
+/*
+ * صفحة استعادة كلمة المرور: إدخال البريد الإلكتروني
+ * لإرسال رابط إعادة تعيين كلمة المرور.
+ */
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'

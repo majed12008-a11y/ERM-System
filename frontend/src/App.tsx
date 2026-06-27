@@ -1,3 +1,8 @@
+/*
+ * المكون الرئيسي للتطبيق: تعريف المسارات (Routing) باستخدام
+ * React Router، إعداد React Query، وإدارة السياق العام.
+ * يستخدم التحميل البطيء (Lazy Loading) للصفحات.
+ */
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -13,9 +18,11 @@ const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const ApplicationList = lazy(() => import('./pages/Applications/List'))
 const ApplicationCreate = lazy(() => import('./pages/Applications/Create'))
+const ApplicationEdit = lazy(() => import('./pages/Applications/Edit'))
 const ApplicationDetail = lazy(() => import('./pages/Applications/Detail'))
 const ProjectList = lazy(() => import('./pages/Projects/List'))
 const ProjectCreate = lazy(() => import('./pages/Projects/Create'))
@@ -29,6 +36,9 @@ const Committees = lazy(() => import('./pages/Committee/Committees'))
 const CommitteeDetail = lazy(() => import('./pages/Committee/CommitteeDetail'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const RiskRegister = lazy(() => import('./pages/Safety/RiskRegister'))
+const AdverseEvents = lazy(() => import('./pages/Safety/AdverseEvents'))
+const RiskIncidents = lazy(() => import('./pages/Safety/RiskIncidents'))
+const CorrectiveActions = lazy(() => import('./pages/Safety/CorrectiveActions'))
 const SavedSearches = lazy(() => import('./pages/System/SavedSearches'))
 const RegistryPage = lazy(() => import('./pages/Registry/RegistryPage'))
 const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage'))
@@ -38,6 +48,18 @@ const MessagesPage = lazy(() => import('./pages/Messages/MessagesPage'))
 const AdminDashboard = lazy(() => import('./pages/Admin/AdminDashboard'))
 const ReviewFormsPage = lazy(() => import('./pages/ReviewForms/ReviewFormsPage'))
 const ESignaturesPage = lazy(() => import('./pages/ESignatures/ESignaturesPage'))
+const ConsentTemplates = lazy(() => import('./pages/Admin/ConsentTemplates'))
+const ConsentTemplateVersions = lazy(() => import('./pages/Admin/ConsentTemplateVersions'))
+const NotificationChannels = lazy(() => import('./pages/Admin/NotificationChannels'))
+const BackupSettings = lazy(() => import('./pages/Admin/BackupSettings'))
+const ReferenceData = lazy(() => import('./pages/Admin/ReferenceData'))
+const AccreditationCycles = lazy(() => import('./pages/Accreditation/CyclesList'))
+const AccreditationCycleDetail = lazy(() => import('./pages/Accreditation/CycleDetail'))
+const AccreditationEvidence = lazy(() => import('./pages/Accreditation/Evidence'))
+const AccreditationAssessments = lazy(() => import('./pages/Accreditation/AssessmentsList'))
+const AccreditationConditions = lazy(() => import('./pages/Accreditation/ConditionsList'))
+const AccreditationDashboard = lazy(() => import('./pages/Accreditation/Dashboard'))
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,11 +103,13 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} errorElement={<ErrorBoundary />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} errorElement={<ErrorBoundary />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} errorElement={<ErrorBoundary />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} errorElement={<ErrorBoundary />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<RootLayout />} errorElement={<ErrorBoundary />}>
                 <Route index element={<Dashboard />} />
                 <Route path="/applications" element={<ApplicationList />} />
                 <Route path="/applications/create" element={<ApplicationCreate />} />
+                <Route path="/applications/:id/edit" element={<ApplicationEdit />} />
                 <Route path="/applications/:id" element={<ApplicationDetail />} />
                 <Route path="/projects" element={<ProjectList />} />
                 <Route path="/projects/create" element={<ProjectCreate />} />
@@ -99,6 +123,9 @@ export default function App() {
                 <Route path="/committee/meetings/:id" element={<MeetingDetail />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/risk-register" element={<RiskRegister />} />
+                <Route path="/safety/adverse-events" element={<AdverseEvents />} />
+                <Route path="/safety/risk-incidents" element={<RiskIncidents />} />
+                <Route path="/safety/corrective-actions" element={<CorrectiveActions />} />
                 <Route path="/saved-searches" element={<SavedSearches />} />
                 <Route path="/registry" element={<RegistryPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
@@ -106,8 +133,19 @@ export default function App() {
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/notification-channels" element={<NotificationChannels />} />
+                <Route path="/admin/backup" element={<BackupSettings />} />
+                <Route path="/admin/reference-data" element={<ReferenceData />} />
+                <Route path="/admin/consent-templates" element={<ConsentTemplates />} />
+                <Route path="/admin/consent-templates/:id/versions" element={<ConsentTemplateVersions />} />
                 <Route path="/review-forms" element={<ReviewFormsPage />} />
                 <Route path="/e-signatures" element={<ESignaturesPage />} />
+                <Route path="/admin/accreditation/cycles" element={<AccreditationCycles />} />
+                <Route path="/admin/accreditation/cycles/:id" element={<AccreditationCycleDetail />} />
+                <Route path="/admin/accreditation/cycles/:id/evidence" element={<AccreditationEvidence />} />
+                <Route path="/admin/accreditation/cycles/:id/assessments" element={<AccreditationAssessments />} />
+                <Route path="/admin/accreditation/cycles/:id/conditions" element={<AccreditationConditions />} />
+                <Route path="/admin/accreditation/cycles/:id/dashboard" element={<AccreditationDashboard />} />
               </Route>
             </Route>
           </Routes>

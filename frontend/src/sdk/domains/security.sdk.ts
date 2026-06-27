@@ -1,3 +1,7 @@
+/*
+ * SDK الأمان: دوال المصادقة وإدارة المستخدمين والأدوار.
+ * التعامل مع تسجيل الدخول، التسجيل، إدارة الملف الشخصي، الصلاحيات.
+ */
 import api from '../../api/client'
 import type {
   LoginRequest,
@@ -7,6 +11,12 @@ import type {
   ChangePasswordRequest,
   SuccessResponse,
   User,
+  UserProfile,
+  Role,
+  Permission,
+  ResponsibilityType,
+  UserResponsibility,
+  Pagination,
 } from '../core/types'
 
 export const auth = {
@@ -37,7 +47,7 @@ export const auth = {
 
 export const users = {
   list(params?: { page?: number; limit?: number }) {
-    return api.get<SuccessResponse<User[]> & { pagination?: any }>('/security/users', { params })
+    return api.get<SuccessResponse<User[]> & { pagination?: Pagination }>('/security/users', { params })
   },
 
   getById(id: number) {
@@ -53,43 +63,43 @@ export const users = {
   },
 
   getProfile() {
-    return api.get<SuccessResponse<import('../core/types').UserProfile>>('/security/profile')
+    return api.get<SuccessResponse<UserProfile>>('/security/profile')
   },
 
-  updateProfile(data: Partial<import('../core/types').UserProfile>) {
-    return api.put<SuccessResponse<import('../core/types').UserProfile>>('/security/profile', data)
+  updateProfile(data: Partial<UserProfile>) {
+    return api.put<SuccessResponse<UserProfile>>('/security/profile', data)
   },
 
   getProfileById(userId: number) {
-    return api.get<SuccessResponse<import('../core/types').UserProfile>>(`/security/profile/${userId}`)
+    return api.get<SuccessResponse<UserProfile>>(`/security/profile/${userId}`)
   },
 }
 
 export const roles = {
   list() {
-    return api.get<SuccessResponse<import('../core/types').Role[]>>('/security/roles')
+    return api.get<SuccessResponse<Role[]>>('/security/roles')
   },
 
   getById(id: number) {
-    return api.get<SuccessResponse<import('../core/types').Role>>(`/security/roles/${id}`)
+    return api.get<SuccessResponse<Role>>(`/security/roles/${id}`)
   },
 
   create(data: { code: string; name_ar: string }) {
-    return api.post<SuccessResponse<import('../core/types').Role>>('/security/roles', data)
+    return api.post<SuccessResponse<Role>>('/security/roles', data)
   },
 
-  update(id: number, data: Partial<import('../core/types').Role>) {
-    return api.put<SuccessResponse<import('../core/types').Role>>(`/security/roles/${id}`, data)
+  update(id: number, data: Partial<Role>) {
+    return api.put<SuccessResponse<Role>>(`/security/roles/${id}`, data)
   },
 }
 
 export const permissions = {
   list() {
-    return api.get<SuccessResponse<any[]>>('/security/permissions')
+    return api.get<SuccessResponse<Permission[]>>('/security/permissions')
   },
 
   create(data: { permission_code: string; name: string }) {
-    return api.post<SuccessResponse<any>>('/security/permissions', data)
+    return api.post<SuccessResponse<Permission>>('/security/permissions', data)
   },
 
   delete(id: number) {
@@ -97,7 +107,7 @@ export const permissions = {
   },
 
   getByRole(roleId: number) {
-    return api.get<SuccessResponse<any[]>>(`/security/permissions/role/${roleId}`)
+    return api.get<SuccessResponse<Permission[]>>(`/security/permissions/role/${roleId}`)
   },
 
   updateRole(roleId: number, data: { permission_ids: number[] }) {
@@ -107,15 +117,15 @@ export const permissions = {
 
 export const responsibilities = {
   listTypes() {
-    return api.get<SuccessResponse<any[]>>('/security/responsibility-types')
+    return api.get<SuccessResponse<ResponsibilityType[]>>('/security/responsibility-types')
   },
 
   list() {
-    return api.get<SuccessResponse<any[]>>('/security/user-responsibilities')
+    return api.get<SuccessResponse<UserResponsibility[]>>('/security/user-responsibilities')
   },
 
   assign(data: { user_id: number; responsibility_type_id: number; entity_type: string; entity_id: number }) {
-    return api.post<SuccessResponse<any>>('/security/user-responsibilities', data)
+    return api.post<SuccessResponse<UserResponsibility>>('/security/user-responsibilities', data)
   },
 
   remove(id: number) {

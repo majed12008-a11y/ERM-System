@@ -1,3 +1,7 @@
+/*
+ * صفحة تسجيل الدخول: نموذج إدخال اسم المستخدم وكلمة المرور،
+ * مع رابط لاستعادة كلمة المرور والتسجيل.
+ */
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link } from 'react-router-dom'

@@ -1,3 +1,7 @@
+/*
+ * لوحة التحكم: إعدادات النظام، النسخ الاحتياطي،
+ * إدارة البيانات المرجعية، ومهام الصيانة.
+ */
 import { AdminRepository } from '../repositories/admin.repository';
 import { PaginationParams } from '../shared/pagination';
 

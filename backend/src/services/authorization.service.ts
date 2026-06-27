@@ -1,3 +1,8 @@
+/*
+ * التحقق من الصلاحيات والأذونات للمستخدمين.
+ * يتحقق من صلاحية المستخدم للوصول إلى موارد محددة
+ * بناءً على الأدوار والأذونات الممنوحة.
+ */
 import { AuthorizationRepository } from '../repositories/authorization.repository';
 
 export class AuthorizationService {

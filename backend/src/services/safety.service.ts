@@ -1,3 +1,8 @@
+/*
+ * إدارة السلامة: سجل المخاطر، الحوادث،
+ * الإجراءات التصحيحية. يدخل في نطاق
+ * اللجنة الأخلاقية لتقييم مخاطر الأبحاث.
+ */
 import { SafetyRepository } from '../repositories/safety.repository';
 import { AuthUser } from '../shared/types';
 
@@ -24,6 +29,7 @@ export class SafetyService {
   async createIncident(data: any, user: AuthUser) { return this.repo.createIncident(data, user.id); }
   async getCorrectiveActions() { return this.repo.getCorrectiveActions(); }
   async createCorrectiveAction(data: any) { return this.repo.createCorrectiveAction(data); }
+  async createAdverseEvent(data: any, user: AuthUser) { return this.repo.createAdverseEvent(data, user.id); }
   async getAdverseEvents(user: AuthUser) { return this.repo.getAdverseEvents(user.id, user.roles); }
   async getSeriousAdverseEvents() { return this.repo.getSeriousAdverseEvents(); }
   async getSafetyReports() { return this.repo.getSafetyReports(); }

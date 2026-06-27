@@ -1,5 +1,9 @@
+/*
+ * SDK المراقبة: دوال فحص صحة النظام،
+ * سجلات التدقيق، وإعدادات النظام.
+ */
 import api from '../../api/client'
-import type { SuccessResponse, HealthStatus } from '../core/types'
+import type { SuccessResponse, HealthStatus, MonitoringAudit, SystemConfig } from '../core/types'
 
 export const monitoring = {
   health() {
@@ -7,10 +11,10 @@ export const monitoring = {
   },
 
   getAudit() {
-    return api.get<SuccessResponse<any[]>>('/monitoring/audit')
+    return api.get<SuccessResponse<MonitoringAudit[]>>('/monitoring/audit')
   },
 
   getConfig() {
-    return api.get<SuccessResponse<any>>('/monitoring/config')
+    return api.get<SuccessResponse<SystemConfig[]>>('/monitoring/config')
   },
 }

@@ -3,12 +3,23 @@
 -- 1. Add missing INSERT policy for security.users
 -- 2. Fix fn_log_audit to treat user_id=0 as NULL (prevents FK violation)
 -- 3. Grant USAGE on sequence for currval()
--- Required for self-registration (register endpoint) to work
 -- ============================================================
+-- إصلاحات RLS: إضافة سياسة INSERT للمستخدمين، إصلاح fn_log_audit،
+-- ومنح صلاحيات على المتسلسلات. أساسي لتشغيل نظام التسجيل.
 
 BEGIN;
 
--- Allow INSERT when unauthenticated (self-registration) or when user is admin
+-- ----- آلية عمل سياسة INSERT ---------------------------------
+-- تسمح هذه السياسة بإدراج سجل جديد عندما يكون المستخدم غير مُسجّل
+-- الدخول (app.user_id = 0) أو عندما يكون المستخدم مسؤولاً (admin).
+--
+-- ملاحظة مهمة:
+--   في PostgreSQL 18.3 على Windows، سياسات FOR INSERT لا تعمل
+--   بسبب خلل في المحرّك. تم إنشاء دالة SECURITY DEFINER
+--   (security.fn_register_user) في الملف 33-fix-register-rls.sql
+--   لتجاوز هذا الخلل. تبقى هذه السياسة موجودة كمرجع ولتعمل تلقائياً
+--   إذا تم إصلاح الخلل في إصدار مستقبلي من PostgreSQL.
+-- ----------------------------------------------------------------
 DROP POLICY IF EXISTS users_insert_policy ON security.users;
 CREATE POLICY users_insert_policy ON security.users FOR INSERT
   WITH CHECK (
@@ -44,15 +55,28 @@ BEGIN
         v_user_id := NULL;
     END;
 
-    INSERT INTO audit.audit_logs (user_id, entity_name, entity_id, operation_type, source_ip)
-    VALUES (
-        v_user_id,
-        TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME,
-        CASE WHEN TG_OP = 'INSERT' THEN NEW.id WHEN TG_OP = 'UPDATE' THEN NEW.id ELSE OLD.id END,
-        v_operation,
-        NULL
-    )
-    RETURNING id INTO v_audit_log_id;
+    BEGIN
+        INSERT INTO audit.audit_logs (user_id, entity_name, entity_id, operation_type, source_ip)
+        VALUES (
+            v_user_id,
+            TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME,
+            CASE WHEN TG_OP = 'INSERT' THEN NEW.id WHEN TG_OP = 'UPDATE' THEN NEW.id ELSE OLD.id END,
+            v_operation,
+            NULL
+        )
+        RETURNING id INTO v_audit_log_id;
+    EXCEPTION WHEN foreign_key_violation THEN
+        -- user_id references non-existent user; retry with NULL
+        INSERT INTO audit.audit_logs (user_id, entity_name, entity_id, operation_type, source_ip)
+        VALUES (
+            NULL,
+            TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME,
+            CASE WHEN TG_OP = 'INSERT' THEN NEW.id WHEN TG_OP = 'UPDATE' THEN NEW.id ELSE OLD.id END,
+            v_operation,
+            NULL
+        )
+        RETURNING id INTO v_audit_log_id;
+    END;
 
     IF TG_OP = 'UPDATE' THEN
         IF NEW.id IS DISTINCT FROM OLD.id THEN

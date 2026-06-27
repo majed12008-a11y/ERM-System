@@ -1,3 +1,7 @@
+/*
+ * صفحة عمليات البحث المحفوظة: عرض وتشغيل وإدارة
+ * عمليات البحث المخزنة للمستخدم.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'

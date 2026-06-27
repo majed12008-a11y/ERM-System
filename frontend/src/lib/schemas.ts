@@ -1,3 +1,7 @@
+/*
+ * مخططات Zod للتحقق من صحة البيانات المدخلة في الواجهة الأمامية.
+ * تشمل مخططات تسجيل الدخول والتسجيل ونماذج البيانات.
+ */
 import { z } from 'zod'
 
 export const loginSchema = z.object({
@@ -157,6 +161,36 @@ export const votingSessionSchema = z.object({
   application_id: z.string({ message: 'Application ID is required' }).min(1),
 })
 
+export const adverseEventSchema = z.object({
+  application_id: z.coerce.number({ message: 'Application ID is required' }),
+  event_number: z.string({ message: 'Event number is required' }).min(1),
+  event_date: z.string({ message: 'Event date is required' }).min(1),
+  event_type: z.string({ message: 'Event type is required' }).min(1),
+  severity: z.string({ message: 'Severity is required' }).min(1),
+  expectedness: z.string().optional().default(''),
+  relatedness: z.string().optional().default(''),
+  description: z.string({ message: 'Description is required' }).min(1),
+  outcome_status: z.string().optional().default(''),
+})
+
+export const riskIncidentSchema = z.object({
+  risk_id: z.coerce.number({ message: 'Risk ID is required' }),
+  incident_code: z.string({ message: 'Incident code is required' }).min(1),
+  incident_date: z.string({ message: 'Incident date is required' }).min(1),
+  description: z.string({ message: 'Description is required' }).min(1),
+  severity: z.string().optional().default(''),
+  root_cause: z.string().optional().default(''),
+})
+
+export const correctiveActionSchema = z.object({
+  incident_id: z.coerce.number().optional(),
+  action_code: z.string({ message: 'Action code is required' }).min(1),
+  description: z.string({ message: 'Description is required' }).min(1),
+  assigned_to: z.coerce.number().optional(),
+  priority: z.string().optional().default('MEDIUM'),
+  due_date: z.string().optional().default(''),
+})
+
 export const forgotPasswordSchema = z.object({
   email: z.string({ message: 'Valid email is required' }).email(),
 })
@@ -168,4 +202,46 @@ export const resetPasswordSchema = z.object({
 }).refine(d => d.password === d.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
+})
+
+export const createCycleSchema = z.object({
+  committee_id: z.coerce.number({ message: 'Committee is required' }),
+  standard_version_id: z.coerce.number({ message: 'Standard version is required' }),
+})
+
+export const updateCycleStatusSchema = z.object({
+  to_status: z.string({ message: 'Target status is required' }).min(1),
+  decision: z.string({ message: 'Decision is required' }).min(1),
+  decided_by: z.coerce.number({ message: 'User ID is required' }),
+  decision_reason: z.string().optional().default(''),
+})
+
+export const createEvidenceSchema = z.object({
+  standard_version_id: z.coerce.number({ message: 'Standard is required' }),
+  notes: z.string().optional().default(''),
+})
+
+export const updateEvidenceStatusSchema = z.object({
+  status: z.string({ message: 'Status is required' }).min(1),
+  review_notes: z.string().optional().default(''),
+})
+
+export const createAssessmentSchema = z.object({
+  overall_decision: z.string({ message: 'Overall decision is required' }).min(1),
+  overall_justification: z.string().optional().default(''),
+  items: z.array(z.object({
+    standard_version_id: z.coerce.number(),
+    is_met: z.boolean().default(false),
+    score: z.coerce.number().int().min(1).max(5).optional(),
+    findings: z.string().optional().default(''),
+  })).optional().default([]),
+})
+
+export const updateAssessmentItemsSchema = z.object({
+  items: z.array(z.object({
+    standard_version_id: z.coerce.number(),
+    is_met: z.boolean(),
+    score: z.coerce.number().int().min(1).max(5).optional(),
+    findings: z.string().optional().default(''),
+  })),
 })

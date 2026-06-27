@@ -1,14 +1,19 @@
+/*
+ * إدارة المستخدمين: إنشاء، تحديث، عرض الملف الشخصي،
+ * إدارة الصلاحيات والأدوار. يتعامل مع تشفير البيانات الحساسة
+ * واستعلامات RLS لتقييد الوصول.
+ */
+import * as argon2 from 'argon2';
 import { UsersRepository } from '../repositories/users.repository';
 import { AuthUser } from '../shared/types';
 import { PaginationParams } from '../shared/pagination';
 import { encrypt, decrypt } from '../shared/crypto';
-import { hashPassword } from '../config/password';
 
 export class UsersService {
   private repo = new UsersRepository();
 
-  async getAll(params: PaginationParams) {
-    const { rows, total } = await this.repo.findAll(params);
+  async getAll(params: PaginationParams, filters: { search?: string; institution_id?: number; role_code?: string; sort_by?: string; sort_order?: string }) {
+    const { rows, total } = await this.repo.findAll(params, filters);
     return {
       data: rows,
       pagination: { page: params.page, limit: params.limit, total, totalPages: Math.ceil(total / params.limit) },
@@ -29,7 +34,7 @@ export class UsersService {
     const exists = await this.repo.checkExisting(data.username, data.email);
     if (exists) throw Object.assign(new Error('Username or email already exists'), { status: 409 });
 
-    const password_hash = await hashPassword(data.password);
+    const password_hash = await argon2.hash(data.password);
     const user = await this.repo.create({ ...data, password_hash });
 
     if (data.role_codes && data.role_codes.length > 0) {
