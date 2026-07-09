@@ -15,6 +15,12 @@ const service = new CommunicationService();
 router.use(messagesRoutes);
 
 // Notifications
+router.get('/notifications/unread-count', authenticate, async (req: Request, res: Response) => {
+  try {
+    res.json(successResponse({ count: await service.getNotificationUnreadCount((req as any).user.id) }));
+  } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
 router.get('/notifications', authenticate, async (req: Request, res: Response) => {
   try {
     res.json(successResponse(await service.getNotifications((req as any).user.id)));

@@ -23,7 +23,6 @@ const tabs: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
 
 export default function NotificationChannels() {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<Tab>('email')
 
   return (
@@ -54,11 +53,9 @@ export default function NotificationChannels() {
 }
 
 function EmailConfigSection() {
-  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
-  const [testing, setTesting] = useState(false)
 
   const schema = z.object({
     config_name: z.string().min(1),
@@ -78,7 +75,7 @@ function EmailConfigSection() {
     defaultValues: { config_name: '', smtp_host: '', smtp_port: 587, smtp_username: '', smtp_password: '', use_tls: true, from_address: '', from_name: '', is_active: true },
   })
 
-  const { data: configs, isLoading } = useQuery({
+  const { data: configs } = useQuery({
     queryKey: ['email-config'],
     queryFn: () => api.get('/admin/email-config').then(r => r.data.data || []),
   })
@@ -172,7 +169,6 @@ function EmailConfigSection() {
 }
 
 function SmsConfigSection() {
-  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -192,7 +188,7 @@ function SmsConfigSection() {
     defaultValues: { config_name: '', provider: '', api_key: '', api_secret: '', sender_name: '', is_active: true },
   })
 
-  const { data: configs, isLoading } = useQuery({
+  const { data: configs } = useQuery({
     queryKey: ['sms-config'],
     queryFn: () => api.get('/admin/sms-config').then(r => r.data.data || []),
   })
@@ -270,7 +266,6 @@ function SmsConfigSection() {
 }
 
 function PushConfigSection() {
-  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -289,7 +284,7 @@ function PushConfigSection() {
     defaultValues: { config_name: '', provider: 'FCM', server_key: '', app_id: '', is_active: true },
   })
 
-  const { data: configs, isLoading } = useQuery({
+  const { data: configs } = useQuery({
     queryKey: ['push-config'],
     queryFn: () => api.get('/admin/push-config').then(r => r.data.data || []),
   })
@@ -371,7 +366,6 @@ function PushConfigSection() {
 }
 
 function SystemConfigSection() {
-  const { t } = useTranslation()
   const qc = useQueryClient()
   const [editing, setEditing] = useState<Record<string, string>>({})
 

@@ -27,11 +27,32 @@ function readFile(file: string): string {
 }
 
 // Known infrastructure service exceptions — these are thin wrappers over DB
-// with SSE broadcasting, not business services. They legitimately contain SQL.
-const INFRA_SERVICES = ['services/notification.service.ts'];
+// with SSE broadcasting, channel routing or template lookups, not business services.
+// They legitimately contain SQL.
+const INFRA_SERVICE_FILES: string[] = [];
+
+function getInfraServices(): string[] {
+  if (INFRA_SERVICE_FILES.length === 0) {
+    INFRA_SERVICE_FILES.push(
+      path.join('services', 'notification.service.ts'),
+      path.join('services', 'channel-router.service.ts'),
+      path.join('services', 'template-renderer.service.ts'),
+    );
+  }
+  return INFRA_SERVICE_FILES;
+}
+
+const INFRA_BASENAMES = new Set([
+  'notification.service.ts',
+  'channel-router.service.ts',
+  'template-renderer.service.ts',
+]);
 
 describe('Service Layer — No Raw SQL', () => {
-  const serviceFiles = getFiles('services/*.service.ts').filter(f => !f.endsWith('notification.service.ts'));
+  const serviceFiles = getFiles('services/*.service.ts').filter(f => {
+    const basename = f.split(/[\\/]/).pop() || f;
+    return !INFRA_BASENAMES.has(basename);
+  });
 
   it.each(serviceFiles)('%s contains no raw SELECT', (file) => {
     const content = readFile(file);
@@ -75,14 +96,16 @@ describe('Service Layer — No Raw SQL', () => {
 });
 
 describe('Infrastructure Service — notification.service.ts (exempted)', () => {
+  const notifServicePath = getInfraServices()[0];
+
   it('contains raw INSERT (expected — SSE notification infrastructure)', () => {
-    const content = readFile(INFRA_SERVICES[0]);
+    const content = readFile(notifServicePath);
     const code = removeComments(content);
     expect(code).toMatch(/`\s*INSERT\s+INTO\s+/);
   });
 
   it('contains client.query() (expected — dual client/pool path)', () => {
-    const content = readFile(INFRA_SERVICES[0]);
+    const content = readFile(notifServicePath);
     const code = removeComments(content);
     expect(code).toMatch(/\bclient\.query\s*\(/);
   });

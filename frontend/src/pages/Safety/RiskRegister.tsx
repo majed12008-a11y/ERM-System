@@ -22,6 +22,7 @@ import { Textarea } from '../../components/ui/textarea'
 import { riskRegisterSchema } from '../../lib/schemas'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type RiskFormData = z.input<typeof riskRegisterSchema>
 
@@ -42,7 +43,7 @@ export default function RiskRegister() {
   const createMutation = useMutation({
     mutationFn: (body: any) => api.post('/safety/risk-register', body),
     onSuccess: () => { toast.success(t('riskRegister.created')); queryClient.invalidateQueries({ queryKey: ['risk-register'] }); setOpen(false); reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('riskRegister.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('riskRegister.createFailed')),
   })
 
   const severityBadge = (level: string) => {

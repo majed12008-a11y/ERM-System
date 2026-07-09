@@ -22,15 +22,18 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | '
   REVOKED: 'destructive',
   OPEN: 'secondary',
   MET: 'success',
+  NOT_MET: 'destructive',
   OVERDUE: 'destructive',
   WAIVED: 'outline',
 }
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, colorMap }: { status: string, colorMap?: Record<string, string> }) {
   const { t } = useTranslation()
+  const customClass = colorMap?.[status]
+  const variant = customClass ? 'outline' : (statusVariants[status] || 'outline')
 
   return (
-    <Badge variant={statusVariants[status] || 'outline'}>
+    <Badge variant={variant} className={customClass}>
       {status ? t(`status.${status}`, { defaultValue: status.replace(/_/g, ' ') }) : t('common.noData')}
     </Badge>
   )

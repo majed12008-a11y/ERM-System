@@ -257,9 +257,6 @@ paths:
     $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}'
   '/core/applications/{id}/status':
     $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1status'
-  '/core/applications/{id}/committee-decision':
-    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1committee-decision'
-
   # ────────────────────────────────
   # Core Module — Lookups
   # ────────────────────────────────

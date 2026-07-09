@@ -38,20 +38,20 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-blue-700 text-xl">{t('forgotPassword.title')}</CardTitle>
+          <CardTitle className="text-primary text-xl">{t('forgotPassword.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {sent ? (
-            <p className="text-center text-green-600 text-sm">{t('forgotPassword.checkEmail')}</p>
+            <p className="text-center text-success text-sm">{t('forgotPassword.checkEmail')}</p>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <Input type="email" placeholder={t('forgotPassword.email')} {...register('email')} />
-              {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
+              {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? t('common.sending') : t('forgotPassword.send')}
               </Button>
-              <p className="text-center text-sm text-slate-500">
-                <Link to="/login" className="text-blue-600 hover:underline">{t('forgotPassword.backToLogin')}</Link>
+              <p className="text-center text-sm text-muted-foreground">
+                <Link to="/login" className="text-primary hover:underline">{t('forgotPassword.backToLogin')}</Link>
               </p>
             </form>
           )}

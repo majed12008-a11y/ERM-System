@@ -22,6 +22,7 @@ import { Textarea } from '../../components/ui/textarea'
 import { correctiveActionSchema } from '../../lib/schemas'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type FormData = z.input<typeof correctiveActionSchema>
 
@@ -42,7 +43,7 @@ export default function CorrectiveActions() {
   const createMutation = useMutation({
     mutationFn: (body: any) => api.post('/safety/corrective-actions', body),
     onSuccess: () => { toast.success(t('correctiveActions.created')); queryClient.invalidateQueries({ queryKey: ['corrective-actions'] }); setOpen(false); reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('correctiveActions.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('correctiveActions.createFailed')),
   })
 
   return (

@@ -814,15 +814,6 @@ const options: swaggerJsdoc.Options = {
       },
 
       // ─── Applications ───
-      '/core/applications/{id}/committee-decision': {
-        post: {
-          tags: ['Applications'], summary: 'Submit committee decision', security: [{ bearerAuth: [] }],
-          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-          requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { decision: { type: 'string', enum: ['APPROVED', 'REJECTED', 'CONDITIONAL'] }, notes: { type: 'string' } }, required: ['decision'] } } } },
-          responses: { '201': { description: 'Decision recorded' } },
-        },
-      },
-
       // ─── Integration ───
       '/integration/events': {
         get: {

@@ -5,17 +5,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import api from '../api/client'
-import { StatusBadge } from './StatusBadge'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from './ui/dialog'
-import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
-import { AlertCircle, Shield, Activity } from 'lucide-react'
+import { AlertCircle, Shield } from 'lucide-react'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
 
 const riskItemSchema = z.object({
   risk_category_id: z.coerce.number().min(1, 'Select category'),
@@ -53,7 +52,7 @@ function matrixColor(score: number) {
   return 'bg-green-400 text-black'
 }
 
-export default function RiskAssessment({ applicationId, reviewerId }: { applicationId: string | number, reviewerId?: number }) {
+export default function RiskAssessment({ applicationId }: { applicationId: string | number }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [openCreate, setOpenCreate] = useState(false)
@@ -87,7 +86,7 @@ export default function RiskAssessment({ applicationId, reviewerId }: { applicat
       setOpenCreate(false)
       createForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const addItemMutation = useMutation({
@@ -98,7 +97,7 @@ export default function RiskAssessment({ applicationId, reviewerId }: { applicat
       setOpenAddItem(false)
       itemForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   if (isLoading) return null

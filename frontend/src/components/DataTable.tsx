@@ -22,6 +22,7 @@ interface DataTableProps<T> {
   pageSize?: number
   emptyMessage?: string
   loading?: boolean
+  isLoading?: boolean
   searchValue?: string
   onSearchChange?: (value: string) => void
   sortKey?: string | null
@@ -31,12 +32,13 @@ interface DataTableProps<T> {
 
 function DataTableInner<T extends Record<string, any>>({
   columns, data, onRowClick, searchable, pageSize = 20, emptyMessage, loading,
-  searchValue: externalSearch, onSearchChange,
+  isLoading, searchValue: externalSearch, onSearchChange,
   sortKey: externalSortKey, sortDir: externalSortDir, onSortChange
 }: DataTableProps<T>) {
   const { t } = useTranslation()
   const [internalSearch, setInternalSearch] = useState('')
   const search = externalSearch !== undefined ? externalSearch : internalSearch
+  const loadingState = loading ?? isLoading
   const setSearch = onSearchChange || setInternalSearch
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(0)
@@ -104,7 +106,7 @@ function DataTableInner<T extends Record<string, any>>({
     }
   }
 
-  if (loading) {
+  if (loadingState) {
     return (
       <div className="rounded-lg border">
         <Table>
@@ -120,7 +122,7 @@ function DataTableInner<T extends Record<string, any>>({
               <TableRow key={i}>
                 {columns.map(col => (
                   <TableCell key={col.key}>
-                    <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" />
+                    <div className="h-4 bg-muted-foreground/20 rounded animate-pulse w-3/4" />
                   </TableCell>
                 ))}
               </TableRow>
@@ -137,7 +139,7 @@ function DataTableInner<T extends Record<string, any>>({
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {searchable && (
             <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder={t('common.search')}
                 value={search}
@@ -151,7 +153,7 @@ function DataTableInner<T extends Record<string, any>>({
               key={key}
               value={filters[key] || ''}
               onChange={e => { setFilters({ ...filters, [key]: e.target.value }); setPage(0) }}
-              className="p-1.5 border rounded text-sm bg-white"
+              className="p-1.5 border rounded text-sm bg-card"
             >
               <option value="">{t('common.all')} {columns.find(c => c.key === key)?.label || key}</option>
               {options.map(opt => (
@@ -176,7 +178,7 @@ function DataTableInner<T extends Record<string, any>>({
                     {col.sortable && (
                       sortKey === col.key
                         ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
-                        : <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                        : <ArrowUpDown className="w-3 h-3 text-muted-foreground/40" />
                     )}
                   </div>
                 </TableHead>
@@ -196,7 +198,7 @@ function DataTableInner<T extends Record<string, any>>({
             ) : (
               paged.map((item, i) => (
                 <TableRow key={item.id || i}
-                  className={onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''}
+                  className={onRowClick ? 'cursor-pointer hover:bg-muted' : ''}
                   onClick={() => onRowClick?.(item)}>
                   {columns.map((col) => (
                     <TableCell key={col.key}>
@@ -211,13 +213,13 @@ function DataTableInner<T extends Record<string, any>>({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-2 text-sm text-slate-500">
+        <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
           <span>{t('dataTable.records', { count: filtered.length })}</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"
+              className="p-1 rounded hover:bg-muted disabled:opacity-30"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -225,7 +227,7 @@ function DataTableInner<T extends Record<string, any>>({
             <button
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}
-              className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"
+              className="p-1 rounded hover:bg-muted disabled:opacity-30"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

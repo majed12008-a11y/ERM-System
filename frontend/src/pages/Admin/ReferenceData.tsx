@@ -338,7 +338,7 @@ export default function ReferenceData() {
                 {f.type === 'select' ? (
                   <select value={String(formData[f.key] ?? '')} onChange={e => updateField(f.key, e.target.value)} className={inputClass} required={f.required}>
                     <option value="">--</option>
-                    {(f.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {(f.options || []).map((o: { label: string; value: string }) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
                   <textarea value={formData[f.key] ?? ''} onChange={e => updateField(f.key, e.target.value)} className={inputClass} rows={3} />
@@ -371,3 +371,4 @@ export default function ReferenceData() {
     </div>
   )
 }
+

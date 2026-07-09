@@ -36,7 +36,8 @@ router.post('/cycles', authenticate, authorize('SUPER_ADMIN', 'ETHICS_ADMIN'), v
 
 router.patch('/cycles/:id/status', authenticate, authorize('SUPER_ADMIN', 'ETHICS_ADMIN'), validate(updateCycleStatusSchema), async (req: Request, res: Response) => {
   try {
-    const result = await service.updateCycleStatus(Number(req.params.id), req.body);
+    const user = (req as any).user;
+    const result = await service.updateCycleStatus(Number(req.params.id), req.body, user);
     res.json(successResponse(result));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });

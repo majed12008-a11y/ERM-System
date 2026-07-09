@@ -8,7 +8,8 @@ import { AccreditationAssessmentRepository } from '../repositories/accreditation
 import { AccreditationDecisionRepository } from '../repositories/accreditation-decision.repository';
 import { AccreditationEvidenceRepository } from '../repositories/accreditation-evidence.repository';
 import { AccreditationConditionRepository } from '../repositories/accreditation-condition.repository';
-import { canTransition, DECISION_TYPE_STATUS_MAP } from '../shared/accreditation.constants';
+import { WorkflowService } from './workflow.service';
+import { AuthUser } from '../shared/types';
 
 export class AccreditationService {
   private cycleRepo = new AccreditationCycleRepository();
@@ -16,6 +17,7 @@ export class AccreditationService {
   private decisionRepo = new AccreditationDecisionRepository();
   private evidenceRepo = new AccreditationEvidenceRepository();
   private conditionRepo = new AccreditationConditionRepository();
+  private workflowService = new WorkflowService();
 
   // --- Cycles ---
 
@@ -34,31 +36,34 @@ export class AccreditationService {
     if (existing) {
       throw Object.assign(new Error('Committee already has an active cycle. Complete or revoke it first.'), { status: 409 });
     }
-    return this.cycleRepo.create(data);
+    const cycle = await this.cycleRepo.create(data);
+    await this.workflowService.initWorkflow('ACCREDITATION_CYCLE_V1', 'AccreditationCycle', cycle.id);
+    return cycle;
   }
 
   async updateCycleStatus(id: number, data: {
-    to_status: string; decision: string; decided_by: number; decision_reason?: string; notes?: string;
-  }) {
+    transition_code: string; decision_reason?: string; notes?: string;
+  }, user: AuthUser) {
     const cycle = await this.cycleRepo.findById(id);
     if (!cycle) throw Object.assign(new Error('Cycle not found'), { status: 404 });
 
-    if (!canTransition(cycle.status as any, data.to_status as any)) {
-      throw Object.assign(
-        new Error(`Invalid transition from ${cycle.status} to ${data.to_status}`),
-        { status: 422 }
-      );
-    }
+    const wfResult = await this.workflowService.executeTransition(
+      'AccreditationCycle', id, data.transition_code, user, data.decision_reason
+    );
 
-    const expectedTo = DECISION_TYPE_STATUS_MAP[data.decision];
-    if (expectedTo !== data.to_status) {
-      throw Object.assign(
-        new Error(`Decision type ${data.decision} maps to status ${expectedTo}, not ${data.to_status}`),
-        { status: 422 }
-      );
-    }
+    const updatedCycle = await this.cycleRepo.updateStatusOnly(id, wfResult.to_state);
 
-    return this.cycleRepo.updateStatus(id, cycle.status, data.to_status, data.decision, data.decided_by, data.decision_reason, data.notes);
+    const decision = await this.decisionRepo.create({
+      cycle_id: id,
+      from_status: wfResult.from_state,
+      to_status: wfResult.to_state,
+      decision: data.transition_code,
+      decided_by: user.id,
+      decision_reason: data.decision_reason,
+      notes: data.notes,
+    });
+
+    return { cycle: updatedCycle, decision, workflow: wfResult };
   }
 
   async deleteCycle(id: number) {

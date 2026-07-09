@@ -22,8 +22,65 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '../../components/ui/dialog'
 import api from '../../api/client'
+import { AxiosError } from 'axios'
+import type { SuccessResponse } from '../../sdk/core/types'
 
 type Tab = 'members' | 'details' | 'meetings'
+
+type CommitteeMemberItem = {
+  id: number
+  user_id: number
+  display_name?: string
+  username: string
+  role_id?: number
+  role_name?: string
+  is_active: boolean
+}
+
+type CommitteeRoleItem = {
+  id: number
+  role_name: string
+}
+
+type UserSummary = {
+  id: number
+  display_name?: string
+  username: string
+}
+
+type MeetingSummary = {
+  id: number
+  meeting_number: string
+  meeting_date: string
+  meeting_status: string
+}
+
+type TermRecord = {
+  id: number
+  start_date: string
+  end_date?: string
+  is_active?: boolean
+  appointment_decision_no?: string
+}
+
+type QualificationRecord = {
+  id: number
+  specialization: string
+  academic_degree: string
+  institution_name?: string
+  experience_years?: number
+  is_verified?: boolean
+}
+
+type ConflictRecord = {
+  id: number
+  conflict_type: string
+  entity_type: string
+  entity_id: number
+  description?: string
+  declared_at: string
+  resolved_at?: string
+}
 
 export default function CommitteeDetail() {
   const { t } = useTranslation()
@@ -35,7 +92,7 @@ export default function CommitteeDetail() {
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedRoleId, setSelectedRoleId] = useState('')
   const [memberDetailOpen, setMemberDetailOpen] = useState(false)
-  const [selectedMember, setSelectedMember] = useState<any>(null)
+  const [selectedMember, setSelectedMember] = useState<CommitteeMemberItem | null>(null)
   const [memberDetailTab, setMemberDetailTab] = useState<'terms' | 'qualifications' | 'conflicts'>('terms')
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false)
   const [meetingDate, setMeetingDate] = useState('')
@@ -49,43 +106,43 @@ export default function CommitteeDetail() {
     enabled: !!committeeId,
   })
 
-  const { data: memberList, isLoading: membersLoading } = useQuery({
+  const { data: memberList, isLoading: membersLoading } = useQuery<CommitteeMemberItem[]>({
     queryKey: ['committee-members', committeeId],
-    queryFn: () => members.listByCommittee(committeeId).then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<CommitteeMemberItem[]>>(`/committee/committees/${committeeId}/members`).then(r => r.data.data),
     enabled: !!committeeId,
   })
 
-  const { data: meetingsList } = useQuery({
+  const { data: meetingsList } = useQuery<MeetingSummary[]>({
     queryKey: ['committee-meetings', committeeId],
-    queryFn: () => api.get(`/committee/meetings/committee/${committeeId}`).then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<MeetingSummary[]>>(`/committee/meetings/committee/${committeeId}`).then(r => r.data.data),
     enabled: !!committeeId,
   })
 
-  const { data: committeeRoles } = useQuery({
+  const { data: committeeRoles } = useQuery<CommitteeRoleItem[]>({
     queryKey: ['committee-roles'],
-    queryFn: () => committees.listRoles().then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<CommitteeRoleItem[]>>('/committee/committees/committee-roles').then(r => r.data.data),
   })
 
-  const { data: users } = useQuery({
+  const { data: users } = useQuery<UserSummary[]>({
     queryKey: ['users'],
-    queryFn: () => api.get('/security/users').then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<UserSummary[]>>('/security/users').then(r => r.data.data),
   })
 
-  const { data: memberTerms } = useQuery({
+  const { data: memberTerms } = useQuery<TermRecord[]>({
     queryKey: ['member-terms', selectedMember?.id],
-    queryFn: () => members.getTerms(selectedMember.id).then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<TermRecord[]>>(`/committee/members/${selectedMember!.id}/terms`).then(r => r.data.data),
     enabled: !!selectedMember && memberDetailOpen,
   })
 
-  const { data: memberQualifications } = useQuery({
+  const { data: memberQualifications } = useQuery<QualificationRecord[]>({
     queryKey: ['member-qualifications', selectedMember?.id],
-    queryFn: () => members.getQualifications(selectedMember.id).then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<QualificationRecord[]>>(`/committee/members/${selectedMember!.id}/qualifications`).then(r => r.data.data),
     enabled: !!selectedMember && memberDetailOpen,
   })
 
-  const { data: memberConflicts } = useQuery({
+  const { data: memberConflicts } = useQuery<ConflictRecord[]>({
     queryKey: ['member-conflicts', selectedMember?.id],
-    queryFn: () => members.getConflicts(selectedMember.id).then(r => r.data.data),
+    queryFn: () => api.get<SuccessResponse<ConflictRecord[]>>(`/committee/members/${selectedMember!.id}/conflicts`).then(r => r.data.data),
     enabled: !!selectedMember && memberDetailOpen,
   })
 
@@ -103,7 +160,7 @@ export default function CommitteeDetail() {
       setSelectedUserId('')
       setSelectedRoleId('')
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       toast.error(err?.response?.data?.error || err.message)
     },
   })
@@ -114,7 +171,7 @@ export default function CommitteeDetail() {
       toast.success(t('committeeDetail.memberRemoved'))
       queryClient.invalidateQueries({ queryKey: ['committee-members'] })
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       toast.error(err?.response?.data?.error || err.message)
     },
   })
@@ -126,7 +183,7 @@ export default function CommitteeDetail() {
       toast.success(t('committeeDetail.roleUpdated'))
       queryClient.invalidateQueries({ queryKey: ['committee-members'] })
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       toast.error(err?.response?.data?.error || err.message)
     },
   })
@@ -145,36 +202,50 @@ export default function CommitteeDetail() {
       setMeetingDate('')
       setMeetingLocation('')
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       toast.error(err?.response?.data?.error || err.message)
     },
   })
 
   const addTerm = useMutation({
-    mutationFn: (data: any) => members.addTerm(selectedMember!.id, data),
+    mutationFn: (formData: { start_date: string; end_date?: string | null; appointment_decision_no?: string | null }) => {
+      const payload: { start_date: string; end_date?: string; appointment_decision_no?: string } = { start_date: formData.start_date }
+      if (formData.end_date) payload.end_date = formData.end_date
+      if (formData.appointment_decision_no) payload.appointment_decision_no = formData.appointment_decision_no
+      return members.addTerm(selectedMember!.id, payload)
+    },
     onSuccess: () => {
       toast.success('Term added')
       queryClient.invalidateQueries({ queryKey: ['member-terms'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || err.message),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err?.response?.data?.error || err.message),
   })
 
   const addQualification = useMutation({
-    mutationFn: (data: any) => members.addQualification(selectedMember!.id, data),
+    mutationFn: (formData: { specialization: string; academic_degree: string; institution_name?: string | null; experience_years?: number | null }) => {
+      const payload: Record<string, string | number | undefined> = { specialization: formData.specialization, academic_degree: formData.academic_degree }
+      if (formData.institution_name) payload.institution_name = formData.institution_name
+      if (formData.experience_years) payload.experience_years = formData.experience_years
+      return api.post(`/committee/members/${selectedMember!.id}/qualifications`, payload)
+    },
     onSuccess: () => {
       toast.success('Qualification added')
       queryClient.invalidateQueries({ queryKey: ['member-qualifications'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || err.message),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err?.response?.data?.error || err.message),
   })
 
   const declareConflict = useMutation({
-    mutationFn: (data: any) => members.declareConflict(selectedMember!.id, data),
+    mutationFn: (formData: { entity_type: string; entity_id: number; conflict_type: string; description?: string | null }) => {
+      const payload: Record<string, string | number | undefined> = { entity_type: formData.entity_type, entity_id: formData.entity_id, conflict_type: formData.conflict_type }
+      if (formData.description) payload.description = formData.description
+      return api.post(`/committee/members/${selectedMember!.id}/conflicts`, payload)
+    },
     onSuccess: () => {
       toast.success('Conflict declared')
       queryClient.invalidateQueries({ queryKey: ['member-conflicts'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || err.message),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err?.response?.data?.error || err.message),
   })
 
   if (isLoading) return <PageSkeleton />
@@ -194,26 +265,26 @@ export default function CommitteeDetail() {
     { key: 'display_name', label: t('committeeDetail.memberName'), sortable: true },
     { key: 'username', label: t('committeeDetail.memberUsername') },
     {
-      key: 'role_name', label: t('committeeDetail.role'), render: (m: any) => (
+      key: 'role_name', label: t('committeeDetail.role'), render: (m: CommitteeMemberItem) => (
         <select
           value={m.role_id ?? ''}
           onChange={e => handleRoleChange(m.id, e.target.value)}
           className="text-xs p-1 border rounded bg-white"
         >
           <option value="">{t('committeeDetail.noRole')}</option>
-          {(committeeRoles || []).map((r: any) => (
+          {(committeeRoles || []).map((r: CommitteeRoleItem) => (
             <option key={r.id} value={String(r.id)}>{r.role_name}</option>
           ))}
         </select>
       ),
     },
     {
-      key: 'is_active', label: t('common.status'), render: (m: any) => (
+      key: 'is_active', label: t('common.status'), render: (m: CommitteeMemberItem) => (
         <StatusBadge status={m.is_active ? 'ACTIVE' : 'INACTIVE'} />
       ),
     },
     {
-      key: 'actions', label: '', render: (m: any) => (
+      key: 'actions', label: '', render: (m: CommitteeMemberItem) => (
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => { setSelectedMember(m); setMemberDetailOpen(true) }} className="text-slate-400 hover:text-blue-600">
             <Eye className="w-4 h-4" />
@@ -317,7 +388,7 @@ export default function CommitteeDetail() {
                       className="w-full p-2 border rounded text-sm"
                     >
                       <option value="">{t('committeeDetail.selectUser')}</option>
-                      {(users || []).map((u: any) => (
+                      {(users || []).map((u: UserSummary) => (
                         <option key={u.id} value={String(u.id)}>{u.display_name || u.username}</option>
                       ))}
                     </select>
@@ -330,7 +401,7 @@ export default function CommitteeDetail() {
                       className="w-full p-2 border rounded text-sm"
                     >
                       <option value="">{t('committeeDetail.noRole')}</option>
-                      {(committeeRoles || []).map((r: any) => (
+                      {(committeeRoles || []).map((r: CommitteeRoleItem) => (
                         <option key={r.id} value={String(r.id)}>{r.role_name}</option>
                       ))}
                     </select>
@@ -436,7 +507,7 @@ export default function CommitteeDetail() {
           <CardContent>
             {meetingsList && meetingsList.length > 0 ? (
               <div className="space-y-2">
-                {meetingsList.map((m: any) => (
+                {meetingsList.map((m: MeetingSummary) => (
                   <div
                     key={m.id}
                     className="flex items-center justify-between p-3 border rounded hover:bg-slate-50 cursor-pointer"
@@ -515,7 +586,7 @@ export default function CommitteeDetail() {
   )
 }
 
-function MemberTermsSection({ terms, onAdd, isPending }: { terms: any[]; onAdd: (data: any) => void; isPending: boolean }) {
+function MemberTermsSection({ terms, onAdd, isPending }: { terms: TermRecord[]; onAdd: (data: { start_date: string; end_date?: string | null; appointment_decision_no?: string | null }) => void; isPending: boolean }) {
   const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [startDate, setStartDate] = useState('')
@@ -567,7 +638,7 @@ function MemberTermsSection({ terms, onAdd, isPending }: { terms: any[]; onAdd: 
         <p className="text-sm text-slate-400">{t('committeeDetail.noTerms')}</p>
       ) : (
         <div className="space-y-2">
-          {terms.map((term: any) => (
+          {terms.map((term: TermRecord) => (
             <div key={term.id} className="text-sm border-b pb-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{new Date(term.start_date).toLocaleDateString()} - {term.end_date ? new Date(term.end_date).toLocaleDateString() : '\u2014'}</span>
@@ -582,7 +653,7 @@ function MemberTermsSection({ terms, onAdd, isPending }: { terms: any[]; onAdd: 
   )
 }
 
-function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qualifications: any[]; onAdd: (data: any) => void; isPending: boolean }) {
+function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qualifications: QualificationRecord[]; onAdd: (data: { specialization: string; academic_degree: string; institution_name?: string | null; experience_years?: number | null }) => void; isPending: boolean }) {
   const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [specialization, setSpecialization] = useState('')
@@ -642,7 +713,7 @@ function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qua
         <p className="text-sm text-slate-400">{t('committeeDetail.noQualifications')}</p>
       ) : (
         <div className="space-y-2">
-          {qualifications.map((q: any) => (
+          {qualifications.map((q: QualificationRecord) => (
             <div key={q.id} className="text-sm border-b pb-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{q.specialization}</span>
@@ -657,7 +728,7 @@ function MemberQualificationsSection({ qualifications, onAdd, isPending }: { qua
   )
 }
 
-function MemberConflictsSection({ conflicts, onAdd, isPending }: { conflicts: any[]; onAdd: (data: any) => void; isPending: boolean }) {
+function MemberConflictsSection({ conflicts, onAdd, isPending }: { conflicts: ConflictRecord[]; onAdd: (data: { entity_type: string; entity_id: number; conflict_type: string; description?: string | null }) => void; isPending: boolean }) {
   const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [entityType, setEntityType] = useState('')
@@ -725,7 +796,7 @@ function MemberConflictsSection({ conflicts, onAdd, isPending }: { conflicts: an
         <p className="text-sm text-slate-400">{t('committeeDetail.noConflicts')}</p>
       ) : (
         <div className="space-y-2">
-          {conflicts.map((c: any) => (
+          {conflicts.map((c: ConflictRecord) => (
             <div key={c.id} className="text-sm border-b pb-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{c.conflict_type} - {c.entity_type}#{c.entity_id}</span>

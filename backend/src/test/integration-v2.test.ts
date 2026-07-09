@@ -2,8 +2,15 @@ import { describe, test, expect, beforeAll } from 'vitest';
 import axios, { AxiosInstance } from 'axios';
 import { Pool } from 'pg';
 
-const BASE = 'http://localhost:3000/api/v1';
-const pool = new Pool({ host: 'localhost', port: 5432, database: 'ethics_db', user: 'postgres', password: 'postgres' });
+const PORT = process.env.PORT || '8080';
+const BASE = `http://localhost:${PORT}/api/v1`;
+const pool = new Pool({
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 5432),
+  database: process.env.DB_NAME || 'ethics_db',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+});
 
 let adminApi: AxiosInstance;
 let adminToken = '';
@@ -209,7 +216,7 @@ describe('Permissions (as different roles)', () => {
   let researcherApi: AxiosInstance;
 
   test('Login as researcher', async () => {
-    const res = await axios.post(`${BASE}/security/auth/login`, { username: 'researcher1', password: 'admin123' }, { validateStatus: () => true });
+    const res = await axios.post(`${BASE}/security/auth/login`, { username: 'researcher1', password: 'Test@1234' }, { validateStatus: () => true });
     expect(res.status).toBe(200);
     researcherApi = axios.create({ baseURL: BASE, validateStatus: () => true });
     researcherApi.defaults.headers.common['Authorization'] = `Bearer ${res.data.data.accessToken}`;

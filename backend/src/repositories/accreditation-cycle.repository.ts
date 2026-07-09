@@ -89,6 +89,15 @@ export class AccreditationCycleRepository extends AuditableRepository {
     });
   }
 
+  async updateStatusOnly(id: number, toStatus: string): Promise<any> {
+    const result = await this.query(
+      `UPDATE committee.accreditation_cycles SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [toStatus, id]
+    );
+    if (!result.rows[0]) throw Object.assign(new Error('Cycle not found'), { status: 404 });
+    return result.rows[0];
+  }
+
   async softDelete(id: number): Promise<boolean> {
     const result = await this.query(
       `UPDATE committee.accreditation_cycles SET deleted_at = NOW(), status = 'REVOKED' WHERE id = $1 AND deleted_at IS NULL`,

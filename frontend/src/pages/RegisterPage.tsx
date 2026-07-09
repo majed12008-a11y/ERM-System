@@ -15,6 +15,7 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { registerSchema } from '../lib/schemas'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
 
 type RegisterFormData = z.input<typeof registerSchema>
 
@@ -46,8 +47,9 @@ export default function RegisterPage() {
       await api.post('/security/auth/register', body)
       setRegisteredEmail(data.email)
       toast.success(t('register.success'))
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || t('register.failed'))
+    } catch (err: unknown) {
+      const axiosErr = err instanceof AxiosError ? err : undefined
+      toast.error(axiosErr?.response?.data?.error || t('register.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -58,12 +60,12 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center bg-muted px-4">
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
-            <CardTitle className="text-blue-700 text-xl sm:text-2xl">{t('app.title')}</CardTitle>
+            <CardTitle className="text-primary text-xl sm:text-2xl">{t('app.title')}</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <div className="text-blue-600 text-4xl">✉</div>
-            <p className="text-slate-700">{t('verifyEmail.sent', { email: registeredEmail })}</p>
-            <p className="text-sm text-slate-500">{t('verifyEmail.sentInstructions')}</p>
+            <div className="text-primary text-4xl">✉</div>
+            <p className="text-foreground">{t('verifyEmail.sent', { email: registeredEmail })}</p>
+            <p className="text-sm text-muted-foreground">{t('verifyEmail.sentInstructions')}</p>
             <Link to="/login"><Button>{t('verifyEmail.goToLogin')}</Button></Link>
           </CardContent>
         </Card>
@@ -75,18 +77,18 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-blue-700 text-xl sm:text-2xl">{t('register.title')}</CardTitle>
-          <p className="text-sm text-slate-500 mt-1">{t('register.subtitle')}</p>
+          <CardTitle className="text-primary text-xl sm:text-2xl">{t('register.title')}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{t('register.subtitle')}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <Input type="text" placeholder={t('register.username')} {...register('username')} />
-              {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
+              {errors.username && <p className="text-destructive text-xs mt-1">{errors.username.message}</p>}
             </div>
             <div>
               <Input type="email" placeholder={t('register.email')} {...register('email')} />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-destructive text-xs mt-1">{errors.email.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <input placeholder={t('register.firstNameAr')} {...register('first_name_ar')} className="p-2 border rounded text-sm" />
@@ -104,22 +106,22 @@ export default function RegisterPage() {
                   <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>
                 ))}
               </select>
-              {errors.institution_id && <p className="text-red-500 text-xs mt-1">{errors.institution_id.message}</p>}
+              {errors.institution_id && <p className="text-destructive text-xs mt-1">{errors.institution_id.message}</p>}
             </div>
             <div>
               <Input type="password" placeholder={t('register.password')} {...register('password')} />
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+              {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
             </div>
             <div>
               <Input type="password" placeholder={t('register.confirmPassword')} {...register('confirmPassword')} />
-              {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>}
+              {errors.confirmPassword && <p className="text-destructive text-xs mt-1">{errors.confirmPassword.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? t('register.creating') : t('register.submit')}
             </Button>
-            <p className="text-center text-sm text-slate-500">
+            <p className="text-center text-sm text-muted-foreground">
               {t('register.hasAccount')}{' '}
-              <Link to="/login" className="text-blue-600 hover:underline">{t('register.signIn')}</Link>
+              <Link to="/login" className="text-primary hover:underline">{t('register.signIn')}</Link>
             </p>
           </form>
         </CardContent>

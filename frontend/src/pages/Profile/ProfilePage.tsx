@@ -16,6 +16,7 @@ import { Label } from '../../components/ui/label'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { profileSchema, changePasswordSchema } from '../../lib/schemas'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type ProfileFormData = {
   national_id?: string; passport_number?: string; gender?: string; date_of_birth?: string
@@ -68,7 +69,7 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['my-profile'] })
       toast.success(t('profile.updated'))
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('profile.updateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('profile.updateFailed')),
   })
 
   function onSubmitProfile(data: ProfileFormData) {
@@ -81,7 +82,7 @@ export default function ProfilePage() {
       toast.success(t('profile.passwordChanged'))
       pwForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('profile.passwordChangeFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('profile.passwordChangeFailed')),
   })
 
   function onSubmitPassword(data: PasswordFormData) {

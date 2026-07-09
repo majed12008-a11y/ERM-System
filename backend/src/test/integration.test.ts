@@ -1,11 +1,20 @@
 import { describe, test, expect, beforeAll } from 'vitest';
 import axios, { AxiosInstance } from 'axios';
 
-const BASE = 'http://localhost:3000/api/v1';
+const PORT = process.env.PORT || '8080';
+const BASE = `http://localhost:${PORT}/api/v1`;
 
 let api: AxiosInstance;
 let token = '';
 let cookieJar: string[] = [];
+
+async function getApplicationIdByNumber(applicationNumber: string): Promise<number> {
+  const listRes = await api.get('/core/applications');
+  expect(listRes.status).toBe(200);
+  const application = listRes.data.data.find((a: any) => a.application_number === applicationNumber);
+  expect(application).toBeDefined();
+  return application.id;
+}
 
 function extractCookies(res: any) {
   const setCookie = res.headers?.['set-cookie'];
@@ -58,7 +67,8 @@ describe('Integration Tests', () => {
   });
 
   test('GET /applications/:id returns application detail', async () => {
-    const res = await api.get('/core/applications/12');
+    const appId = await getApplicationIdByNumber('APP-2024-002');
+    const res = await api.get(`/core/applications/${appId}`);
     expect(res.status).toBe(200);
     expect(res.data.data.application_number).toBe('APP-2024-002');
   });

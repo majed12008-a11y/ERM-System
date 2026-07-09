@@ -14,6 +14,8 @@ function sqlHash(text: string): string {
   return createHash('md5').update(text).digest('hex').substring(0, 8);
 }
 
+const sslConfig = env.DB_SSL ? { rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED } : false;
+
 const pool = new Pool({
   host: env.DB_HOST,
   port: env.DB_PORT,
@@ -23,15 +25,35 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  ssl: sslConfig,
+  keepAlive: true,
 });
 
-pool.on('error', (err) => {
-  logger.error(err, 'Unexpected pool error');
+pool.on('connect', () => {
+  logger.info({ total: pool.totalCount, idle: pool.idleCount }, 'Database client connected');
+});
+
+pool.on('acquire', () => {
+  logger.debug({ total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }, 'Database client acquired');
+});
+
+pool.on('remove', () => {
+  logger.info({ total: pool.totalCount, idle: pool.idleCount }, 'Database client removed from pool');
+});
+
+pool.on('error', (err, client) => {
+  logger.error({ err, total: pool.totalCount, idle: pool.idleCount }, 'Unexpected pool error');
 });
 
 pool.on('connect', (client) => {
   client.query("SET SESSION app.user_id = '0'").catch((err) => {
     logger.error(err, 'Failed to set initial app.user_id');
+  });
+  client.query(`SET SESSION statement_timeout = '${env.DB_STATEMENT_TIMEOUT}'`).catch((err) => {
+    logger.error(err, 'Failed to set statement_timeout');
+  });
+  client.query(`SET SESSION idle_in_transaction_session_timeout = '${env.DB_IDLE_TX_TIMEOUT}'`).catch((err) => {
+    logger.error(err, 'Failed to set idle_in_transaction_session_timeout');
   });
 });
 
@@ -109,6 +131,36 @@ export async function withTransaction<T>(
 
 export async function getClient(): Promise<PoolClient> {
   return pool.connect();
+}
+
+export function getPoolStats() {
+  return {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+  };
+}
+
+export async function waitForDatabase(): Promise<void> {
+  const maxAttempts = env.DB_RETRY_MAX_ATTEMPTS;
+  const delayMs = env.DB_RETRY_DELAY_MS;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      logger.info({ attempt }, 'Database connection established');
+      return;
+    } catch (err: any) {
+      if (attempt === maxAttempts) {
+        logger.fatal({ err, attempt, maxAttempts }, 'Database unreachable — exhausted retries');
+        process.exit(1);
+      }
+      logger.warn({ err, attempt, maxAttempts, delayMs }, 'Database not ready — retrying');
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
 }
 
 export default pool;

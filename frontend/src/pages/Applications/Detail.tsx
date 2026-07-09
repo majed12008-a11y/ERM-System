@@ -13,20 +13,25 @@ import api from '../../api/client'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import RiskAssessment from '../../components/RiskAssessment'
+import ConditionsPanel from '../../components/ConditionsPanel'
 import ConsentTab from '../../components/ConsentTab'
+import CertificatesTab from './CertificatesTab'
 import { useAuth } from '../../context/AuthContext'
-import { workflowTransitionSchema, reviewSubmissionSchema, committeeDecisionSchema } from '../../lib/schemas'
+import { workflowTransitionSchema, reviewSubmissionSchema } from '../../lib/schemas'
+import { applications } from '../../sdk/domains/applications.sdk'
+import type { WorkflowTransition } from '../../sdk/core/types'
+import { findTransition } from '../../lib/workflow'
 import {
   ArrowLeft, FileText, User, Calendar, Building2,
-  BookOpen, Users, FileUp, Gavel, Pencil, Send
+  BookOpen, Users, FileUp, Pencil
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
 
 type TransitionFormData = z.input<typeof workflowTransitionSchema>
 type ReviewFormData = z.input<typeof reviewSubmissionSchema>
-type DecisionFormData = z.input<typeof committeeDecisionSchema>
 
 export default function ApplicationDetail() {
   const { t } = useTranslation()
@@ -43,17 +48,12 @@ export default function ApplicationDetail() {
     resolver: zodResolver(reviewSubmissionSchema),
     defaultValues: { recommendation_type: 'APPROVE', justification: '', comment_text: '' },
   })
-  const decisionForm = useForm<DecisionFormData>({
-    resolver: zodResolver(committeeDecisionSchema),
-    defaultValues: { decision: 'APPROVED', notes: '' },
-  })
-
   const { data: app, isLoading } = useQuery({
     queryKey: ['application', id],
-    queryFn: () => api.get(`/core/applications/${id}`).then((r) => r.data.data),
+    queryFn: () => applications.getById(Number(id)).then((r) => r.data.data),
   })
 
-  const { data: workflow } = useQuery({
+  const { data: workflowInstance } = useQuery({
     queryKey: ['workflow-instance', 'Application', id],
     queryFn: () => api.get(`/workflow/instances/Application/${id}`).then((r) => r.data.data),
     enabled: !!id,
@@ -89,14 +89,14 @@ export default function ApplicationDetail() {
     enabled: !!id,
   })
 
-  const transitions = availableTransitions?.transitions || []
+  const transitions: WorkflowTransition[] = availableTransitions?.transitions || []
   const canTransition = transitions.length > 0
 
   const selectedTransCode = transitionForm.watch('transition_code')
-  const selectedTrans = transitions.find((t: any) => t.transition_code === selectedTransCode)
+  const selectedTrans = findTransition(transitions, selectedTransCode)
 
   function onTransition(data: TransitionFormData) {
-    api.patch(`/core/applications/${id}/status`, {
+    applications.updateStatus(Number(id), {
       transition_code: data.transition_code,
       comment: data.comment || undefined,
     }).then(() => {
@@ -106,7 +106,7 @@ export default function ApplicationDetail() {
       queryClient.invalidateQueries({ queryKey: ['available-transitions', 'Application', id] })
       queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
       transitionForm.reset()
-    }).catch((err: any) => {
+    }).catch((err: AxiosError<{ error?: string }>) => {
       toast.error(err.response?.data?.error || t('applications.statusUpdateFailed'))
     })
   }
@@ -149,37 +149,13 @@ export default function ApplicationDetail() {
       queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
       queryClient.invalidateQueries({ queryKey: ['recommendations', id] })
       queryClient.invalidateQueries({ queryKey: ['my-reviews'] })
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || t('applications.reviewFailed'))
+    } catch (err: unknown) {
+      const axiosErr = err instanceof AxiosError ? err : undefined
+      toast.error(axiosErr?.response?.data?.error || t('applications.reviewFailed'))
     } finally {
       setSubmitting(false)
     }
   }
-
-  const canDecide = user?.roles?.some((r) => ['ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'SUPER_ADMIN'].includes(r))
-
-  const [deciding, setDeciding] = useState(false)
-  function onDecision(data: DecisionFormData) {
-    setDeciding(true)
-    api.post(`/core/applications/${id}/committee-decision`, { decision: data.decision, notes: data.notes })
-      .then(() => {
-        toast.success(t('applications.decisionSubmitted', { status: data.decision }))
-        queryClient.invalidateQueries({ queryKey: ['application', id] })
-        queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
-        queryClient.invalidateQueries({ queryKey: ['pending-review-count', id] })
-        decisionForm.reset()
-      }).catch((err: any) => {
-        toast.error(err.response?.data?.error || t('applications.decisionFailed'))
-      }).finally(() => setDeciding(false))
-  }
-
-  const { data: pendingCount } = useQuery({
-    queryKey: ['pending-review-count', id],
-    queryFn: () => api.get(`/committee/reviews/application/${id}`).then((r) =>
-      (r.data.data || []).filter((a: any) => a.status_code !== 'COMPLETED').length
-    ),
-    enabled: !!id && canDecide,
-  })
 
   if (isLoading) return <PageSkeleton />
   if (!app) return <p className="text-red-500">{t('applications.notFound')}</p>
@@ -213,7 +189,7 @@ export default function ApplicationDetail() {
             <form onSubmit={transitionForm.handleSubmit(onTransition)} className="flex items-center gap-2">
               <select {...transitionForm.register('transition_code')} className="text-sm border rounded p-1.5">
                 <option value="">{t('applications.selectAction')}</option>
-                {transitions.map((t: any) => (
+                {transitions.map((t: WorkflowTransition) => (
                   <option key={t.transition_code} value={t.transition_code}>{t.transition_name}</option>
                 ))}
               </select>
@@ -251,7 +227,7 @@ export default function ApplicationDetail() {
                 <div><dt className="text-slate-500 text-xs">{t('applications.projectCode')}</dt><dd className="font-medium">{app.project_code}</dd></div>
                 <div><dt className="text-slate-500 text-xs">{t('applications.committee')}</dt><dd className="font-medium">{app.committee_name || '\u2014'}</dd></div>
                 <div><dt className="text-slate-500 text-xs">{t('applications.submitted')}</dt><dd className="font-medium">{new Date(app.created_at).toLocaleString()}</dd></div>
-                <div><dt className="text-slate-500 text-xs">{t('applications.lastUpdated')}</dt><dd className="font-medium">{new Date(app.updated_at).toLocaleString()}</dd></div>
+                <div><dt className="text-slate-500 text-xs">{t('applications.lastUpdated')}</dt><dd className="font-medium">{app.updated_at ? new Date(app.updated_at).toLocaleString() : '\u2014'}</dd></div>
               </dl>
             </CardContent>
           </Card>
@@ -269,15 +245,19 @@ export default function ApplicationDetail() {
             </CardContent>
           </Card>
 
-          <RiskAssessment applicationId={id!} reviewerId={user?.id} />
+          <RiskAssessment applicationId={id!} />
+
+          <ConditionsPanel applicationId={id!} submittedBy={app?.submitted_by} />
+
+          <CertificatesTab applicationId={id!} />
 
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4" /> {t('consent.title')}</CardTitle></CardHeader>
             <CardContent>
               <ConsentTab
                 applicationId={id!}
-                canAssign={user?.role === 'ETHICS_ADMIN' || user?.role === 'COMMITTEE_CHAIR' || user?.role === 'SUPER_ADMIN'}
-                canReview={user?.role === 'REVIEWER' || user?.role === 'COMMITTEE_CHAIR' || user?.role === 'ETHICS_ADMIN' || user?.role === 'SUPER_ADMIN'}
+                canAssign={user?.roles?.includes('ETHICS_ADMIN') || user?.roles?.includes('COMMITTEE_CHAIR') || user?.roles?.includes('SUPER_ADMIN')}
+                canReview={user?.roles?.includes('REVIEWER') || user?.roles?.includes('COMMITTEE_CHAIR') || user?.roles?.includes('ETHICS_ADMIN') || user?.roles?.includes('SUPER_ADMIN')}
                 reviewerId={user?.id}
               />
             </CardContent>
@@ -326,13 +306,13 @@ export default function ApplicationDetail() {
           <Card>
             <CardHeader><CardTitle className="text-sm">{t('applications.workflowTimeline')}</CardTitle></CardHeader>
             <CardContent>
-              {workflow && workflow.length > 0 ? (
+              {workflowInstance && workflowInstance.length > 0 ? (
                 <div className="space-y-3">
-                  {workflow.map((w: any, i: number) => (
+                  {workflowInstance.map((w: any, i: number) => (
                     <div key={i} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-blue-500' : 'bg-slate-300'}`} />
-                        {i < workflow.length - 1 && <div className="w-0.5 h-8 bg-blue-200" />}
+                        {i < workflowInstance.length - 1 && <div className="w-0.5 h-8 bg-blue-200" />}
                       </div>
                       <div>
                         <p className="text-sm font-medium">{w.current_state_name}</p>
@@ -354,34 +334,6 @@ export default function ApplicationDetail() {
               <div><span className="text-slate-500">{t('applications.email')}</span> <span className="font-medium">{app.submitted_by_email || '\u2014'}</span></div>
             </CardContent>
           </Card>
-
-          {canDecide && (
-            <Card>
-              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Gavel className="w-4 h-4" /> {t('applications.committeeDecision')}</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {pendingCount > 0 && (
-                  <p className="text-amber-600 text-xs bg-amber-50 p-2 rounded">{t('applications.pendingWarning', { count: pendingCount })}</p>
-                )}
-                <form onSubmit={decisionForm.handleSubmit(onDecision)} className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-slate-500 mb-1">{t('applications.finalDecision')}</label>
-                    <select {...decisionForm.register('decision')} className="w-full p-2 border rounded text-sm">
-                      <option value="APPROVED">{t('applications.approve')}</option>
-                      <option value="REJECTED">{t('applications.reject')}</option>
-                      <option value="CONDITIONAL">{t('applications.conditionalApproval')}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-500 mb-1">{t('applications.notes')} ({t('common.optional')})</label>
-                    <textarea {...decisionForm.register('notes')} className="w-full p-2 border rounded text-sm" rows={2} />
-                  </div>
-                  <Button type="submit" size="sm" className="w-full" disabled={deciding || pendingCount > 0}>
-                    {deciding ? t('applications.submitting') : t('applications.submitDecision')}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          )}
 
           {myAssignment && (
             <Card>

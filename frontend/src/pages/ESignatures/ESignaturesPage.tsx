@@ -9,6 +9,7 @@ import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { PenSquare, FileSignature, CheckCircle, FileText } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 export default function ESignaturesPage() {
   const { t } = useTranslation()
@@ -24,7 +25,7 @@ export default function ESignaturesPage() {
   const signMutation = useMutation({
     mutationFn: (id: number) => api.post(`/documents/${id}/sign`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents'] }); setSigningId(null); setSignError('') },
-    onError: (err: any) => setSignError(err.response?.data?.error || t('signatures.failed')),
+    onError: (err: AxiosError<{ error?: string }>) => setSignError(err.response?.data?.error || t('signatures.failed')),
   })
 
   return (

@@ -9,11 +9,11 @@ INSERT INTO core.projects (institution_id, project_code, title_ar, title_en,
   abstract_ar, abstract_en, objectives,
   principal_investigator_id, research_category, risk_level, status_code, start_date, expected_end_date)
 SELECT i.id, 'KSU-RES-2024-001',
-  'تأثير العوامل الوراثية على استجابة المرضى لدواء الوارفارين في المجتمع السعودي',
+  'تأثير العوامل الوراثية على استجابة المرضى لدواء الوارفارين في المجتمع اليمني',
   'Impact of Genetic Factors on Warfarin Response in Saudi Patients',
-  'تهدف هذه الدراسة إلى تقييم تأثير التعددات الشكلية في الجينات المرتبطة باستقلاب الوارفارين على الجرعة المثلى للمرضى السعوديين. ستشمل الدراسة 500 مريض من مستشفى الملك خالد الجامعي.',
+  'تهدف هذه الدراسة إلى تقييم تأثير التعددات الشكلية في الجينات المرتبطة باستقلاب الوارفارين على الجرعة المثلى للمرضى اليمنيين. ستشمل الدراسة 500 مريض من مستشفى الثورة العام.',
   'This study aims to assess the impact of genetic polymorphisms in warfarin metabolism-related genes on optimal dosing in Saudi patients. The study will include 500 patients from King Khalid University Hospital.',
-  '1. تحديد التعددات الشكلية في جينات CYP2C9 و VKORC1 لدى المرضى السعوديين
+  '1. تحديد التعددات الشكلية في جينات CYP2C9 و VKORC1 لدى المرضى اليمنيين
 2. ربط هذه التعددات بالجرعة المثلى من الوارفارين
 3. تطوير نموذج جرعات مخصص للسعوديين',
   (SELECT id FROM security.users WHERE username = 'researcher1'), 'GENETIC', 'MEDIUM', 'APPROVED',
@@ -25,7 +25,7 @@ INSERT INTO core.projects (institution_id, project_code, title_ar, title_en,
   abstract_ar, abstract_en, objectives,
   principal_investigator_id, research_category, risk_level, status_code, start_date, expected_end_date)
 SELECT i.id, 'KSU-RES-2024-002',
-  'تقييم فعالية العلاج المناعي لدى مرضى سرطان الثدي في المملكة العربية السعودية',
+  'تقييم فعالية العلاج المناعي لدى مرضى سرطان الثدي في الجمهورية اليمنية',
   'Efficacy of Immunotherapy in Breast Cancer Patients in Saudi Arabia',
   'دراسة استباقية لتقييم فعالية وسلامة مثبطات نقاط التفتيش المناعية لدى 300 مريضة سرطان ثدي سعودية. تشمل الدراسة متابعة لمدة 24 شهراً.',
   'A prospective study evaluating the efficacy and safety of immune checkpoint inhibitors in 300 Saudi breast cancer patients. Includes a 24-month follow-up period.',
@@ -41,7 +41,7 @@ INSERT INTO core.projects (institution_id, project_code, title_ar, title_en,
   abstract_ar, abstract_en, objectives,
   principal_investigator_id, research_category, risk_level, status_code, start_date, expected_end_date)
 SELECT i.id, 'KSU-RES-2024-003',
-  'دور الميكروبيوم المعوي في تطور السمنة لدى الأطفال السعوديين',
+  'دور الميكروبيوم المعوي في تطور السمنة لدى الأطفال اليمنيين',
   'Role of Gut Microbiome in Obesity Development Among Saudi Children',
   'دراسة مقطعية لتحليل تركيبة الميكروبيوم المعوي لدى 200 طفل سعودي (100 يعانون من السمنة و100 أصحاء) لتحديد الاختلافات في التنوع البكتيري.',
   'A cross-sectional study analyzing gut microbiome composition in 200 Saudi children (100 obese, 100 healthy) to identify differences in bacterial diversity.',

@@ -5,13 +5,14 @@ import { toast } from 'sonner'
 import api from '../api/client'
 import { StatusBadge } from './StatusBadge'
 import { Button } from './ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent } from './ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Badge } from './ui/badge'
 import { ClipboardList, CheckCircle, AlertTriangle, XCircle, Edit3 } from 'lucide-react'
+import { AxiosError } from 'axios'
 
 const CONSENT_STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-gray-100 text-gray-800',
@@ -23,7 +24,7 @@ const CONSENT_STATUS_COLORS: Record<string, string> = {
 
 const DECISIONS = ['APPROVED', 'MINOR_REVISION', 'MAJOR_REVISION', 'REJECTED']
 
-export default function ConsentTab({ applicationId, canAssign, canReview, reviewerId }: {
+export default function ConsentTab({ applicationId, canAssign, canReview, reviewerId: _reviewerId }: {
   applicationId: string | number
   canAssign?: boolean
   canReview?: boolean
@@ -71,7 +72,7 @@ export default function ConsentTab({ applicationId, canAssign, canReview, review
       queryClient.invalidateQueries({ queryKey: ['app-consents', applicationId] })
       setOpenAssign(false)
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const reviewMutation = useMutation({
@@ -81,7 +82,7 @@ export default function ConsentTab({ applicationId, canAssign, canReview, review
       queryClient.invalidateQueries({ queryKey: ['app-consents', applicationId] })
       setOpenReview(null); setReviewComment(''); setReviewDecision('APPROVED')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   function handleAssign() {

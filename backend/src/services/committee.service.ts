@@ -92,7 +92,6 @@ export class CommitteeService {
   async getApplicationReviews(applicationId: number) { return this.reviews.getApplicationReviews(applicationId); }
   async assignReview(data: any, user: AuthUser) {
     const assignment = await this.reviews.createAssignment({ ...data, assigned_by: user.id });
-    await this.applications.setApplicationUnderReview(data.application_id);
     await createAndNotify(data.reviewer_id, 'REVIEW_REQUEST',
       'New Review Assignment', `You have been assigned as a ${data.review_type} reviewer for application #${data.application_id}.`);
     broadcastDashboardEvent('dashboard-stats', {});

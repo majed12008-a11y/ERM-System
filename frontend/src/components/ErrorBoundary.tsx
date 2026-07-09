@@ -46,23 +46,23 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="flex items-center justify-center min-h-[400px] p-8">
           <div className="max-w-md w-full text-center">
             <AlertTriangle className="mx-auto h-16 w-16 text-red-400 mb-4" />
-            <h2 className="text-xl font-semibold text-slate-800 mb-2">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               {i18n.t('errorBoundary.title')}
             </h2>
-            <p className="text-slate-500 mb-6 text-sm">
+            <p className="text-muted-foreground mb-6 text-sm">
               {this.state.error.message || i18n.t('errorBoundary.unexpected')}
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReset}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover transition-colors text-sm"
               >
                 <RefreshCw className="h-4 w-4" />
                 {i18n.t('errorBoundary.tryAgain')}
               </button>
               <button
                 onClick={this.handleGoHome}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors text-sm"
               >
                 <Home className="h-4 w-4" />
                 {i18n.t('errorBoundary.goHome')}
@@ -70,10 +70,10 @@ export default class ErrorBoundary extends Component<Props, State> {
             </div>
             {this.state.info?.componentStack && (
               <details className="mt-6 text-left">
-                <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                   {i18n.t('errorBoundary.componentStack')}
                 </summary>
-                <pre className="mt-2 text-xs text-red-500 bg-red-50 p-3 rounded overflow-auto max-h-40">
+                <pre className="mt-2 text-xs text-destructive bg-destructive-light p-3 rounded overflow-auto max-h-40">
                   {this.state.info.componentStack}
                 </pre>
               </details>

@@ -13,6 +13,7 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { resetPasswordSchema } from '../lib/schemas'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
 
 type ResetFormData = z.input<typeof resetPasswordSchema>
 
@@ -35,8 +36,9 @@ export default function ResetPasswordPage() {
       })
       toast.success(t('resetPassword.success'))
       navigate('/login')
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || t('resetPassword.failed'))
+    } catch (err: unknown) {
+      const axiosErr = err instanceof AxiosError ? err : undefined
+      toast.error(axiosErr?.response?.data?.error || t('resetPassword.failed'))
     }
   }
 
@@ -45,8 +47,8 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-muted px-4">
         <Card className="w-full max-w-sm">
           <CardContent className="text-center py-8">
-            <p className="text-red-500 text-sm">{t('resetPassword.invalidToken')}</p>
-            <Link to="/forgot-password" className="text-blue-600 hover:underline text-sm">{t('resetPassword.requestNew')}</Link>
+            <p className="text-destructive text-sm">{t('resetPassword.invalidToken')}</p>
+            <Link to="/forgot-password" className="text-primary hover:underline text-sm">{t('resetPassword.requestNew')}</Link>
           </CardContent>
         </Card>
       </div>
@@ -57,15 +59,15 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-blue-700 text-xl">{t('resetPassword.title')}</CardTitle>
+          <CardTitle className="text-primary text-xl">{t('resetPassword.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input type="hidden" {...register('token')} />
             <Input type="password" placeholder={t('resetPassword.newPassword')} {...register('password')} />
-            {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
+            {errors.password && <p className="text-destructive text-xs">{errors.password.message}</p>}
             <Input type="password" placeholder={t('resetPassword.confirmPassword')} {...register('confirmPassword')} />
-            {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>}
+            {errors.confirmPassword && <p className="text-destructive text-xs">{errors.confirmPassword.message}</p>}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? t('common.saving') : t('resetPassword.submit')}
             </Button>

@@ -471,9 +471,6 @@ components:
           GET: [COMMITTEE_LIST]
         '/core/applications/{id}/status':
           PATCH: [COMMITTEE_LIST]
-        '/core/applications/{id}/committee-decision':
-          POST: [APPLICATION_COMMITTEE_DECISION]
-
         # ── Lookups ──
         /core/research-categories:
           GET: [COMMITTEE_LIST]

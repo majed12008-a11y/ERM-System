@@ -1,28 +1,37 @@
-/*
- * النسخ الاحتياطي لقاعدة البيانات: إنشاء نسخ احتياطية
- * باستخدام pg_dump، جدولة النسخ التلقائي،
- * وإدارة دورة حياة النسخ الاحتياطية.
- */
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+import { BackupFile, BackupDestination, createBackupDestination } from './backup-destination';
 
 const execAsync = promisify(exec);
 
-export interface BackupFile {
-  name: string;
-  size: number;
-  created_at: string;
-}
+export type { BackupFile };
 
 export interface VerifyResult {
   backup: string;
   duration_seconds: number;
   entities: { entity: string; row_count: number }[];
 }
+
+export interface RetentionConfig {
+  daily: number;
+  weekly: number;
+  monthly: number;
+}
+
+export interface RotateResult {
+  deleted: string[];
+  kept: string[];
+}
+
+const DEFAULT_RETENTION: RetentionConfig = {
+  daily: 7,
+  weekly: 4,
+  monthly: 3,
+};
 
 function parseDatabaseUrl(url: string): { user: string; password: string; host: string; port: number; database: string } {
   try {
@@ -40,40 +49,31 @@ function parseDatabaseUrl(url: string): { user: string; password: string; host: 
 }
 
 export class BackupService {
-  private backupDir: string;
+  private destination: BackupDestination;
   private pgBin: string;
   private superUser: string;
   private superPassword: string;
 
   constructor() {
-    this.backupDir = path.resolve(env.BACKUP_DIR);
+    this.destination = createBackupDestination();
     this.pgBin = env.PG_BIN_PATH ? env.PG_BIN_PATH + path.sep : '';
-    if (!fs.existsSync(this.backupDir)) {
-      fs.mkdirSync(this.backupDir, { recursive: true });
-    }
     const parsed = env.DATABASE_URL ? parseDatabaseUrl(env.DATABASE_URL) : parseDatabaseUrl('');
     this.superUser = parsed.user;
     this.superPassword = parsed.password;
   }
 
-  private superConnString(dbName?: string): string {
-    return `postgres://${this.superUser}:${this.superPassword}@${env.DB_HOST}:${env.DB_PORT}/${dbName || env.DB_NAME}`;
+  private connArgs(dbName?: string): string {
+    return `-h ${env.DB_HOST} -p ${env.DB_PORT} -U ${this.superUser} -d ${dbName || env.DB_NAME}`;
   }
 
   private sanitizeFilename(name: string): string {
-    const base = path.basename(name);
-    if (!base.endsWith('.dump')) throw new Error('Invalid backup file (must be .dump)');
-    const resolved = path.resolve(this.backupDir, base);
-    if (!resolved.startsWith(this.backupDir)) throw new Error('Invalid backup file path');
-    return base;
+    return this.destination.getPath(name);
   }
 
   private filePath(name: string): string {
-    return path.join(this.backupDir, this.sanitizeFilename(name));
+    return this.destination.getPath(name);
   }
 
-  // pg_dump exits 0 on success, 1 on warnings, >=2 on error.
-  // pg_restore exits 0 on success, 1 on non-fatal warnings (ignored), >=2 on fatal error.
   private async run(cmd: string, tolerateWarnings = false): Promise<{ stdout: string; stderr: string }> {
     const fullCmd = `${this.pgBin}${cmd}`;
     logger.info({ cmd: fullCmd }, 'Running backup command');
@@ -94,49 +94,41 @@ export class BackupService {
   }
 
   async list(): Promise<BackupFile[]> {
-    const files = fs.readdirSync(this.backupDir)
-      .filter(f => f.endsWith('.dump'))
-      .map(f => {
-        const stat = fs.statSync(path.join(this.backupDir, f));
-        return { name: f, size: stat.size, created_at: stat.mtime.toISOString() };
-      })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return files;
-  }
-
-  private sanitizeDbName(name: string): string {
-    return name.replace(/[^a-zA-Z0-9_]/g, '_');
+    return this.destination.list();
   }
 
   async create(label?: string): Promise<BackupFile> {
     const ts = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
     const safeLabel = label ? `_${label.replace(/[^a-zA-Z0-9_-]/g, '')}` : '';
     const name = `ethics_db${safeLabel}_${ts}.dump`;
-    const filePath = path.join(this.backupDir, name);
-    const conn = this.superConnString();
-    await this.run(`pg_dump -d "${conn}" -Fc -f "${filePath}"`);
-    const stat = fs.statSync(filePath);
-    return { name, size: stat.size, created_at: stat.mtime.toISOString() };
+    const tmpPath = path.join(env.BACKUP_DIR, `.tmp_${name}`);
+    try {
+      const args = this.connArgs();
+      await this.run(`pg_dump ${args} -Fc -f "${tmpPath}"`);
+      await this.destination.store(tmpPath, name);
+      const storedPath = this.destination.getPath(name);
+      const stat = fs.statSync(storedPath);
+      return { name, size: stat.size, created_at: stat.mtime.toISOString() };
+    } finally {
+      try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch { /* ignore cleanup error */ }
+    }
   }
 
   async delete(name: string): Promise<void> {
-    const fp = this.filePath(name);
-    if (!fs.existsSync(fp)) throw new Error('Backup file not found');
-    fs.unlinkSync(fp);
+    await this.destination.delete(name);
   }
 
   async verify(name: string): Promise<VerifyResult> {
-    const fp = this.filePath(name);
+    const fp = this.destination.getPath(name);
     if (!fs.existsSync(fp)) throw new Error('Backup file not found');
 
     const verifyDb = `verify_restore_${Date.now()}`;
-    const adminConn = this.superConnString('postgres');
-    const verifyConn = this.superConnString(verifyDb);
+    const safeDb = this.sanitizeDbName(verifyDb);
 
     try {
-      await this.run(`psql -d "${adminConn}" -c "CREATE DATABASE ${this.sanitizeDbName(verifyDb)} OWNER ethics_app;"`);
+      await this.run(`psql ${this.connArgs('postgres')} -c "CREATE DATABASE ${safeDb} OWNER ethics_app;"`);
       const start = Date.now();
-      await this.run(`pg_restore -d "${verifyConn}" -Fc "${fp}"`, true);
+      await this.run(`pg_restore ${this.connArgs(verifyDb)} -Fc "${fp}"`, true);
       const duration = (Date.now() - start) / 1000;
 
       const queries: { entity: string; sql: string }[] = [
@@ -149,49 +141,135 @@ export class BackupService {
 
       const entities: { entity: string; row_count: number }[] = [];
       for (const q of queries) {
-        const { stdout } = await this.run(`psql -d "${verifyConn}" -At -c "${q.sql}"`);
+        const { stdout } = await this.run(`psql ${this.connArgs(verifyDb)} -At -c "${q.sql}"`);
         entities.push({ entity: q.entity, row_count: parseInt(stdout.trim()) || 0 });
       }
 
+      await this.dropDatabase(safeDb);
       return { backup: name, duration_seconds: Math.round(duration * 10) / 10, entities };
-    } finally {
-      await this.run(`psql -d "${adminConn}" -c "DROP DATABASE IF EXISTS ${this.sanitizeDbName(verifyDb)};"`).catch(() => {});
+    } catch (err) {
+      await this.dropDatabase(safeDb);
+      throw err;
     }
   }
 
   async restore(name: string): Promise<{ pre_backup: string }> {
-    const fp = this.filePath(name);
+    const fp = this.destination.getPath(name);
     if (!fs.existsSync(fp)) throw new Error('Backup file not found');
 
-    const adminConn = this.superConnString('postgres');
-    const targetConn = this.superConnString();
     const dbName = env.DB_NAME;
-
     const preName = `pre_restore_${new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)}.dump`;
-    const prePath = path.join(this.backupDir, preName);
-    await this.run(`pg_dump -d "${targetConn}" -Fc -f "${prePath}"`);
+    const prePath = path.join(env.BACKUP_DIR, preName);
+
+    const args = this.connArgs();
+    await this.run(`pg_dump ${args} -Fc -f "${prePath}"`);
 
     const oldName = `${dbName}_old_${Date.now()}`;
     const safeOldName = this.sanitizeDbName(oldName);
-    await this.run(`psql -d "${adminConn}" -c "ALTER DATABASE ${dbName} RENAME TO ${safeOldName};"`);
-    await this.run(`psql -d "${adminConn}" -c "CREATE DATABASE ${dbName} OWNER ethics_app;"`);
+    await this.terminateConnections(dbName);
+    await this.run(`psql ${this.connArgs('postgres')} -c "ALTER DATABASE ${dbName} RENAME TO ${safeOldName};"`);
+    await this.run(`psql ${this.connArgs('postgres')} -c "CREATE DATABASE ${dbName} OWNER ethics_app;"`);
 
     try {
-      await this.run(`pg_restore -d "${targetConn}" -Fc "${fp}"`, true);
+      await this.run(`pg_restore ${this.connArgs(dbName)} -Fc "${fp}"`, true);
     } catch (err) {
-      await this.run(`psql -d "${adminConn}" -c "DROP DATABASE IF EXISTS ${dbName};"`).catch(() => {});
-      await this.run(`psql -d "${adminConn}" -c "ALTER DATABASE ${safeOldName} RENAME TO ${dbName};"`).catch(() => {});
+      logger.error({ err, oldName: safeOldName }, 'Restore failed — reverting to original database');
+      await this.dropDatabase(dbName);
+      await this.terminateConnections(safeOldName);
+      await this.run(`psql ${this.connArgs('postgres')} -c "ALTER DATABASE ${safeOldName} RENAME TO ${dbName};"`);
       throw err;
     }
 
-    await this.run(`psql -d "${adminConn}" -c "DROP DATABASE IF EXISTS ${safeOldName};"`).catch(() => {});
-
+    await this.dropDatabase(safeOldName);
     return { pre_backup: preName };
   }
 
   getStream(name: string): fs.ReadStream {
-    const fp = this.filePath(name);
-    if (!fs.existsSync(fp)) throw new Error('Backup file not found');
-    return fs.createReadStream(fp);
+    return this.destination.getStream(name);
+  }
+
+  async rotate(config?: Partial<RetentionConfig>): Promise<RotateResult> {
+    const ret = { ...DEFAULT_RETENTION, ...config };
+    const files = await this.destination.list();
+    const now = Date.now();
+    const dayMs = 86400000;
+
+    const daily: { file: BackupFile; age: number }[] = [];
+    const weekly: { file: BackupFile; age: number }[] = [];
+    const monthly: { file: BackupFile; age: number }[] = [];
+    const deleted: string[] = [];
+
+    for (const f of files) {
+      const age = (now - new Date(f.created_at).getTime()) / dayMs;
+      const dt = new Date(f.created_at);
+      const isSunday = dt.getDay() === 0;
+      const isFirstWeek = dt.getDate() <= 7;
+
+      if (age <= ret.daily) {
+        daily.push({ file: f, age });
+      } else if (isSunday && age <= 28 && isFirstWeek) {
+        monthly.push({ file: f, age });
+      } else if (isSunday && age <= 28) {
+        weekly.push({ file: f, age });
+      } else {
+        deleted.push(f.name);
+      }
+    }
+
+    daily.sort((a, b) => a.age - b.age);
+    while (daily.length > ret.daily) {
+      const removed = daily.shift();
+      if (removed) deleted.push(removed.file.name);
+    }
+
+    weekly.sort((a, b) => a.age - b.age);
+    while (weekly.length > ret.weekly) {
+      const removed = weekly.shift();
+      if (removed) deleted.push(removed.file.name);
+    }
+
+    monthly.sort((a, b) => a.age - b.age);
+    while (monthly.length > ret.monthly) {
+      const removed = monthly.shift();
+      if (removed) deleted.push(removed.file.name);
+    }
+
+    const kept = [...daily, ...weekly, ...monthly].map(x => x.file.name);
+    for (const name of deleted) {
+      try {
+        await this.destination.delete(name);
+        logger.info({ name, retention: 'rotate' }, 'Backup file removed by retention policy');
+      } catch (err: any) {
+        logger.error({ err, name }, 'Failed to remove backup during rotation');
+      }
+    }
+
+    return { deleted, kept };
+  }
+
+  private async terminateConnections(dbName: string): Promise<void> {
+    const safe = this.sanitizeDbName(dbName);
+    try {
+      await this.run(`psql ${this.connArgs('postgres')} -At -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${safe}' AND pid <> pg_backend_pid();"`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      logger.info({ database: safe }, 'Active connections terminated');
+    } catch (err: any) {
+      logger.warn({ err, database: safe }, 'Could not terminate some connections — DDL may fail');
+    }
+  }
+
+  private async dropDatabase(name: string): Promise<void> {
+    await this.terminateConnections(name);
+    const safe = this.sanitizeDbName(name);
+    try {
+      await this.run(`psql ${this.connArgs('postgres')} -c "DROP DATABASE IF EXISTS ${safe};"`);
+      logger.info({ database: safe }, 'Temporary database dropped');
+    } catch (err: any) {
+      logger.error({ err, database: safe }, 'Failed to drop temporary database — may require manual cleanup');
+    }
+  }
+
+  private sanitizeDbName(name: string): string {
+    return name.replace(/[^a-zA-Z0-9_]/g, '_');
   }
 }

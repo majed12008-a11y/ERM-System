@@ -16,6 +16,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { messageSchema } from '../../lib/schemas'
 import { Mail, Send, Inbox, Trash2, MessageSquare, Plus, ArrowLeft, CheckCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type MessageFormData = { subject: string; message_body?: string }
 
@@ -79,8 +80,9 @@ export default function MessagesPage() {
       resetForm()
       queryClient.invalidateQueries({ queryKey: ['messages'] })
       setBox('sent')
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || t('messages.sendFailed'))
+    } catch (err: unknown) {
+      const axiosErr = err instanceof AxiosError ? err : undefined
+      toast.error(axiosErr?.response?.data?.error || t('messages.sendFailed'))
     }
   }
 

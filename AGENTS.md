@@ -109,6 +109,39 @@ npm run build                   # tsc -b && vite build
 - The audit trigger `system.fn_log_audit()` expects `app.user_id` to be set. Always called within a database session that has set this parameter.
 - `Soft delete` columns (`deleted_at`, `deleted_by`) are on ~80 transaction tables. RLS policies may need `is_active_row()` filtering.
 
+## Governance Rules
+
+### RULE 11 — Terminal State Derivation
+A workflow state is terminal only if no valid outgoing transitions exist (derived from workflow reachability, not status naming). True terminals: `REJECTED`, `WITHDRAWN`, `ARCHIVED`. `APPROVED` and `CLOSED` are NOT terminal because transitions to CLOSE and ARCHIVE respectively exist.
+
+### RULE 12 — Document Ownership Semantics
+Authorization for workflow-linked evidence documents must be derived from the parent workflow entity (Condition/Application), not from document ownership alone.
+
+Access decisions for evidence DELETE must consider four factors:
+1. **Application ownership** — does the user own the application (`submitted_by`)?
+2. **Condition ownership** — is the condition linked to this application?
+3. **Workflow state** — what is the application's `current_status`?
+4. **User role** — is the user an admin/chair or the applicant?
+
+**Evidence DELETE policy matrix:**
+
+| Scenario | Workflow State | Condition Status | Applicant | Admin/Chair |
+|----------|---------------|-----------------|-----------|-------------|
+| 1 | AWAITING_CONDITIONS | OPEN | YES | YES |
+| 2 | AWAITING_CONDITIONS | resolved (MET/NOT_MET/WAIVED) | NO | YES |
+| 3 | EVIDENCE_REJECTED | OPEN | YES | YES |
+| 4 | EVIDENCE_REJECTED | resolved | NO | YES |
+| 5 | After SUBMIT_EVIDENCE (post-committee-review) | any | NO | YES |
+| 6 | Terminal (APPROVED/REJECTED/WITHDRAWN/ARCHIVED) | any | NO | NO |
+| 7 | Any other non-terminal state | resolved | NO | YES |
+
+Key invariants:
+- Applicant can only delete evidence for **OPEN** conditions in pre-submission states (AWAITING_CONDITIONS, EVIDENCE_REJECTED).
+- Admin can delete evidence in any non-terminal state regardless of condition status (audit override).
+- **No one** can delete evidence once the application reaches a terminal state — audit trail integrity.
+- Workflow state is checked via `application.getApplicationStatus()` (already available on ConditionRepository).
+- Physical DELETE is always blocked at DB level (`FOR DELETE USING (false)` on both tables). Only soft-delete via `documents.documents.deleted_at` is permitted.
+
 ## RLS fixes applied
 
 ### 1. Registration RLS (`33-fix-register-rls.sql`)

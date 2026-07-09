@@ -5,9 +5,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { AxiosError } from 'axios'
 import { ArrowLeft, Plus, Eye } from 'lucide-react'
 import { z } from 'zod'
 import api from '../../api/client'
@@ -28,10 +30,43 @@ const createAssessmentSchema = z.object({
     is_met: z.boolean().default(false),
     score: z.coerce.number().int().min(1).max(5).optional(),
     findings: z.string().optional().default(''),
-  })),
+  })).optional(),
 })
 
-type AssessmentFormData = z.input<typeof createAssessmentSchema>
+type AssessmentFormData = z.infer<typeof createAssessmentSchema>
+
+type Cycle = {
+  id: number
+  committee_name_ar?: string
+  committee_name_en?: string
+  cycle_number?: number
+}
+
+type Standard = {
+  id: number
+  name_ar?: string
+  name_en?: string
+  code?: string
+}
+
+type AssessmentItem = NonNullable<AssessmentFormData['items']>[number]
+
+type AssessmentItemView = AssessmentItem & {
+  id?: number
+  name_ar?: string
+  name_en?: string
+  code?: string
+}
+
+type Assessment = {
+  id: number
+  assessor_name: string
+  overall_decision: string
+  overall_justification?: string
+  overall_score?: number
+  assessed_at: string
+  items?: AssessmentItemView[]
+}
 
 const decisionOptions = [
   { value: 'RECOMMEND_APPROVE', labelKey: 'status.RECOMMEND_APPROVE', defaultLabel: 'Recommend Approve' },
@@ -55,33 +90,34 @@ export default function AssessmentsList() {
   const canMutate = useRole('SUPER_ADMIN', 'ETHICS_ADMIN')
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewItem, setViewItem] = useState<any>(null)
+  const [viewItem, setViewItem] = useState<Assessment | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
 
-  const createForm = useForm<AssessmentFormData>({
+  const createForm = useForm({
+    resolver: zodResolver(createAssessmentSchema),
     defaultValues: { overall_decision: '', overall_justification: '', items: [] },
   })
 
-  const { data: cycle } = useQuery({
+  const { data: cycle } = useQuery<Cycle>({
     queryKey: ['accreditation-cycle', cycleId],
     queryFn: () => api.get(`/committee/accreditation/cycles/${cycleId}`).then(r => r.data.data),
     enabled: !!cycleId,
   })
 
-  const { data: assessments, isLoading } = useQuery({
+  const { data: assessments, isLoading } = useQuery<Assessment[]>({
     queryKey: ['assessments', cycleId],
     queryFn: () => api.get(`/committee/accreditation/cycles/${cycleId}/assessments`).then(r => r.data.data),
     enabled: !!cycleId,
   })
 
-  const { data: standards } = useQuery({
+  const { data: standards } = useQuery<Standard[]>({
     queryKey: ['standards-active'],
     queryFn: () => api.get('/committee/accreditation/standards?active_only=true').then(r => r.data.data),
   })
 
-  const scores = (assessments || []).map((a: any) => a.overall_score).filter(Boolean)
-  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0
-  const completedCount = (assessments || []).filter((a: any) => a.items?.length > 0).length
+  const scores = (assessments || []).map(a => a.overall_score).filter((score): score is number => score !== undefined && score !== null)
+  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+  const completedCount = (assessments || []).filter(a => Boolean(a.items?.length)).length
 
   const createMutation = useMutation({
     mutationFn: (body: AssessmentFormData) =>
@@ -92,11 +128,11 @@ export default function AssessmentsList() {
       setCreateOpen(false)
       createForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('assessment.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('assessment.createFailed')),
   })
 
   function openCreate() {
-    createForm.reset({ overall_decision: '', overall_justification: '', items: (standards || []).map((s: any) => ({
+    createForm.reset({ overall_decision: '', overall_justification: '', items: (standards || []).map((s) => ({
       standard_version_id: s.id,
       is_met: false,
       score: undefined,
@@ -106,19 +142,21 @@ export default function AssessmentsList() {
   }
 
   function onSubmitCreate(data: AssessmentFormData) {
-    const hasScore = data.items.some(i => i.score !== undefined && i.score !== null)
-    createMutation.mutate({
-      ...data,
-      items: hasScore ? data.items : undefined,
-    })
+    const items = data.items ?? []
+    const hasScore = items.some(i => i.score !== undefined && i.score !== null)
+    const payload = { ...data } as Partial<AssessmentFormData>
+    if (!hasScore) {
+      delete payload.items
+    }
+    createMutation.mutate(payload as AssessmentFormData)
   }
 
-  function viewAssessment(item: any) {
+  function viewAssessment(item: Assessment) {
     setViewItem(item)
     setViewOpen(true)
   }
 
-  const totalScore = viewItem?.items?.reduce((s: number, i: any) => s + (i.score || 0), 0) ?? 0
+  const totalScore = viewItem?.items?.reduce((s: number, i) => s + (i.score || 0), 0) ?? 0
   const maxScore = (viewItem?.items?.length || 1) * 4
   const pctScore = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
 
@@ -175,25 +213,22 @@ export default function AssessmentsList() {
         columns={[
           { key: 'assessor_name', label: t('assessment.assessor'), sortable: true },
           { key: 'overall_decision', label: t('assessment.overallDecision'), filterable: true, sortable: true,
-            render: (i: any) => <StatusBadge status={i.overall_decision} /> },
+            render: (i: Assessment) => <StatusBadge status={i.overall_decision} /> },
           { key: 'overall_score', label: t('assessment.score'), sortable: true,
-            render: (i: any) => i.overall_score ? `${i.overall_score}%` : '-' },
+            render: (i: Assessment) => i.overall_score ? `${i.overall_score}%` : '-' },
           { key: 'assessed_at', label: t('assessment.date'), sortable: true,
-            render: (i: any) => new Date(i.assessed_at).toLocaleDateString() },
-          ...([
-            { key: 'actions', label: t('assessment.actions'), render: (i: any) => (
-              <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                <button onClick={() => viewAssessment(i)}
-                  className="text-slate-400 hover:text-blue-600 p-1" title={t('assessment.view')}>
-                  <Eye className="w-4 h-4" />
-                </button>
-              </div>
-            ),
-            },
-          ] as any),
+            render: (i: Assessment) => new Date(i.assessed_at).toLocaleDateString() },
+          { key: 'actions', label: t('assessment.actions'), render: (i: Assessment) => (
+            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+              <button onClick={() => viewAssessment(i)}
+                className="text-slate-400 hover:text-blue-600 p-1" title={t('assessment.view')}>
+                <Eye className="w-4 h-4" />
+              </button>
+            </div>
+          ) },
         ]}
         data={assessments || []}
-        onRowClick={(item: any) => viewAssessment(item)}
+        onRowClick={(item: Assessment) => viewAssessment(item)}
         emptyMessage={t('assessment.empty')}
       />
 
@@ -236,7 +271,7 @@ export default function AssessmentsList() {
                 <p className="text-sm text-slate-500">{t('assessment.noStandards')}</p>
               ) : (
                 <div className="space-y-3 max-h-80 overflow-y-auto border rounded p-3">
-                  {(standards || []).map((s: any, index: number) => (
+                  {(standards || []).map((s: Standard, index: number) => (
                     <div key={s.id} className="p-3 bg-slate-50 rounded text-sm space-y-2">
                       <div className="font-medium text-xs text-slate-600">{s.name_ar || s.name_en} ({s.code})</div>
                       <div className="flex flex-wrap items-center gap-4">
@@ -321,7 +356,7 @@ export default function AssessmentsList() {
                   <p className="text-sm text-slate-500">{t('assessment.noStandards')}</p>
                 ) : (
                   <div className="space-y-2">
-                    {viewItem.items.map((item: any, i: number) => (
+                    {viewItem.items.map((item: AssessmentItemView, i: number) => (
                       <div key={item.id || i} className="p-3 bg-slate-50 rounded text-sm">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-xs">{item.name_ar || item.code}</span>

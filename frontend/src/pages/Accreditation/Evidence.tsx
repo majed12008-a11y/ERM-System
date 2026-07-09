@@ -17,6 +17,7 @@ import DataTable from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
+import { AxiosError } from 'axios'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog'
@@ -78,7 +79,7 @@ export default function Evidence() {
     queryFn: () => api.get('/committee/accreditation/standards?active_only=true').then(r => r.data.data),
   })
 
-  const isAdmin = ['SUPER_ADMIN', 'ETHICS_ADMIN'].some(r => (user.roles || []).includes(r))
+  const isAdmin = ['SUPER_ADMIN', 'ETHICS_ADMIN'].some(r => (user?.roles || []).includes(r))
 
   const summary = {
     total: (evidence || []).length,
@@ -97,7 +98,7 @@ export default function Evidence() {
       setUploadOpen(false)
       uploadForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('evidence.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('evidence.createFailed')),
   })
 
   const statusMutation = useMutation({
@@ -110,7 +111,7 @@ export default function Evidence() {
       setReviewItem(null)
       reviewForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('evidence.statusUpdateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('evidence.statusUpdateFailed')),
   })
 
   const deleteMutation = useMutation({
@@ -119,15 +120,8 @@ export default function Evidence() {
       toast.success(t('evidence.deleted'))
       queryClient.invalidateQueries({ queryKey: ['evidence', cycleId] })
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('evidence.deleteFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('evidence.deleteFailed')),
   })
-
-  function openReview(item: any, action: string) {
-    setReviewItem(item)
-    reviewForm.setValue('status', action)
-    reviewForm.setValue('review_notes', '')
-    setReviewOpen(true)
-  }
 
   function onSubmitReview(data: UpdateStatusForm) {
     if (!reviewItem) return

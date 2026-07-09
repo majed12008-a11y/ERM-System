@@ -14,6 +14,7 @@ import DataTable from '../../components/DataTable'
 import { Plus, Pencil } from 'lucide-react'
 import { usePermission } from '../../hooks/usePermission'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
 
 const committeeSchema = z.object({
   committee_code: z.string({ message: 'Code is required' }).min(1),
@@ -62,13 +63,13 @@ export default function Committees() {
   const createMutation = useMutation({
     mutationFn: (body: any) => api.post('/committee/committees', body),
     onSuccess: () => { toast.success(t('committees.created')); queryClient.invalidateQueries({ queryKey: ['committees'] }); setShowCreate(false); reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('committees.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('committees.createFailed')),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => api.put(`/committee/committees/${id}`, data),
     onSuccess: () => { toast.success(t('committees.updated')); queryClient.invalidateQueries({ queryKey: ['committees'] }); setEditId(null) },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('committees.updateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('committees.updateFailed')),
   })
 
   function openEdit(c: any) {

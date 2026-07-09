@@ -37,21 +37,21 @@ export default function VerifyEmailPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-blue-700 text-xl sm:text-2xl">{t('app.title')}</CardTitle>
+          <CardTitle className="text-primary text-xl sm:text-2xl">{t('app.title')}</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
-          {status === 'loading' && <p className="text-slate-500">{t('verifyEmail.verifying')}</p>}
+          {status === 'loading' && <p className="text-muted-foreground">{t('verifyEmail.verifying')}</p>}
           {status === 'success' && (
             <>
-              <div className="text-green-600 text-4xl">✓</div>
-              <p className="text-green-700">{message}</p>
+              <div className="text-success text-4xl">✓</div>
+              <p className="text-success">{message}</p>
               <Link to="/login"><Button>{t('verifyEmail.goToLogin')}</Button></Link>
             </>
           )}
           {status === 'error' && (
             <>
-              <div className="text-red-600 text-4xl">✗</div>
-              <p className="text-red-700">{message}</p>
+              <div className="text-destructive text-4xl">✗</div>
+              <p className="text-destructive">{message}</p>
               <Link to="/login"><Button variant="outline">{t('verifyEmail.goToLogin')}</Button></Link>
             </>
           )}

@@ -13,6 +13,7 @@ import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Database, Download, RotateCcw, Trash2, ShieldCheck, HardDrive } from 'lucide-react'
+import { AxiosError } from 'axios'
 
 interface BackupFile {
   name: string
@@ -49,14 +50,14 @@ export default function BackupSettings() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post('/admin/backup')
+      const res = await api.post('/admin/backup', {})
       return res.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-backups'] })
       toast.success(t('backup.created'))
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       toast.error(t('backup.createFailed') + (err.response?.data?.error ? `: ${err.response.data.error}` : ''))
     },
   })
@@ -70,7 +71,7 @@ export default function BackupSettings() {
       toast.success(t('backup.verified'))
       setVerifyResult({ name: data.data.backup, entities: data.data.entities })
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       toast.error(t('backup.verifyFailed') + (err.response?.data?.error ? `: ${err.response.data.error}` : ''))
     },
   })
@@ -85,7 +86,7 @@ export default function BackupSettings() {
       queryClient.invalidateQueries({ queryKey: ['admin-backups'] })
       toast.success(t('backup.restored'))
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       setRestoreTarget(null)
       toast.error(t('backup.restoreFailed') + (err.response?.data?.error ? `: ${err.response.data.error}` : ''))
     },
@@ -100,7 +101,7 @@ export default function BackupSettings() {
       queryClient.invalidateQueries({ queryKey: ['admin-backups'] })
       toast.success(t('backup.deleted'))
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       setDeleteTarget(null)
       toast.error(t('backup.deleteFailed') + (err.response?.data?.error ? `: ${err.response.data.error}` : ''))
     },

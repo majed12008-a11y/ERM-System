@@ -7,6 +7,7 @@ import { AuditableRepository } from './auditable.repository';
 import { ApplicationRow } from '../shared/db-types';
 import { PaginationParams } from '../shared/pagination';
 import { IReadRepository, IWriteRepository, IPaginatedReadRepository, ISoftDeleteRepository } from './contracts';
+import { EDITABLE_APPLICATION_STATUSES } from '../shared/application.constants';
 
 export interface CreateApplicationDTO {
   application_number: string;
@@ -146,8 +147,9 @@ export class ApplicationRepository extends AuditableRepository
     values.push(meta.updated_by);
 
     values.push(id);
+    values.push(EDITABLE_APPLICATION_STATUSES);
     const result = await this.query(
-      `UPDATE core.applications SET ${fields.join(', ')} WHERE id = $${idx} AND current_status = 'DRAFT' RETURNING *`,
+      `UPDATE core.applications SET ${fields.join(', ')} WHERE id = $${idx} AND current_status = ANY($${idx + 1}::varchar[]) RETURNING *`,
       values,
       client
     );
@@ -157,22 +159,6 @@ export class ApplicationRepository extends AuditableRepository
   async generateApplicationNumber(client: PoolClient): Promise<string> {
     const result = await this.query('SELECT system.fn_generate_application_number()', undefined, client);
     return result.rows[0].fn_generate_application_number;
-  }
-
-  async countPendingReviews(applicationId: number): Promise<number> {
-    const result = await this.query(
-      `SELECT COUNT(*)::int as cnt FROM committee.review_assignments
-       WHERE application_id = $1 AND (status_code IS NULL OR status_code != 'COMPLETED')`,
-      [applicationId]
-    );
-    return result.rows[0].cnt;
-  }
-
-  async setApplicationUnderReview(id: number): Promise<void> {
-    await this.query(
-      `UPDATE core.applications SET current_status = 'UNDER_REVIEW' WHERE id = $1 AND current_status = 'SUBMITTED'`,
-      [id]
-    );
   }
 
   async updateStatus(id: number, status: string, client?: PoolClient): Promise<ApplicationRow | null> {

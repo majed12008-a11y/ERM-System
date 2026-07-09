@@ -22,44 +22,49 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '../../components/ui/dialog'
 import { createCycleSchema, updateCycleStatusSchema } from '../../lib/schemas'
+import { AxiosError } from 'axios'
 
 type CreateFormData = z.input<typeof createCycleSchema>
 type StatusFormData = z.input<typeof updateCycleStatusSchema>
 
-const statusTransitions: Record<string, string[]> = {
-  PENDING: ['UNDER_REVIEW'],
-  UNDER_REVIEW: ['ACCREDITED', 'CONDITIONAL', 'SUSPENDED', 'REVOKED'],
-  ACCREDITED: ['SUSPENDED', 'EXPIRED', 'REVOKED'],
-  CONDITIONAL: ['ACCREDITED', 'SUSPENDED', 'REVOKED'],
-  SUSPENDED: ['ACCREDITED', 'CONDITIONAL', 'REVOKED'],
-  EXPIRED: ['REVOKED'],
+const availableTransitionsByStatus: Record<string, { code: string; label: string; target: string; requiresReason: boolean }[]> = {
+  PENDING: [{ code: 'SUBMIT', label: 'accreditation.transitionSubmit', target: 'UNDER_REVIEW', requiresReason: false }],
+  UNDER_REVIEW: [
+    { code: 'APPROVE', label: 'accreditation.transitionApprove', target: 'ACCREDITED', requiresReason: false },
+    { code: 'CONDITIONAL', label: 'accreditation.transitionConditional', target: 'CONDITIONAL', requiresReason: true },
+    { code: 'SUSPEND', label: 'accreditation.transitionSuspend', target: 'SUSPENDED', requiresReason: true },
+    { code: 'REVOKE', label: 'accreditation.transitionRevoke', target: 'REVOKED', requiresReason: true },
+  ],
+  ACCREDITED: [
+    { code: 'SUSPEND', label: 'accreditation.transitionSuspend', target: 'SUSPENDED', requiresReason: true },
+    { code: 'EXPIRE', label: 'accreditation.transitionExpire', target: 'EXPIRED', requiresReason: false },
+    { code: 'REVOKE', label: 'accreditation.transitionRevoke', target: 'REVOKED', requiresReason: true },
+  ],
+  CONDITIONAL: [
+    { code: 'APPROVE', label: 'accreditation.transitionApprove', target: 'ACCREDITED', requiresReason: false },
+    { code: 'SUSPEND', label: 'accreditation.transitionSuspend', target: 'SUSPENDED', requiresReason: true },
+    { code: 'REVOKE', label: 'accreditation.transitionRevoke', target: 'REVOKED', requiresReason: true },
+  ],
+  SUSPENDED: [
+    { code: 'APPROVE', label: 'accreditation.transitionApprove', target: 'ACCREDITED', requiresReason: false },
+    { code: 'CONDITIONAL', label: 'accreditation.transitionConditional', target: 'CONDITIONAL', requiresReason: true },
+    { code: 'REVOKE', label: 'accreditation.transitionRevoke', target: 'REVOKED', requiresReason: true },
+  ],
+  EXPIRED: [
+    { code: 'REVOKE', label: 'accreditation.transitionRevoke', target: 'REVOKED', requiresReason: true },
+  ],
   REVOKED: [],
 }
 
-function canTransition(from: string, to: string): boolean {
-  return statusTransitions[from]?.includes(to) ?? false
-}
-
 function hasTransitions(status: string): boolean {
-  return (statusTransitions[status]?.length ?? 0) > 0
+  return (availableTransitionsByStatus[status]?.length ?? 0) > 0
 }
-
-const statusDecisionMap: Record<string, string> = {
-  UNDER_REVIEW: 'SUBMIT',
-  ACCREDITED: 'APPROVE',
-  CONDITIONAL: 'CONDITIONAL',
-  SUSPENDED: 'SUSPEND',
-  EXPIRED: 'EXPIRE',
-  REVOKED: 'REVOKE',
-}
-
-const reasonRequiredStatuses = new Set(['CONDITIONAL', 'SUSPENDED', 'REVOKED'])
 
 export default function CyclesList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  useAuth()
   const canMutate = useRole('SUPER_ADMIN', 'ETHICS_ADMIN')
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -73,7 +78,7 @@ export default function CyclesList() {
 
   const statusForm = useForm<StatusFormData>({
     resolver: zodResolver(updateCycleStatusSchema),
-    defaultValues: { to_status: '', decision: '', decided_by: user?.id || 0, decision_reason: '' },
+    defaultValues: { transition_code: '', decision_reason: '' },
   })
 
   const { data: cycles, isLoading } = useQuery({
@@ -107,7 +112,7 @@ export default function CyclesList() {
       setCreateOpen(false)
       createForm.reset()
     },
-    onError: (err: any) => handleError(err, t('accreditation.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => handleError(err, t('accreditation.createFailed')),
   })
 
   const statusMutation = useMutation({
@@ -120,33 +125,40 @@ export default function CyclesList() {
       setSelectedCycle(null)
       statusForm.reset()
     },
-    onError: (err: any) => handleError(err, t('accreditation.statusUpdateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => handleError(err, t('accreditation.statusUpdateFailed')),
   })
 
   function openStatusDialog(cycle: any) {
     setSelectedCycle(cycle)
-    statusForm.setValue('decided_by', user?.id || 0)
-    statusForm.setValue('to_status', '')
-    statusForm.setValue('decision', '')
+    statusForm.setValue('transition_code', '')
     statusForm.setValue('decision_reason', '')
     setStatusOpen(true)
   }
 
-  function onStatusSelect(targetStatus: string) {
-    statusForm.setValue('to_status', targetStatus)
-    statusForm.setValue('decision', statusDecisionMap[targetStatus] || '')
+  function onTransitionSelect(transitionCode: string) {
+    statusForm.setValue('transition_code', transitionCode)
+  }
+
+  function selectedTransition() {
+    if (!selectedCycle || !statusForm.watch('transition_code')) return null
+    return availableTransitionsByStatus[selectedCycle.status]?.find(
+      t => t.code === statusForm.watch('transition_code')
+    ) || null
   }
 
   function onSubmitStatus(data: StatusFormData) {
     if (!selectedCycle) return
-    if (reasonRequiredStatuses.has(data.to_status) && !data.decision_reason?.trim()) {
+    const transition = availableTransitionsByStatus[selectedCycle.status]?.find(
+      t => t.code === data.transition_code
+    )
+    if (transition?.requiresReason && !data.decision_reason?.trim()) {
       toast.error(t('accreditation.reasonRequired'))
       return
     }
     statusMutation.mutate({ id: selectedCycle.id, body: data })
   }
 
-  const allowedTransitions = selectedCycle ? statusTransitions[selectedCycle.status] || [] : []
+  const allowedTransitions = selectedCycle ? availableTransitionsByStatus[selectedCycle.status] || [] : []
 
   return (
     <div>
@@ -274,30 +286,31 @@ export default function CyclesList() {
                 <p className="text-sm text-slate-500">{t('common.noData')}</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {allowedTransitions.map((status: string) => (
+                  {allowedTransitions.map((tr) => (
                     <button
-                      key={status}
+                      key={tr.code}
                       type="button"
-                      onClick={() => onStatusSelect(status)}
+                      onClick={() => onTransitionSelect(tr.code)}
                       className={`p-2 rounded border text-sm text-center transition-colors ${
-                        statusForm.watch('to_status') === status
+                        statusForm.watch('transition_code') === tr.code
                           ? 'border-blue-500 bg-blue-50 text-blue-700'
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <StatusBadge status={status} />
+                      <StatusBadge status={tr.target} />
+                      <span className="block text-xs mt-1 text-slate-500">{t(tr.label)}</span>
                     </button>
                   ))}
                 </div>
               )}
-              {statusForm.formState.errors.to_status && (
-                <p className="text-red-500 text-xs">{statusForm.formState.errors.to_status.message}</p>
+              {statusForm.formState.errors.transition_code && (
+                <p className="text-red-500 text-xs">{statusForm.formState.errors.transition_code.message}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label>
                 {t('accreditation.decisionReason')}
-                {statusForm.watch('to_status') && reasonRequiredStatuses.has(statusForm.watch('to_status'))
+                {selectedTransition()?.requiresReason
                   ? <span className="text-red-500"> *</span>
                   : <span className="text-slate-400"> ({t('common.optional')})</span>
                 }

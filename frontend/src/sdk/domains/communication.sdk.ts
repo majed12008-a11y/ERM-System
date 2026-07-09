@@ -10,6 +10,10 @@ export const notifications = {
     return api.get<SuccessResponse<Notification[]>>('/communication/notifications')
   },
 
+  getUnreadCount() {
+    return api.get<SuccessResponse<{ count: number }>>('/communication/notifications/unread-count')
+  },
+
   markAsRead(id: number) {
     return api.patch<SuccessResponse<null>>(`/communication/notifications/${id}/read`)
   },

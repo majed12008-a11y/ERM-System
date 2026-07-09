@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import api from '../../api/client'
 import { projectCreateSchema } from '../../lib/schemas'
+import { AxiosError } from 'axios'
 
 type ProjectFormData = {
   title_ar: string; title_en?: string; abstract_ar?: string; abstract_en?: string
@@ -29,7 +30,7 @@ export default function ProjectCreate() {
   const mutation = useMutation({
     mutationFn: (body: any) => api.post('/core/projects', body),
     onSuccess: () => { toast.success(t('projects.created')); queryClient.invalidateQueries({ queryKey: ['projects'] }); navigate('/projects') },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('projects.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('projects.createFailed')),
   })
 
   function onSubmit(data: ProjectFormData) {

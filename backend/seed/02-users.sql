@@ -104,73 +104,73 @@ INSERT INTO security.users (institution_id, department_id, username, email, pass
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'MED' AND d.institution_id = i.id),
-  'admin', 'admin@ksu.edu.sa',
+  'admin', 'admin@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$HOFZ6XX9/oNYZ+5odyihSQ$rvy8IpREw6giOK/JcxJr75HxFUwpUVT65pp4xwQgr/Y',
   'مدير', 'النظام', 'Admin', 'User', '+966501111111', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'MED' AND d.institution_id = i.id),
-  'ethics_admin', 'ethics.admin@ksu.edu.sa',
+  'ethics_admin', 'ethics.admin@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
-  'مشرف', 'الأخلاقيات', 'Ethics', 'Admin', '+966502222222', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+  'مشرف', 'الأخلاقيات', 'Ethics', 'Admin', '+96772222222', 'ACTIVE'
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'MED' AND d.institution_id = i.id),
-  'chairperson', 'chair@ksu.edu.sa',
+  'chairperson', 'chair@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
   'رئيس', 'اللجنة', 'Chair', 'Person', '+966503333333', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'MED' AND d.institution_id = i.id),
-  'reviewer1', 'reviewer1@ksu.edu.sa',
+  'reviewer1', 'reviewer1@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
   'أحمد', 'العلي', 'Ahmed', 'Alali', '+966504444444', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'PHARM' AND d.institution_id = i.id),
-  'reviewer2', 'reviewer2@ksu.edu.sa',
+  'reviewer2', 'reviewer2@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
   'سارة', 'الخالد', 'Sara', 'Alkhalid', '+966505555555', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'SCI' AND d.institution_id = i.id),
-  'reviewer3', 'reviewer3@ksu.edu.sa',
+  'reviewer3', 'reviewer3@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
   'محمد', 'الزهراني', 'Mohammed', 'Alzahrani', '+966506666666', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'MED' AND d.institution_id = i.id),
-  'researcher1', 'researcher1@ksu.edu.sa',
+  'researcher1', 'researcher1@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
-  'فاطمة', 'السعيد', 'Fatima', 'Alsaid', '+966507777777', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+  'فاطمة', 'السعيد', 'Fatima', 'Alyeid', '+966507777777', 'ACTIVE'
+FROM security.institutions i WHERE i.code = 'THU';
 
 INSERT INTO security.users (institution_id, department_id, username, email, password_hash,
   first_name_ar, last_name_ar, first_name_en, last_name_en, mobile, status)
 SELECT i.id,
   (SELECT d.id FROM security.departments d WHERE d.code = 'DENT' AND d.institution_id = i.id),
-  'researcher2', 'researcher2@ksu.edu.sa',
+  'researcher2', 'researcher2@gov.edu.ye',
   '$argon2id$v=19$m=65536,t=3,p=4$+8t0KofIUsG3Ag7WosWSxA$DRNTHGs7CZmBnDRV5vYlavZ+sl8F/fx5rixE+ncyNRw',
   'خالد', 'العمر', 'Khaled', 'Alomar', '+966508888888', 'ACTIVE'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 -- ============================================================
 -- USER ROLES

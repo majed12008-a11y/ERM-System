@@ -7,14 +7,27 @@ import { ApplicationRepository } from '../repositories/application.repository';
 import { ApplicationRow } from '../shared/db-types';
 import { AuthUser } from '../shared/types';
 import { PaginationParams, paginatedResult, PaginatedResult } from '../shared/pagination';
-import { createAndNotify, broadcastDashboardEvent } from './notification.service';
+import { broadcastDashboardEvent, NotificationService } from './notification.service';
+import { TRANSITION_TO_NOTIFICATION } from './notification-types';
 import { WorkflowService } from './workflow.service';
+import { ConditionService } from './condition.service';
+import { ConditionRepository } from '../repositories/condition.repository';
+import { CertificateService } from './certificate.service';
+import { CertificateRepository } from '../repositories/certificate.repository';
+import { DocumentRepository } from '../repositories/document.repository';
 import { withTransaction } from '../config/database';
+import { EDITABLE_APPLICATION_STATUSES } from '../shared/application.constants';
+import { logger } from '../config/logger';
 
 export class ApplicationService {
   constructor(
     private repo = new ApplicationRepository(),
-    private workflow = new WorkflowService()
+    private workflow = new WorkflowService(),
+    private conditions = new ConditionService(new ConditionRepository()),
+    private certificates = new CertificateService(
+      new CertificateRepository(),
+      new DocumentRepository(),
+    ),
   ) {}
 
   async getAll(
@@ -58,10 +71,6 @@ export class ApplicationService {
         target_committee_id: data.target_committee_id,
       }, client);
 
-      if (!data.save_as_draft) {
-        await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', newApp.id, client);
-      }
-
       return newApp;
     });
 
@@ -81,8 +90,8 @@ export class ApplicationService {
       err.status = 404;
       throw err;
     }
-    if (app.current_status !== 'DRAFT') {
-      const err = new Error('Only draft applications can be edited') as any;
+    if (!EDITABLE_APPLICATION_STATUSES.includes(app.current_status ?? '')) {
+      const err = new Error('Only draft or returned applications can be edited') as any;
       err.status = 400;
       throw err;
     }
@@ -101,102 +110,11 @@ export class ApplicationService {
     return updated;
   }
 
-  async submitDraft(
-    id: number,
-    body: { transition_code?: string; comment?: string },
-    user: AuthUser
-  ): Promise<ApplicationRow> {
-    const app = await this.repo.findById(id);
-    if (!app) {
-      const err = new Error('Application not found') as any;
-      err.status = 404;
-      throw err;
-    }
-    if (app.current_status !== 'DRAFT') {
-      const err = new Error('Only draft applications can be submitted') as any;
-      err.status = 400;
-      throw err;
-    }
-    if (app.submitted_by !== user.id) {
-      const err = new Error('Only the owner can submit this draft') as any;
-      err.status = 403;
-      throw err;
-    }
-
-    const updated = await withTransaction(async (client) => {
-      const updated = await this.repo.updateStatus(id, 'SUBMITTED', client);
-      if (!updated) {
-        const err = new Error('Failed to submit draft') as any;
-        err.status = 400;
-        throw err;
-      }
-
-      await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', id, client);
-
-      return updated;
-    });
-
-    broadcastDashboardEvent('dashboard-stats', {});
-    return updated;
-  }
-
   async updateStatus(
     id: number,
-    body: { status?: string; transition_code?: string; comment?: string },
+    body: { transition_code: string; comment?: string },
     user: AuthUser
   ): Promise<ApplicationRow> {
-    const userRoles: string[] = user.roles;
-
-    if (body.transition_code) {
-      const result = await this.workflow.executeTransition(
-        'Application', id, body.transition_code, user, body.comment
-      );
-
-      const updated = await this.repo.updateStatus(id, result.to_state);
-      if (!updated) {
-        const err = new Error('Application not found') as any;
-        err.status = 404;
-        throw err;
-      }
-      broadcastDashboardEvent('dashboard-stats', {});
-      return updated;
-    }
-
-    if (!userRoles.some((r: string) => ['ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'SUPER_ADMIN'].includes(r))) {
-      const err = new Error('Not authorized') as any;
-      err.status = 403;
-      throw err;
-    }
-
-    const updated = await withTransaction(async (client) => {
-      const updated = await this.repo.updateStatus(id, body.status!, client);
-      if (!updated) {
-        const err = new Error('Application not found') as any;
-        err.status = 404;
-        throw err;
-      }
-
-      await this.workflow.autoTransition('Application', id, user.id, client);
-      return updated;
-    });
-
-    broadcastDashboardEvent('dashboard-stats', {});
-    return updated;
-  }
-
-  async committeeDecision(
-    id: number,
-    decision: string,
-    notes: string | undefined,
-    user: AuthUser
-  ): Promise<ApplicationRow> {
-    const validDecisions = ['APPROVED', 'REJECTED', 'CONDITIONAL'];
-    if (!validDecisions.includes(decision)) {
-      const err = new Error('Invalid decision. Must be APPROVED, REJECTED, or CONDITIONAL') as any;
-      err.status = 400;
-      throw err;
-    }
-
     const app = await this.repo.findById(id);
     if (!app) {
       const err = new Error('Application not found') as any;
@@ -204,36 +122,61 @@ export class ApplicationService {
       throw err;
     }
 
-    const pending = await this.repo.countPendingReviews(id);
-    if (pending > 0) {
-      const err = new Error(`${pending} review(s) still pending`) as any;
+    if (body.transition_code === 'SUBMIT' && app.current_status !== 'DRAFT') {
+      const err = new Error('SUBMIT is only allowed from DRAFT status') as any;
+      err.status = 400;
+      throw err;
+    }
+
+    if (body.transition_code === 'RESUBMIT' && app.current_status !== 'RETURNED') {
+      const err = new Error('RESUBMIT is only allowed from RETURNED status') as any;
       err.status = 400;
       throw err;
     }
 
     const updated = await withTransaction(async (client) => {
-      const updated = await this.repo.updateStatus(id, decision, client);
+      const CONDITION_TRANSITIONS = ['COMMITTEE_CONDITIONAL', 'CONDITIONS_MET', 'CONDITIONS_NOT_MET', 'SUBMIT_EVIDENCE'];
+      if (CONDITION_TRANSITIONS.includes(body.transition_code)) {
+        await this.conditions.validateTransition(body.transition_code, id, user, client);
+      }
+
+      if (body.transition_code === 'SUBMIT' && app.current_status === 'DRAFT') {
+        await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', id, client);
+      }
+
+      const result = await this.workflow.executeTransition(
+        'Application', id, body.transition_code, user, body.comment, client
+      );
+
+      const updated = await this.repo.updateStatus(id, result.to_state, client);
       if (!updated) {
         const err = new Error('Application not found') as any;
         err.status = 404;
         throw err;
       }
 
-      await this.workflow.autoTransition('Application', id, user.id, client);
-
-      await createAndNotify(
-        app.submitted_by,
-        'APPLICATION_UPDATE',
-        `Application ${app.application_number}: ${decision}`,
-        `Your application ${app.application_number} was ${decision}${notes ? '. Notes: ' + notes : ''}`,
-        decision === 'APPROVED' ? 'HIGH' : 'MEDIUM',
-        client
-      );
-
       return updated;
     });
 
     broadcastDashboardEvent('dashboard-stats', {});
+    if (updated.current_status === 'APPROVED') {
+      this.certificates.generate(id, user).catch(err => {
+        logger.error({ err, applicationId: id }, 'Certificate generation failed after approval');
+      });
+    }
+
+    const notifType = TRANSITION_TO_NOTIFICATION[body.transition_code];
+    if (notifType) {
+      const notifService = new NotificationService();
+      await notifService.send({
+        userId: app.submitted_by,
+        notificationType: notifType,
+        subject: `Application #${id}`,
+        messageBody: `Your application #${id} status has been updated.`,
+        sourceEntityType: 'Application',
+        sourceEntityId: id,
+      });
+    }
 
     return updated;
   }
@@ -245,6 +188,197 @@ export class ApplicationService {
       err.status = 404;
       throw err;
     }
+  }
+
+  /**
+   * سحب الطلب بواسطة الباحث عبر transitions:
+   *   DRAFT     → WITHDRAW_DRAFT  (لا يتطلب comment)
+   *   SUBMITTED → WITHDRAW        (يتطلب comment)
+   *   RETURNED  → WITHDRAW_RETURNED (يتطلب comment)
+   */
+  async withdrawApplication(
+    id: number,
+    comment: string | undefined,
+    user: AuthUser
+  ): Promise<ApplicationRow> {
+    const app = await this.repo.findById(id);
+    if (!app) {
+      const err = new Error('Application not found') as any;
+      err.status = 404;
+      throw err;
+    }
+
+    // فقط صاحب الطلب
+    if (app.submitted_by !== user.id) {
+      const err = new Error('Only the application owner can withdraw it') as any;
+      err.status = 403;
+      throw err;
+    }
+
+    const WITHDRAW_MAP: Record<string, string> = {
+      'DRAFT':     'WITHDRAW_DRAFT',
+      'SUBMITTED': 'WITHDRAW',
+      'RETURNED':  'WITHDRAW_RETURNED',
+    };
+
+    const transitionCode = WITHDRAW_MAP[app.current_status];
+    if (!transitionCode) {
+      const err = new Error(
+        `Cannot withdraw application in status: ${app.current_status}`
+      ) as any;
+      err.status = 400;
+      throw err;
+    }
+
+    const updated = await withTransaction(async (client) => {
+      const result = await this.workflow.executeTransition(
+        'Application', id, transitionCode, user, comment, client
+      );
+
+      const updated = await this.repo.updateStatus(id, result.to_state, client);
+      if (!updated) {
+        const err = new Error('Failed to withdraw application') as any;
+        err.status = 400;
+        throw err;
+      }
+
+      return updated;
+    });
+
+    broadcastDashboardEvent('dashboard-stats', {});
+
+    const notifService = new NotificationService();
+    await notifService.send({
+      userId: app.submitted_by,
+      notificationType: 'APPLICATION_WITHDRAWN',
+      subject: `Application #${id} Withdrawn`,
+      messageBody: `Your application #${id} has been withdrawn.`,
+      sourceEntityType: 'Application',
+      sourceEntityId: id,
+    });
+
+    return updated;
+  }
+
+  /**
+   * تقديم استئناف (متاح فقط للطلبات المرفوضة)
+   * REJECTED → APPEAL_REVIEW
+   * يتطلب comment دائماً (مسوّؿغ الاستئناف)
+   */
+  async appealDecision(
+    id: number,
+    comment: string,
+    user: AuthUser
+  ): Promise<ApplicationRow> {
+    const app = await this.repo.findById(id);
+    if (!app) {
+      const err = new Error('Application not found') as any;
+      err.status = 404;
+      throw err;
+    }
+
+    if (app.current_status !== 'REJECTED') {
+      const err = new Error('Only rejected applications can be appealed') as any;
+      err.status = 400;
+      throw err;
+    }
+
+    // فقط صاحب الطلب
+    if (app.submitted_by !== user.id) {
+      const err = new Error('Only the application owner can appeal') as any;
+      err.status = 403;
+      throw err;
+    }
+
+    if (!comment || comment.trim().length < 10) {
+      const err = new Error('Appeal must include a justification (min 10 characters)') as any;
+      err.status = 400;
+      throw err;
+    }
+
+    const updated = await withTransaction(async (client) => {
+      const result = await this.workflow.executeTransition(
+        'Application', id, 'APPEAL', user, comment, client
+      );
+
+      const updated = await this.repo.updateStatus(id, result.to_state, client);
+      if (!updated) {
+        const err = new Error('Failed to register appeal') as any;
+        err.status = 400;
+        throw err;
+      }
+
+      return updated;
+    });
+
+    broadcastDashboardEvent('dashboard-stats', {});
+
+    const notifService = new NotificationService();
+    await notifService.send({
+      userId: app.submitted_by,
+      notificationType: 'APPLICATION_APPEAL_SUBMITTED',
+      subject: `Application #${id} Appeal Submitted`,
+      messageBody: `Your appeal for application #${id} has been submitted.`,
+      sourceEntityType: 'Application',
+      sourceEntityId: id,
+    });
+
+    return updated;
+  }
+
+  /**
+   * بدء دورة التجديد السنوي (ICH-GCP §3.3 — Continuing Review)
+   * APPROVED → RENEWAL_REVIEW
+   * متاح فقط لـ ETHICS_ADMIN و SUPER_ADMIN
+   */
+  async initiateRenewal(
+    id: number,
+    user: AuthUser
+  ): Promise<ApplicationRow> {
+    const app = await this.repo.findById(id);
+    if (!app) {
+      const err = new Error('Application not found') as any;
+      err.status = 404;
+      throw err;
+    }
+
+    if (app.current_status !== 'APPROVED') {
+      const err = new Error('Renewal can only be initiated for approved applications') as any;
+      err.status = 400;
+      throw err;
+    }
+
+    const updated = await withTransaction(async (client) => {
+      const result = await this.workflow.executeTransition(
+        'Application', id, 'INITIATE_RENEWAL', user, undefined, client
+      );
+
+      const updated = await this.repo.updateStatus(id, result.to_state, client);
+      if (!updated) {
+        const err = new Error('Failed to initiate renewal') as any;
+        err.status = 400;
+        throw err;
+      }
+
+      return updated;
+    });
+
+    broadcastDashboardEvent('dashboard-stats', {});
+
+    const notifType = TRANSITION_TO_NOTIFICATION['INITIATE_RENEWAL'];
+    if (notifType) {
+      const notifService = new NotificationService();
+      await notifService.send({
+        userId: app.submitted_by,
+        notificationType: notifType,
+        subject: `Application #${id} Renewal Initiated`,
+        messageBody: `A renewal has been initiated for application #${id}.`,
+        sourceEntityType: 'Application',
+        sourceEntityId: id,
+      });
+    }
+
+    return updated;
   }
 
 }

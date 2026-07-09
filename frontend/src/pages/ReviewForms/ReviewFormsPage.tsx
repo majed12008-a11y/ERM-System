@@ -18,6 +18,7 @@ import { z } from 'zod'
 import { ClipboardList, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type FormFormData = z.input<typeof reviewFormSchema>
 type QuestionFormData = z.input<typeof addQuestionSchema>
@@ -52,13 +53,13 @@ export default function ReviewFormsPage() {
   const createFormMut = useMutation({
     mutationFn: (data: any) => api.post('/committee/reviews/forms', data),
     onSuccess: () => { toast.success(t('reviewForms.created')); queryClient.invalidateQueries({ queryKey: ['review-forms'] }); setShowCreateForm(false); formForm.reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('reviewForms.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('reviewForms.createFailed')),
   })
 
   const addQuestionMut = useMutation({
     mutationFn: (data: any) => api.post(`/committee/reviews/forms/${expandedForm}/questions`, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['form-questions'] }); setAddingQuestion(null); questionForm.reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('reviewForms.addQuestionFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('reviewForms.addQuestionFailed')),
   })
 
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)

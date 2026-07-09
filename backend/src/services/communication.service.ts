@@ -5,6 +5,7 @@
  */
 import { withTransaction } from '../config/database';
 import { CommunicationRepository } from '../repositories/communication.repository';
+import { NotificationRepository } from '../repositories/notification.repository';
 
 export class CommunicationService {
   private repo = new CommunicationRepository();
@@ -97,6 +98,11 @@ export class CommunicationService {
   }
 
   // Notifications
+  async getNotificationUnreadCount(userId: number) {
+    const repo = new NotificationRepository();
+    return repo.getUnreadCount(userId);
+  }
+
   async getNotifications(userId: number) {
     return this.repo.getNotifications(userId);
   }

@@ -1,7 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import axios, { AxiosInstance } from 'axios';
 
-const BASE = 'http://localhost:8080/api/v1/committee/accreditation';
+const PORT = process.env.PORT || '8080';
+const BASE_URL = `http://localhost:${PORT}/api/v1`;
+const BASE = `${BASE_URL}/committee/accreditation`;
 
 let adminApi: AxiosInstance;
 let researcherApi: AxiosInstance;
@@ -14,15 +16,15 @@ let tempCycles: number[] = [];
 beforeAll(async () => {
   const plain = axios.create({ validateStatus: () => true });
 
-  const adminLogin = await plain.post('http://localhost:8080/api/v1/security/auth/login', {
+  const adminLogin = await plain.post(`${BASE_URL}/security/auth/login`, {
     username: 'admin', password: 'admin123',
   });
   expect(adminLogin.status).toBe(200);
   adminToken = adminLogin.data.data.accessToken;
   adminId = adminLogin.data.data.user?.id || 1;
 
-  const researcherLogin = await plain.post('http://localhost:8080/api/v1/security/auth/login', {
-    username: 'researcher1', password: 'test1234',
+  const researcherLogin = await plain.post(`${BASE_URL}/security/auth/login`, {
+    username: 'researcher1', password: 'Test@1234',
   });
   expect(researcherLogin.status).toBe(200);
   researcherToken = researcherLogin.data.data.accessToken;

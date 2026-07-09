@@ -13,12 +13,14 @@ import ErrorBoundary from './components/ErrorBoundary'
 import ProtectedRoute from './components/ProtectedRoute'
 import RootLayout from './layouts/RootLayout'
 import PageLoader from './components/PageLoader'
+import { AxiosError } from 'axios'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
+const VerifyPage = lazy(() => import('./pages/Verify/VerifyPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const ApplicationList = lazy(() => import('./pages/Applications/List'))
 const ApplicationCreate = lazy(() => import('./pages/Applications/Create'))
@@ -69,9 +71,10 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
     mutations: {
-      onError: (err: any) => {
-        const msg = err?.response?.data?.error || err?.message || 'An unexpected error occurred'
-        if (err?.response?.status !== 401 && err?.response?.status !== 403) {
+      onError: (err: Error) => {
+        const axiosErr = err instanceof AxiosError ? err : undefined
+        const msg = axiosErr?.response?.data?.error || err.message || 'An unexpected error occurred'
+        if (!axiosErr || (axiosErr.response?.status !== 401 && axiosErr.response?.status !== 403)) {
           toast.error(msg)
         }
       },
@@ -104,6 +107,7 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} errorElement={<ErrorBoundary />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} errorElement={<ErrorBoundary />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} errorElement={<ErrorBoundary />} />
+            <Route path="/verify" element={<VerifyPage />} errorElement={<ErrorBoundary />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<RootLayout />} errorElement={<ErrorBoundary />}>
                 <Route index element={<Dashboard />} />

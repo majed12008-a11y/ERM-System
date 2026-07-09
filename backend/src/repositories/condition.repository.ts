@@ -222,6 +222,55 @@ export class ConditionRepository extends AuditableRepository {
     return result.rows;
   }
 
+  async getApplicationOwner(applicationId: number): Promise<{ submitted_by: number } | null> {
+    const result = await this.query(
+      `SELECT submitted_by FROM core.applications WHERE id = $1`,
+      [applicationId]
+    );
+    return result.rows[0] || null;
+  }
+
+  async getApplicationTargetCommittee(applicationId: number): Promise<number | null> {
+    const result = await this.query(
+      `SELECT target_committee_id FROM core.applications WHERE id = $1`,
+      [applicationId]
+    );
+    return result.rows[0]?.target_committee_id ?? null;
+  }
+
+  async getCommitteeChair(committeeId: number): Promise<number | null> {
+    const result = await this.query(
+      `SELECT user_id FROM committee.committee_members WHERE committee_id = $1 AND role = 'CHAIR' AND is_active = TRUE`,
+      [committeeId]
+    );
+    return result.rows[0]?.user_id ?? null;
+  }
+
+  async getCommitteeMembers(committeeId: number): Promise<number[]> {
+    const result = await this.query(
+      `SELECT user_id FROM committee.committee_members WHERE committee_id = $1 AND is_active = TRUE`,
+      [committeeId]
+    );
+    return result.rows.map(r => r.user_id);
+  }
+
+  async getEthicsAdmins(): Promise<number[]> {
+    const result = await this.query(
+      `SELECT ur.user_id FROM security.user_roles ur
+       JOIN security.roles r ON ur.role_id = r.id
+       WHERE r.name = 'ETHICS_ADMIN' AND ur.is_active = TRUE`
+    );
+    return result.rows.map(r => r.user_id);
+  }
+
+  async getApplicationStatus(applicationId: number): Promise<string | null> {
+    const result = await this.query(
+      `SELECT current_status FROM core.applications WHERE id = $1`,
+      [applicationId]
+    );
+    return result.rows[0]?.current_status || null;
+  }
+
   async countByStatus(applicationId: number): Promise<ConditionSummary> {
     const result = await this.query(
       `SELECT

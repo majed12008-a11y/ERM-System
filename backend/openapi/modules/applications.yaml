@@ -50,15 +50,4 @@ paths:
         '200':
           description: Status updated
 
-  '/core/applications/{id}/committee-decision':
-    post:
-      tags: [Applications]
-      summary: Submit committee decision
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      responses:
-        '200':
-          description: Decision recorded
+

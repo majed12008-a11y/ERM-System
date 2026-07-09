@@ -12,18 +12,17 @@ import {
   ArrowLeft, CheckCircle, AlertTriangle, XCircle, FileText,
   ClipboardCheck, TrendingUp, BarChart4, Send,
 } from 'lucide-react'
-import { z } from 'zod'
 import api from '../../api/client'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
 import { useRole } from '../../hooks/usePermission'
 import { useAuth } from '../../context/AuthContext'
+import { AxiosError } from 'axios'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog'
 
-type Cycle = any
 type Assessment = any
 type Condition = any
 type Evidence = any
@@ -122,7 +121,7 @@ export default function Dashboard() {
       setStatusOpen(false)
       statusForm.reset()
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ error?: string }>) => {
       const msg = err.response?.status === 403 ? t('common.forbidden') : (err.response?.data?.error || t('accreditation.statusUpdateFailed'))
       toast.error(msg)
     },

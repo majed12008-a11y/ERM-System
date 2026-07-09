@@ -149,12 +149,12 @@ async function main() {
     }
   }
 
-  // 8. COMMITTEE DECISION
+  // 8. COMMITTEE DECISION (via generic workflow endpoint)
   console.log('\n--- 8. COMMITTEE DECISION ---');
   const decisionToken = ethicsToken || chairToken || token;
   try {
-    const r = await axios.post(`${API}/core/applications/${applicationId}/committee-decision`,
-      { decision: 'APPROVED', notes: 'Unanimously approved' },
+    const r = await axios.patch(`${API}/core/applications/${applicationId}/status`,
+      { transition_code: 'COMMITTEE_APPROVE', comment: 'Unanimously approved' },
       { headers: { Authorization: `Bearer ${decisionToken}` } }
     );
     console.log(`  ok Committee decision: ${r.data.message || 'OK'}`);

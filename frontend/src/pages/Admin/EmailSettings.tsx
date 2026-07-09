@@ -17,6 +17,7 @@ import { Label } from '../../components/ui/label'
 import { Switch } from '../../components/ui/switch'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { Plus, Trash2 } from 'lucide-react'
+import { AxiosError } from 'axios'
 
 const emailConfigSchema = z.object({
   config_name: z.string().min(1),
@@ -63,13 +64,13 @@ function ConfigForm({ config, onDone }: { config?: any; onDone: () => void }) {
   const createMutation = useMutation({
     mutationFn: (body: FormData) => api.post('/admin/email-config', body),
     onSuccess: () => { toast.success(t('emailSettings.saved')); queryClient.invalidateQueries({ queryKey: ['email-configs'] }); onDone() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('emailSettings.saveFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('emailSettings.saveFailed')),
   })
 
   const updateMutation = useMutation({
     mutationFn: (body: FormData) => api.put(`/admin/email-config/${config.id}`, body),
     onSuccess: () => { toast.success(t('emailSettings.saved')); queryClient.invalidateQueries({ queryKey: ['email-configs'] }); onDone() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('emailSettings.saveFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('emailSettings.saveFailed')),
   })
 
   const onSubmit = (data: FormData) => {
@@ -142,13 +143,13 @@ export default function EmailSettings() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/admin/email-config/${id}`),
     onSuccess: () => { toast.success(t('emailSettings.configDeleted')); queryClient.invalidateQueries({ queryKey: ['email-configs'] }) },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('emailSettings.saveFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('emailSettings.saveFailed')),
   })
 
   const testMutation = useMutation({
     mutationFn: () => api.post('/admin/email-config/test', {}),
     onSuccess: () => toast.success(t('emailSettings.testSent')),
-    onError: (err: any) => toast.error(err.response?.data?.error || t('emailSettings.testFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('emailSettings.testFailed')),
   })
 
   if (isLoading) return <PageSkeleton />

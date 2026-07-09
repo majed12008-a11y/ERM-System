@@ -28,7 +28,7 @@ UNION ALL
 SELECT w.id, 'COMMITTEE_REVIEW', 'مراجعة اللجنة', false, false, 6
 FROM workflow.workflows w WHERE w.workflow_code = 'APP_REVIEW_V1'
 UNION ALL
-SELECT w.id, 'APPROVED', 'موافق عليه', false, true, 7
+SELECT w.id, 'APPROVED', 'موافق عليه', false, false, 7
 FROM workflow.workflows w WHERE w.workflow_code = 'APP_REVIEW_V1'
 UNION ALL
 SELECT w.id, 'REJECTED', 'مرفوض', false, true, 8

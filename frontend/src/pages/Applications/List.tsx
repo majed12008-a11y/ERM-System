@@ -10,7 +10,6 @@ import DataTable from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Plus, Pencil, Send } from 'lucide-react'
 import { usePermission } from '../../hooks/usePermission'
-import { Button } from '../../components/ui/button'
 
 export default function ApplicationList() {
   const { t } = useTranslation()

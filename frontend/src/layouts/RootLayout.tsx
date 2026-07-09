@@ -8,15 +8,17 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { useQuery } from '@tanstack/react-query'
 import { useNotificationStream } from '../hooks/useNotificationStream'
+import { notifications } from '../sdk/domains/communication.sdk'
 import api from '../api/client'
 import {
-  LayoutDashboard, FileText, FolderKanban, Users, Shield,
+  LayoutDashboard, FileText, FolderKanban, Users,
   CalendarDays, ClipboardCheck, ClipboardList, Bell, LogOut, Menu, X,
-  AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, Search, Database,
-  UserCircle, FileUp, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen, Hash,
-  HardDrive, KeyRound, BookMarked, Settings2, Building2
+  AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, Search,
+  UserCircle, FileUp, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen,
+  HardDrive, KeyRound, BookMarked, Settings2, Building2, Moon, Sun
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
@@ -36,16 +38,15 @@ interface NavSection {
 export default function RootLayout() {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
+  const { resolvedTheme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useNotificationStream()
 
-  const { data: notifications } = useQuery({
+  const { data: unreadCount } = useQuery({
     queryKey: ['notifications-count'],
-    queryFn: () => api.get('/communication/notifications').then((r) =>
-      (r.data.data || []).filter((n: any) => !n.is_read).length
-    ),
+    queryFn: () => notifications.getUnreadCount().then((r) => r.data.data.count),
     refetchInterval: 300000,
   })
 
@@ -148,21 +149,25 @@ export default function RootLayout() {
   }, [user, sections])
 
   const sidebar = (
-    <aside className="w-64 bg-slate-800 text-white flex flex-col h-full">
-      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-        <div>
-          <h2 className="font-bold text-lg">{t('app.titleShort')}</h2>
-          <p className="text-xs text-slate-400">{user?.username}</p>
+    <aside className="w-64 bg-sidebar text-white flex flex-col h-full">
+      <div className="px-4 pt-4 pb-3 flex flex-col gap-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src="/branding/logo-icon.svg" alt="NERMS" className="w-8 h-8 shrink-0" />
+            <h2 className="font-bold text-lg leading-tight">{t('app.titleShort')}</h2>
+          </div>
+          <button onClick={closeSidebar} className="md:hidden text-sidebar-foreground hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button onClick={closeSidebar} className="md:hidden text-slate-400 hover:text-white">
-          <X className="w-5 h-5" />
-        </button>
+        <p className="text-xs text-sidebar-foreground mt-1 ms-11">{user?.username}</p>
       </div>
+      <div className="mx-4 border-t border-sidebar-border" />
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {visibleSections.map((section, si) => (
           <div key={section.section}>
-            {si > 0 && <div className="border-t border-slate-700/50 my-2" />}
-            <p className="px-3 pt-1 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            {si > 0 && <div className="border-t border-sidebar-border my-2 mx-1" />}
+            <p className="px-3 pt-1 pb-1 text-xs font-semibold uppercase tracking-wider text-sidebar-heading">
               {t(section.labelKey)}
             </p>
             {section.items.map((item) => (
@@ -173,14 +178,14 @@ export default function RootLayout() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   cn('flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors relative',
-                    isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700')
+                    isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-foreground hover:bg-sidebar-hover hover:text-white')
                 }
               >
                 <item.icon className="w-4 h-4 shrink-0" />
                 <span className="truncate">{t(item.labelKey)}</span>
-                {item.to === '/notifications' && (notifications || 0) > 0 && (
-                  <span className="ms-auto bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">
-                    {notifications}
+                {item.to === '/notifications' && (unreadCount || 0) > 0 && (
+                  <span className="ms-auto bg-danger text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                    {unreadCount}
                   </span>
                 )}
               </NavLink>
@@ -188,9 +193,14 @@ export default function RootLayout() {
           </div>
         ))}
       </nav>
-      <div className="p-2 border-t border-slate-700">
+      <div className="p-2 border-t border-sidebar-border mx-2 space-y-1">
+        <button onClick={toggleTheme}
+          className="flex items-center gap-3 px-3 py-2 rounded text-sm text-sidebar-foreground hover:bg-sidebar-hover hover:text-white w-full transition-colors">
+          {resolvedTheme === 'dark' ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
+          {t(resolvedTheme === 'dark' ? 'theme.light' : 'theme.dark')}
+        </button>
         <button onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 rounded text-sm text-slate-300 hover:bg-slate-700 w-full">
+          className="flex items-center gap-3 px-3 py-2 rounded text-sm text-sidebar-foreground hover:bg-sidebar-hover hover:text-white w-full transition-colors">
           <LogOut className="w-4 h-4 shrink-0" /> {t('nav.logout')}
         </button>
       </div>
@@ -198,7 +208,14 @@ export default function RootLayout() {
   )
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-muted">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:start-0 focus:z-50 focus:p-4 focus:bg-white focus:text-black focus:outline-2 focus:outline-ring"
+      >
+        {t('a11y.skipToContent')}
+      </a>
+      <div aria-live="polite" aria-atomic="true" className="sr-only" />
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={closeSidebar} />
       )}
@@ -210,7 +227,7 @@ export default function RootLayout() {
       </div>
       <div className="hidden md:flex shrink-0">{sidebar}</div>
       {user && !user.is_email_verified && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
+          <div className="bg-warning-light border-b border-warning px-4 py-2 text-sm text-warning flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{t('verifyEmail.banner')}</span>
             <button
@@ -220,17 +237,18 @@ export default function RootLayout() {
                   toast.success(t('verifyEmail.resendSuccess'))
                 } catch { toast.error(t('verifyEmail.resendFailed')) }
               }}
-              className="ms-auto text-amber-700 underline hover:text-amber-900 shrink-0"
+              className="ms-auto text-warning underline hover:text-warning/80 shrink-0"
             >
               {t('verifyEmail.resend')}
             </button>
           </div>
         )}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main id="main-content" className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center gap-3 p-3 border-b bg-white md:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="p-1 hover:bg-slate-100 rounded">
+          <button onClick={() => setSidebarOpen(true)} className="p-1 hover:bg-muted rounded transition-colors">
             <Menu className="w-5 h-5" />
           </button>
+          <img src="/branding/logo-icon.svg" alt="NERMS" className="w-6 h-6" />
           <h2 className="font-bold text-lg">{t('app.titleShort')}</h2>
         </div>
         <div className="flex-1 overflow-auto p-4 md:p-6">

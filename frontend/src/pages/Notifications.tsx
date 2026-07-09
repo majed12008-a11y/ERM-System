@@ -45,10 +45,10 @@ export default function Notifications() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Bell className="w-6 h-6 text-blue-600" />
+          <Bell className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold">{t('notifications.title')}</h1>
           {unread > 0 && (
-            <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">{t('notifications.unread', { count: unread })}</span>
+            <span className="bg-destructive-light text-destructive text-xs px-2 py-1 rounded-full">{t('notifications.unread', { count: unread })}</span>
           )}
         </div>
         {unread > 0 && (
@@ -59,36 +59,36 @@ export default function Notifications() {
       </div>
 
       {isLoading ? (
-        <p className="text-slate-400">{t('common.loading')}</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       ) : (
         <DataTable
           columns={[
             { key: 'is_read', label: '', render: (i) => i.is_read
-              ? <MailOpen className="w-4 h-4 text-slate-300" />
-              : <Mail className="w-4 h-4 text-blue-500" />
+              ? <MailOpen className="w-4 h-4 text-muted-foreground/40" />
+              : <Mail className="w-4 h-4 text-primary" />
             },
             { key: 'subject', label: t('notifications.titleColumn'), render: (i) => (
               <div className="flex items-center gap-2">
-                <span className={i.is_read ? 'text-slate-600' : 'font-semibold'}>{i.subject}</span>
-                {!i.is_read && <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded">{t('notifications.new')}</span>}
+                <span className={i.is_read ? 'text-muted-foreground' : 'font-semibold'}>{i.subject}</span>
+                {!i.is_read && <span className="bg-primary-light text-primary text-[10px] px-1.5 py-0.5 rounded">{t('notifications.new')}</span>}
               </div>
             )},
             { key: 'message_body', label: t('notifications.message'), render: (i) => (
-              <span className="text-sm text-slate-500 truncate max-w-xs block">{i.message_body}</span>
+              <span className="text-sm text-muted-foreground truncate max-w-xs block">{i.message_body}</span>
             )},
             { key: 'created_at', label: t('notifications.date'), render: (i) => (
-              <span className="text-xs text-slate-400">{new Date(i.created_at).toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">{new Date(i.created_at).toLocaleString()}</span>
             )},
             { key: 'actions', label: '', render: (i) => (
               <div className="flex items-center gap-1">
                 {!i.is_read && (
                   <button onClick={(e) => { e.stopPropagation(); markRead.mutate(i.id) }}
-                    className="p-1 text-blue-600 hover:text-blue-800 rounded hover:bg-blue-50" title={t('notifications.markRead')}>
+                    className="p-1 text-primary hover:text-primary-hover rounded hover:bg-primary-light" title={t('notifications.markRead')}>
                     <Check className="w-4 h-4" />
                   </button>
                 )}
                 <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(i.id) }}
-                  className="p-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50" title={t('notifications.delete')}>
+                  className="p-1 text-destructive hover:text-destructive rounded hover:bg-destructive-light" title={t('notifications.delete')}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

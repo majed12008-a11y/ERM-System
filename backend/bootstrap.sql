@@ -7,13 +7,13 @@ BEGIN;
 -- 1. Institution
 INSERT INTO security.institutions (id, code, name_ar, name_en, institution_type_id, is_active)
 OVERRIDING SYSTEM VALUE
-VALUES (1, 'MOH', 'وزارة الصحة', 'Ministry of Health', 1, TRUE)
+VALUES (1, 'MOH', 'وزارة الصحةوالبيئة', 'Ministry of Health and Environment', 1, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Department
 INSERT INTO security.departments (id, institution_id, code, name_ar, name_en)
 OVERRIDING SYSTEM VALUE
-VALUES (1, 1, 'RESEARCH', 'إدارة المعلومات والبحوث', 'Research Department')
+VALUES (1, 1, 'RESEARCH', 'إدارة المعلومات والبحوث', 'Information and Research Department')
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Admin user (password: admin123)

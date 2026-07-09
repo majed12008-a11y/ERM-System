@@ -15,9 +15,7 @@ export const createCycleSchema = z.object({
 });
 
 export const updateCycleStatusSchema = z.object({
-  to_status: cycleStatusEnum,
-  decision: decisionTypeEnum,
-  decided_by: z.coerce.number().positive(),
+  transition_code: z.string().min(1, 'Transition code is required'),
   decision_reason: z.string().optional(),
   notes: z.string().optional(),
 });

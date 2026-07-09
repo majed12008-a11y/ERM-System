@@ -1,24 +1,70 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@layer base {
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
 @theme {
+  --font-sans: "Cairo", "Segoe UI", sans-serif;
+
+  /* Typography scale — desktop enterprise UI */
+  --font-size-xs: 0.75rem;      /* 12px — captions, meta, timestamps */
+  --font-size-sm: 0.875rem;     /* 14px — base text, inputs, buttons, sidebar, DataTable */
+  --font-size-base: 1rem;       /* 16px — card titles, emphasis */
+  --font-size-lg: 1.125rem;     /* 18px — section titles */
+  --font-size-xl: 1.25rem;      /* 20px — page subtitles */
+  --font-size-2xl: 1.5rem;      /* 24px — page titles */
+
+  /* Cairo weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary: #0a2540;
+  --color-primary-hover: #0f3b6a;
+  --color-primary-light: #e0edf5;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1a8a3f;
+  --color-secondary-hover: #22ad52;
+  --color-secondary-light: #e8f5ed;
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #0d9488;
+  --color-accent-hover: #14b8a6;
+  --color-accent-light: #ccfbf1;
+  --color-accent-foreground: #ffffff;
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: #16a34a;
+  --color-success-light: #dcfce7;
+  --color-success-foreground: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-warning-foreground: #ffffff;
+  --color-danger: #dc2626;
+  --color-danger-light: #fee2e2;
+  --color-danger-foreground: #ffffff;
+  --color-info: #2563eb;
+  --color-info-light: #dbeafe;
+  --color-info-foreground: #ffffff;
+  --color-sidebar: #0f1a2e;
+  --color-sidebar-hover: #1a2d4a;
+  --color-sidebar-active: #1e40af;
+  --color-sidebar-foreground: #c5cad4;
+  --color-sidebar-heading: #6b7280;
+  --color-sidebar-border: #1e2d45;
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -26,48 +72,46 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #1e40af;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.965 0.01 240);
-  --secondary-foreground: oklch(0.205 0.04 240);
-  --muted: oklch(0.965 0.01 240);
-  --muted-foreground: oklch(0.556 0.02 240);
-  --accent: oklch(0.965 0.01 240);
-  --accent-foreground: oklch(0.205 0.04 240);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0.01 240);
-  --input: oklch(0.922 0.01 240);
-  --ring: oklch(0.708 0.04 240);
+  --background: 0 0% 100%;
+  --foreground: 220 39% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 39% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 39% 11%;
+  --primary: 210 73% 15%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 140 68% 32%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 220 16% 95%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 175 84% 32%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 18% 90%;
+  --input: 220 18% 90%;
+  --ring: 210 73% 15%;
   --radius: 0.625rem;
-  --sidebar: #1e293b;
-  --sidebar-hover: #334155;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0.04 240);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0.04 240);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0.04 240);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0.04 240);
-  --muted-foreground: oklch(0.708 0.04 240);
-  --accent: oklch(0.269 0.04 240);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0.04 240);
-  --input: oklch(0.269 0.04 240);
-  --ring: oklch(0.439 0.04 240);
+  --background: 222 47% 5%;
+  --foreground: 210 40% 96%;
+  --card: 222 47% 8%;
+  --card-foreground: 210 40% 96%;
+  --popover: 222 47% 8%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 210 73% 35%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 140 68% 40%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 222 30% 12%;
+  --muted-foreground: 215 20% 55%;
+  --accent: 175 84% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 70% 45%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 210 73% 45%;
 }

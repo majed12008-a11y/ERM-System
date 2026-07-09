@@ -1,7 +1,8 @@
 import { describe, test, expect, beforeAll } from 'vitest';
 import axios, { AxiosInstance } from 'axios';
 
-const BASE = 'http://localhost:3000/api/v1';
+const PORT = process.env.PORT || '8080';
+const BASE = `http://localhost:${PORT}/api/v1`;
 
 let adminApi: AxiosInstance;
 let researcherApi: AxiosInstance;
@@ -21,7 +22,7 @@ beforeAll(async () => {
   researcherApi = axios.create({ baseURL: BASE, validateStatus: () => true, withCredentials: true });
   const researcherLogin = await researcherApi.post('/security/auth/login', {
     username: 'researcher1',
-    password: 'admin123',
+    password: 'Test@1234',
   });
   expect(researcherLogin.status).toBe(200);
   researcherToken = researcherLogin.data.data.accessToken;

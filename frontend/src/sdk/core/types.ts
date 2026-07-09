@@ -146,15 +146,19 @@ export interface Application {
   application_number: string
   project_id: number
   submitted_by: number
-  status: string
   target_committee_id: number
   current_status: string
   application_type: string
   priority_level?: string
   remarks?: string
   project_title?: string
+  project_title_en?: string
   project_code?: string
+  research_category?: string
+  project_risk_level?: string
+  project_objectives?: string
   submitted_by_username?: string
+  submitted_by_email?: string
   committee_name?: string
   status_name_ar?: string
   created_at: string
@@ -166,12 +170,6 @@ export interface CreateApplicationRequest {
   target_committee_id: number
   application_type?: string
   save_as_draft?: boolean
-  [key: string]: any
-}
-
-export interface CommitteeDecisionRequest {
-  decision: 'APPROVED' | 'REJECTED' | 'REVISIONS_REQUIRED'
-  notes?: string
 }
 
 // ─── Committees ───
@@ -229,6 +227,9 @@ export interface Document {
   entity_id?: number
   uploaded_by: number
   uploaded_at: string
+  file_size_bytes?: number
+  uploaded_by_username?: string
+  storage_path?: string
 }
 
 export interface DocumentSignature {
@@ -515,9 +516,13 @@ export interface SystemConfig {
 
 // ─── Workflow ───
 export interface WorkflowTransition {
-  transition: string
-  from_state: string
-  to_state: string
+  id: number
+  transition_code: string
+  transition_name?: string
+  requires_comment: boolean
+  allowed_roles?: string | null
+  to_state_code: string
+  to_state_name?: string
 }
 
 // ─── Reference ───
@@ -577,6 +582,59 @@ export interface MonitoringAudit {
   action: string
   user_id: number
   created_at: string
+}
+
+// ─── Conditions ───
+export type ConditionSeverity = 'CRITICAL' | 'MAJOR' | 'MINOR'
+export type ConditionStatus = 'OPEN' | 'MET' | 'NOT_MET' | 'WAIVED'
+
+export interface ApplicationCondition {
+  id: number
+  application_id: number
+  condition_text: string
+  severity: ConditionSeverity
+  category: string
+  due_date: string | null
+  status: ConditionStatus
+  resolved_by: number | null
+  resolved_by_name?: string | null
+  resolved_at: string | null
+  created_at: string
+  created_by: number
+  updated_at: string | null
+  updated_by: number | null
+}
+
+export interface CreateConditionRequest {
+  condition_text: string
+  severity?: ConditionSeverity
+  category?: string
+  due_date?: string
+}
+
+export interface UpdateConditionRequest {
+  condition_text?: string
+  severity?: ConditionSeverity
+  category?: string
+  due_date?: string | null
+}
+
+export interface ResolveConditionRequest {
+  status: 'MET' | 'NOT_MET' | 'WAIVED'
+}
+
+export interface ConditionEvaluation {
+  total: number
+  open: number
+  met: number
+  notMet: number
+  waived: number
+  allSatisfied: boolean
+  canApprove: boolean
+  canReject: boolean
+  canSubmitEvidence: boolean
+  unmetConditionIds: number[]
+  missingEvidenceIds: number[]
 }
 
 // ─── Recent activity (admin) ───

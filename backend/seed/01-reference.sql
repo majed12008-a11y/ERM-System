@@ -12,22 +12,22 @@ INSERT INTO security.institution_types (code, name_ar, name_en) VALUES
 
 -- Institution
 INSERT INTO security.institutions (institution_type_id, code, name_ar, name_en, email, phone, address, is_active)
-SELECT id, 'KSU', 'جامعة الملك سعود', 'King Saud University', 'info@ksu.edu.sa', '+966114670000', 'الرياض، المملكة العربية السعودية', true
+SELECT id, 'THU', 'جامعة طهران', 'Tehran University', 'info@thu.edu.sa', '+966114670000', 'طهران، [جمهورية إيران الاسلامية]', true
 FROM security.institution_types WHERE code = 'UNIVERSITY';
 
 -- Departments
 INSERT INTO security.departments (institution_id, code, name_ar, name_en)
 SELECT i.id, 'MED', 'كلية الطب', 'College of Medicine'
-FROM security.institutions i WHERE i.code = 'KSU'
+FROM security.institutions i WHERE i.code = 'THU'
 UNION ALL
 SELECT i.id, 'PHARM', 'كلية الصيدلة', 'College of Pharmacy'
-FROM security.institutions i WHERE i.code = 'KSU'
+FROM security.institutions i WHERE i.code = 'THU'
 UNION ALL
 SELECT i.id, 'SCI', 'كلية العلوم', 'College of Science'
-FROM security.institutions i WHERE i.code = 'KSU'
+FROM security.institutions i WHERE i.code = 'THU'
 UNION ALL
 SELECT i.id, 'DENT', 'كلية طب الأسنان', 'College of Dentistry'
-FROM security.institutions i WHERE i.code = 'KSU';
+FROM security.institutions i WHERE i.code = 'THU';
 
 -- Application Statuses
 INSERT INTO reference.application_statuses (status_code, status_name_ar, status_name_en, display_order, is_terminal) VALUES
@@ -37,11 +37,11 @@ INSERT INTO reference.application_statuses (status_code, status_name_ar, status_
   ('SCIENTIFIC_REVIEW', 'مراجعة علمية', 'Scientific Review', 4, false),
   ('ETHICAL_REVIEW', 'مراجعة أخلاقية', 'Ethical Review', 5, false),
   ('COMMITTEE_REVIEW', 'مراجعة اللجنة', 'Committee Review', 6, false),
-  ('APPROVED', 'موافقة', 'Approved', 7, true),
+  ('APPROVED', 'موافقة', 'Approved', 7, false),
   ('REJECTED', 'مرفوض', 'Rejected', 8, true),
   ('RETURNED', 'معاد', 'Returned for Revision', 9, false),
   ('WITHDRAWN', 'مسحوب', 'Withdrawn', 10, true),
-  ('CLOSED', 'مغلق', 'Closed', 11, true);
+  ('CLOSED', 'مغلق', 'Closed', 11, false);
 
 -- Risk Levels
 INSERT INTO reference.risk_levels (risk_code, risk_name, severity_score) VALUES

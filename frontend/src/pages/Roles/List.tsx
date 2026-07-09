@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '../../components/ui/dialog'
 import { Button } from '../../components/ui/button'
+import { AxiosError } from 'axios'
 
 const roleCreateSchema = z.object({
   code: z.string({ message: 'Code is required' }).min(1).max(50),
@@ -74,13 +75,13 @@ export default function RoleList() {
   const createMutation = useMutation({
     mutationFn: (body: any) => api.post('/security/roles', body),
     onSuccess: () => { toast.success(t('roles.created')); queryClient.invalidateQueries({ queryKey: ['roles'] }); setShowCreate(false); reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('roles.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('roles.createFailed')),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => api.put(`/security/roles/${id}`, data),
     onSuccess: () => { toast.success(t('roles.updated')); queryClient.invalidateQueries({ queryKey: ['roles'] }); setEditId(null) },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('roles.updateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('roles.updateFailed')),
   })
 
   function openPermissions(role: Role) {

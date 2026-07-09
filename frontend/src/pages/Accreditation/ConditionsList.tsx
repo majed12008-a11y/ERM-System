@@ -16,6 +16,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
 import { useRole } from '../../hooks/usePermission'
+import { AxiosError } from 'axios'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog'
@@ -99,7 +100,7 @@ export default function ConditionsList() {
       setCreateOpen(false)
       createForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('condition.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('condition.createFailed')),
   })
 
   const resolveMutation = useMutation({
@@ -112,7 +113,7 @@ export default function ConditionsList() {
       setResolveItem(null)
       resolveForm.reset()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('condition.statusUpdateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('condition.statusUpdateFailed')),
   })
 
   function openCreate() {

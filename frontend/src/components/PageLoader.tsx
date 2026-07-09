@@ -6,7 +6,7 @@ export default function PageLoader() {
 
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="flex flex-col items-center gap-3 text-slate-400">
+      <div className="flex flex-col items-center gap-3 text-muted-foreground">
         <Loader2 className="w-8 h-8 animate-spin" />
         <p className="text-sm">{t('common.loading')}</p>
       </div>

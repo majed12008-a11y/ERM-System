@@ -7,20 +7,26 @@ vi.mock('../config/database', () => ({
   }),
 }));
 
-vi.mock('../services/notification.service', () => ({
-  createAndNotify: vi.fn(),
-  createAndNotifyBatch: vi.fn(),
-  broadcastDashboardEvent: vi.fn(),
-}));
+vi.mock('../services/notification.service', () => {
+  class MockNotificationService {
+    async send() { return undefined; }
+  }
+  return {
+    createAndNotifyBatch: vi.fn(),
+    broadcastDashboardEvent: vi.fn(),
+    NotificationService: MockNotificationService,
+  };
+});
 
 import { ApplicationService } from '../services/application.service';
 import { withTransaction } from '../config/database';
-import { broadcastDashboardEvent, createAndNotify } from '../services/notification.service';
+import { broadcastDashboardEvent } from '../services/notification.service';
 
 describe('ApplicationService', () => {
   let service: ApplicationService;
   let mockRepo: any;
   let mockWorkflow: any;
+  let mockConditions: any;
 
   beforeEach(() => {
     mockRepo = {
@@ -28,41 +34,42 @@ describe('ApplicationService', () => {
       findById: vi.fn(),
       create: vi.fn(),
       generateApplicationNumber: vi.fn(),
+      update: vi.fn(),
       updateStatus: vi.fn(),
       softDelete: vi.fn(),
-      countPendingReviews: vi.fn(),
     };
     mockWorkflow = {
       initWorkflow: vi.fn(),
       executeTransition: vi.fn().mockResolvedValue({ to_state: 'APPROVED' }),
-      autoTransition: vi.fn(),
     };
-    service = new ApplicationService(mockRepo, mockWorkflow);
+    mockConditions = {
+      validateTransition: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new ApplicationService(mockRepo, mockWorkflow, mockConditions);
     vi.clearAllMocks();
   });
 
-  describe('1. Authorization: updateStatus blocks non-privileged roles', () => {
-    it('allows ETHICS_ADMIN to update status', async () => {
-      mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'UNDER_REVIEW' });
+  describe('1. updateStatus requires transition_code', () => {
+    it('executes transition and returns updated application', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, current_status: 'SUBMITTED' });
+      mockWorkflow.executeTransition.mockResolvedValue({ to_state: 'INITIAL_REVIEW' });
+      mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'INITIAL_REVIEW' });
       const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
 
-      const result = await service.updateStatus(1, { status: 'UNDER_REVIEW' }, user);
+      const result = await service.updateStatus(1, { transition_code: 'ACCEPT_INITIAL' }, user);
 
-      expect(result.current_status).toBe('UNDER_REVIEW');
-      expect(mockRepo.updateStatus).toHaveBeenCalledWith(1, 'UNDER_REVIEW', expect.any(Object));
+      expect(result.current_status).toBe('INITIAL_REVIEW');
+      expect(mockWorkflow.executeTransition).toHaveBeenCalledWith('Application', 1, 'ACCEPT_INITIAL', user, undefined, expect.any(Object));
+      expect(mockRepo.updateStatus).toHaveBeenCalledWith(1, 'INITIAL_REVIEW', expect.any(Object));
     });
 
-    it('blocks RESEARCHER with 403', async () => {
+    it('propagates 403 from executeTransition when role not allowed', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, current_status: 'SUBMITTED' });
+      mockWorkflow.executeTransition.mockRejectedValue(
+        Object.assign(new Error('Not authorized for this transition'), { status: 403 })
+      );
       const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
-      const err = await service.updateStatus(1, { status: 'UNDER_REVIEW' }, user)
-        .catch(e => e);
-      expect(err.status).toBe(403);
-      expect(err.message).toMatch(/not authorized/i);
-    });
-
-    it('blocks REVIEWER with 403', async () => {
-      const user = { id: 24, uuid: '', institution_id: 1, username: 'reviewer', email: 'rev@test.com', status: 'ACTIVE', roles: ['REVIEWER'], is_email_verified: true };
-      const err = await service.updateStatus(1, { status: 'UNDER_REVIEW' }, user)
+      const err = await service.updateStatus(1, { transition_code: 'ACCEPT_INITIAL' }, user)
         .catch(e => e);
       expect(err.status).toBe(403);
       expect(err.message).toMatch(/not authorized/i);
@@ -77,10 +84,11 @@ describe('ApplicationService', () => {
       expect(err.message).toBe('Application not found');
     });
 
-    it('updateStatus throws 404 when application not found', async () => {
+    it('updateStatus throws 404 when application not found after transition', async () => {
+      mockWorkflow.executeTransition.mockResolvedValue({ to_state: 'APPROVED' });
       mockRepo.updateStatus.mockResolvedValue(null);
       const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
-      const err = await service.updateStatus(999, { status: 'APPROVED' }, user)
+      const err = await service.updateStatus(999, { transition_code: 'COMMITTEE_APPROVE' }, user)
         .catch(e => e);
       expect(err.status).toBe(404);
     });
@@ -94,7 +102,7 @@ describe('ApplicationService', () => {
   });
 
   describe('3. Transaction: create uses withTransaction and broadcasts', () => {
-    it('creates application + workflow init in single transaction', async () => {
+    it('creates application in single transaction', async () => {
       const mockClient = {};
       vi.mocked(withTransaction).mockImplementationOnce((fn: any) => fn(mockClient));
       mockRepo.generateApplicationNumber.mockResolvedValue('APP-2025-001');
@@ -112,64 +120,116 @@ describe('ApplicationService', () => {
         submitted_by: 27,
         target_committee_id: 3,
       }, mockClient);
-      expect(mockWorkflow.initWorkflow).toHaveBeenCalledWith(
-        'APP_REVIEW_V1', 'Application', 100, mockClient
-      );
+      expect(mockWorkflow.initWorkflow).not.toHaveBeenCalled();
       expect(broadcastDashboardEvent).toHaveBeenCalledWith('dashboard-stats', {});
       expect(result.id).toBe(100);
     });
 
-    it('propagates error when workflow init fails (no orphan app)', async () => {
+    it('propagates error when generateApplicationNumber fails', async () => {
       const mockClient = {};
       vi.mocked(withTransaction).mockImplementationOnce((fn: any) => fn(mockClient));
-      mockRepo.generateApplicationNumber.mockResolvedValue('APP-2025-002');
+      mockRepo.generateApplicationNumber.mockRejectedValue(new Error('Generation error'));
       mockRepo.create.mockResolvedValue({ id: 101 });
-      mockWorkflow.initWorkflow.mockRejectedValue(new Error('Workflow engine error'));
 
       const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
       const data = { project_id: 35, application_type: 'INITIAL', target_committee_id: 3 };
 
-      await expect(service.create(data, user)).rejects.toThrow('Workflow engine error');
-      expect(mockRepo.create).toHaveBeenCalled();
+      await expect(service.create(data, user)).rejects.toThrow('Generation error');
+      expect(mockRepo.create).not.toHaveBeenCalled();
       expect(broadcastDashboardEvent).not.toHaveBeenCalled();
     });
   });
 
-  describe('4. Input Validation: committeeDecision rejects invalid states', () => {
-    it('throws 400 for invalid decision value', async () => {
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
-      const err = await service.committeeDecision(1, 'INVALID', undefined, user)
-        .catch(e => e);
-      expect(err.status).toBe(400);
-      expect(err.message).toMatch(/invalid decision/i);
+  describe('4. updateDraft status guard', () => {
+    it('accepts DRAFT applications', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, current_status: 'DRAFT' });
+      mockRepo.update.mockResolvedValue({ id: 1, current_status: 'DRAFT' });
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
+
+      const result = await service.updateDraft(1, { remarks: 'updated' }, user);
+
+      expect(result.current_status).toBe('DRAFT');
+      expect(mockRepo.update).toHaveBeenCalledWith(1, { remarks: 'updated' });
     });
 
-    it('throws 400 when reviews still pending', async () => {
-      mockRepo.findById.mockResolvedValue({ id: 1 });
-      mockRepo.countPendingReviews.mockResolvedValue(2);
-      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
+    it('accepts RETURNED applications', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, current_status: 'RETURNED' });
+      mockRepo.update.mockResolvedValue({ id: 1, current_status: 'RETURNED' });
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
 
-      const err = await service.committeeDecision(1, 'APPROVED', undefined, user)
-        .catch(e => e);
-      expect(err.status).toBe(400);
-      expect(err.message).toMatch(/2 review/i);
+      const result = await service.updateDraft(1, { remarks: 'updated' }, user);
+
+      expect(result.current_status).toBe('RETURNED');
     });
 
-    it('creates notification on approved decision', async () => {
-      mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, application_number: 'APP-2024-001' });
-      mockRepo.countPendingReviews.mockResolvedValue(0);
+    it('rejects SUBMITTED applications', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, current_status: 'SUBMITTED' });
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
+
+      const err = await service.updateDraft(1, { remarks: 'updated' }, user).catch(e => e);
+
+      expect(err.status).toBe(400);
+      expect(err.message).toMatch(/draft or returned/i);
+    });
+
+    it('rejects APPROVED applications', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, current_status: 'APPROVED' });
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
+
+      const err = await service.updateDraft(1, { remarks: 'updated' }, user).catch(e => e);
+
+      expect(err.status).toBe(400);
+      expect(err.message).toMatch(/draft or returned/i);
+    });
+
+    it('does not call executeTransition or initWorkflow', async () => {
+      mockRepo.findById.mockResolvedValue({ id: 1, submitted_by: 27, current_status: 'DRAFT' });
+      mockRepo.update.mockResolvedValue({ id: 1, current_status: 'DRAFT' });
+      const user = { id: 27, uuid: '', institution_id: 1, username: 'researcher', email: 'r@test.com', status: 'ACTIVE', roles: ['RESEARCHER'], is_email_verified: true };
+
+      await service.updateDraft(1, { remarks: 'updated' }, user);
+
+      expect(mockWorkflow.executeTransition).not.toHaveBeenCalled();
+      expect(mockWorkflow.initWorkflow).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('5. updateStatus supports committee transitions', () => {
+    beforeEach(() => {
+      mockRepo.findById.mockResolvedValue({ id: 1, current_status: 'SUBMITTED' });
+    });
+
+    it('executes COMMITTEE_APPROVE transition via generic endpoint', async () => {
+      mockWorkflow.executeTransition.mockResolvedValue({ to_state: 'APPROVED' });
       mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'APPROVED' });
       const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
 
-      await service.committeeDecision(1, 'APPROVED', 'Looks good', user);
+      const result = await service.updateStatus(1, { transition_code: 'COMMITTEE_APPROVE', comment: 'Looks good' }, user);
 
-      expect(createAndNotify).toHaveBeenCalledWith(
-        27, 'APPLICATION_UPDATE',
-        expect.stringContaining('APPROVED'),
-        expect.stringContaining('Looks good'),
-        'HIGH',
-        expect.any(Object)
-      );
+      expect(result.current_status).toBe('APPROVED');
+      expect(mockWorkflow.executeTransition).toHaveBeenCalledWith('Application', 1, 'COMMITTEE_APPROVE', user, 'Looks good', expect.any(Object));
+    });
+
+    it('executes COMMITTEE_REJECT transition', async () => {
+      mockWorkflow.executeTransition.mockResolvedValue({ to_state: 'REJECTED' });
+      mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'REJECTED' });
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
+
+      const result = await service.updateStatus(1, { transition_code: 'COMMITTEE_REJECT', comment: 'Insufficient' }, user);
+
+      expect(result.current_status).toBe('REJECTED');
+      expect(mockWorkflow.executeTransition).toHaveBeenCalledWith('Application', 1, 'COMMITTEE_REJECT', user, 'Insufficient', expect.any(Object));
+    });
+
+    it('executes COMMITTEE_CONDITIONAL transition', async () => {
+      mockWorkflow.executeTransition.mockResolvedValue({ to_state: 'CONDITIONAL' });
+      mockRepo.updateStatus.mockResolvedValue({ id: 1, current_status: 'CONDITIONAL' });
+      const user = { id: 22, uuid: '', institution_id: 1, username: 'admin', email: 'admin@test.com', status: 'ACTIVE', roles: ['ETHICS_ADMIN'], is_email_verified: true };
+
+      const result = await service.updateStatus(1, { transition_code: 'COMMITTEE_CONDITIONAL', comment: 'Minor revisions' }, user);
+
+      expect(result.current_status).toBe('CONDITIONAL');
+      expect(mockWorkflow.executeTransition).toHaveBeenCalledWith('Application', 1, 'COMMITTEE_CONDITIONAL', user, 'Minor revisions', expect.any(Object));
     });
   });
 });

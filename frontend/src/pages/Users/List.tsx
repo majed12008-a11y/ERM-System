@@ -14,8 +14,49 @@ import { Plus, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePermission } from '../../hooks/usePermission'
 import { createUserSchema } from '../../lib/schemas'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
+import type { Role, Institution, Pagination, SuccessResponse } from '../../sdk/core/types'
 
 type UserFormData = z.input<typeof createUserSchema>
+
+type EditUserFormData = {
+  email: string
+  first_name_ar: string
+  last_name_ar: string
+  first_name_en: string
+  last_name_en: string
+  mobile: string
+  institution_id: string
+  department_id: string
+  status: string
+  role_codes: string[]
+}
+
+type UserListItem = {
+  id: number
+  uuid: string
+  username: string
+  email: string
+  first_name_ar?: string
+  last_name_ar?: string
+  display_name?: string
+  status: string
+  roles: string[]
+  institution_name?: string
+  institution_id?: number
+  department_id?: number
+  last_login_at?: string
+}
+
+type UserListResponse = SuccessResponse<UserListItem[]> & { pagination: Pagination }
+
+type UserDetail = Omit<UserListItem, 'roles'> & {
+  first_name_en?: string
+  last_name_en?: string
+  mobile?: string
+  department_id?: number
+  roles: { code: string; name_ar?: string; name_en?: string }[]
+}
 
 export default function UserList() {
   const { t } = useTranslation()
@@ -38,14 +79,14 @@ export default function UserList() {
   })
   const roleCodes = watch('role_codes')
 
-  const editForm = useForm<any>({
+  const editForm = useForm<EditUserFormData>({
     defaultValues: { email: '', first_name_ar: '', last_name_ar: '', first_name_en: '', last_name_en: '', mobile: '', institution_id: '', department_id: '', status: 'ACTIVE', role_codes: [] },
   })
   const editRoleCodes = editForm.watch('role_codes')
 
   const { data, isLoading } = useQuery({
     queryKey: ['users', searchQuery, institutionFilter, roleFilter, statusFilter, page, sortKey, sortDir],
-    queryFn: () => api.get('/security/users', { params: { search: searchQuery || undefined, institution_id: institutionFilter || undefined, role_code: roleFilter || undefined, status: statusFilter || undefined, page, limit: 20, sort_by: sortKey || undefined, sort_order: sortKey ? sortDir : undefined } }).then((r) => r.data),
+    queryFn: () => api.get<UserListResponse>('/security/users', { params: { search: searchQuery || undefined, institution_id: institutionFilter || undefined, role_code: roleFilter || undefined, status: statusFilter || undefined, page, limit: 20, sort_by: sortKey || undefined, sort_order: sortKey ? sortDir : undefined } }).then((r) => r.data),
     placeholderData: (prev) => prev,
   })
 
@@ -55,7 +96,7 @@ export default function UserList() {
 
   const { data: editUser } = useQuery({
     queryKey: ['user', editUserId],
-    queryFn: () => api.get(`/security/users/${editUserId}`).then((r) => r.data.data),
+    queryFn: () => api.get<SuccessResponse<UserDetail>>(`/security/users/${editUserId}`).then((r) => r.data.data),
     enabled: !!editUserId,
   })
 
@@ -71,31 +112,33 @@ export default function UserList() {
         institution_id: editUser.institution_id ? String(editUser.institution_id) : '',
         department_id: editUser.department_id ? String(editUser.department_id) : '',
         status: editUser.status || 'ACTIVE',
-        role_codes: (editUser.roles || []).map((r: any) => r.code),
+        role_codes: (editUser.roles || []).map((r) => r.code),
       })
     }
   }, [editUser, editForm])
 
+  type RoleItem = Role & { is_active?: boolean }
+
   const { data: roles } = useQuery({
     queryKey: ['roles'],
-    queryFn: () => api.get('/security/roles').then((r) => r.data.data || []),
+    queryFn: () => api.get<SuccessResponse<RoleItem[]>>('/security/roles').then((r) => r.data.data || []),
   })
 
   const { data: institutions } = useQuery({
     queryKey: ['institutions'],
-    queryFn: () => api.get('/reference/institutions-registry').then((r) => r.data.data || []),
+    queryFn: () => api.get<SuccessResponse<Institution[]>>('/reference/institutions-registry').then((r) => r.data.data || []),
   })
 
   const createMutation = useMutation({
-    mutationFn: (body: any) => api.post('/security/users', body),
+    mutationFn: (body: UserFormData) => api.post('/security/users', body),
     onSuccess: () => { toast.success(t('users.created')); queryClient.invalidateQueries({ queryKey: ['users'] }); setShowCreate(false); reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('users.createFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('users.createFailed')),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => api.put(`/security/users/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: EditUserFormData }) => api.put(`/security/users/${id}`, data),
     onSuccess: () => { toast.success(t('users.updated')); queryClient.invalidateQueries({ queryKey: ['users'] }); setEditUserId(null) },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('users.updateFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('users.updateFailed')),
   })
 
   function toggleRole(code: string) {
@@ -162,13 +205,13 @@ export default function UserList() {
                 <input placeholder={t('users.mobile')} type="tel" {...editForm.register('mobile')} className="p-2 border rounded text-sm" />
                 <select {...editForm.register('institution_id')} className="p-2 border rounded text-sm">
                   <option value="">{t('users.selectInstitution')}</option>
-                  {(institutions || []).map((i: any) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
+                  {(institutions || []).map((i: Institution) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">{t('users.rolesLabel')}</label>
                 <div className="flex flex-wrap gap-2">
-                  {(roles || []).filter((r: any) => r.is_active).map((r: any) => (
+                  {(roles || []).filter((r: RoleItem) => r.is_active).map((r: RoleItem) => (
                     <label key={r.code} className="flex items-center gap-1 text-sm">
                       <input type="checkbox" checked={(editRoleCodes || []).includes(r.code)} onChange={() => toggleEditRole(r.code)} />
                       {r.name_ar || r.code}
@@ -209,14 +252,14 @@ export default function UserList() {
               <input placeholder={t('users.mobile')} type="tel" {...register('mobile')} className="p-2 border rounded text-sm" />
               <select {...register('institution_id')} className="p-2 border rounded text-sm">
                 <option value="">{t('users.selectInstitution')}</option>
-                {(institutions || []).map((i: any) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
+                {(institutions || []).map((i: Institution) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
               </select>
             </div>
             <div><input placeholder={t('users.password')} type="password" {...register('password')} className="w-full p-2 border rounded text-sm" />{errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}</div>
             <div>
               <label className="block text-sm font-medium mb-1">{t('users.rolesLabel')}</label>
               <div className="flex flex-wrap gap-2">
-                {(roles || []).filter((r: any) => r.is_active).map((r: any) => (
+                {(roles || []).filter((r: RoleItem) => r.is_active).map((r: RoleItem) => (
                   <label key={r.code} className="flex items-center gap-1 text-sm">
                     <input type="checkbox" checked={(roleCodes || []).includes(r.code)} onChange={() => toggleRole(r.code)} />
                     {r.name_ar || r.code}
@@ -248,12 +291,12 @@ export default function UserList() {
         <select value={institutionFilter} onChange={e => { setInstitutionFilter(e.target.value); setPage(1) }}
           className="p-1.5 border rounded text-sm bg-white max-w-[200px]">
           <option value="">{t('users.allInstitutions')}</option>
-          {(institutions || []).map((i: any) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
+          {(institutions || []).map((i: Institution) => <option key={i.id} value={String(i.id)}>{i.name_ar || i.name_en}</option>)}
         </select>
         <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1) }}
           className="p-1.5 border rounded text-sm bg-white max-w-[180px]">
           <option value="">{t('users.allRoles')}</option>
-          {(roles || []).filter((r: any) => r.is_active).map((r: any) => (
+          {(roles || []).filter((r: RoleItem) => r.is_active).map((r: RoleItem) => (
             <option key={r.code} value={r.code}>{r.name_ar || r.code}</option>
           ))}
         </select>
@@ -280,7 +323,7 @@ export default function UserList() {
             { key: 'roles', label: t('users.roles'), render: (i) => (i.roles || []).join(', ') },
             { key: 'institution_name', label: t('users.institution'), sortable: true },
             { key: 'last_login_at', label: t('users.lastLogin'), sortable: true, render: (i) => i.last_login_at ? new Date(i.last_login_at).toLocaleDateString() : '\u2014' },
-            ...(canUpdate ? [{ key: 'actions' as string, label: '', render: (i: any) => <button onClick={() => setEditUserId(i.id)} className="text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button> }] : []),
+            ...(canUpdate ? [{ key: 'actions' as string, label: '', render: (i: UserListItem) => <button onClick={() => setEditUserId(i.id)} className="text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button> }] : []),
           ]}
           data={users}
           emptyMessage={t('users.empty')}

@@ -301,7 +301,7 @@ export default function ApplicationCreate() {
                   </div>
                   <div>
                     <dt className="text-slate-500 text-xs">{t('applications.type')}</dt>
-                    <dd className="font-medium">{t(`applications.${watch('application_type') === 'INITIAL' ? 'initialReview' : watch('application_type').toLowerCase()}`)}</dd>
+                    <dd className="font-medium">{t(`applications.${watch('application_type') === 'INITIAL' ? 'initialReview' : (watch('application_type') ?? '').toLowerCase()}`)}</dd>
                   </div>
                   <div>
                     <dt className="text-slate-500 text-xs">{t('applications.status')}</dt>

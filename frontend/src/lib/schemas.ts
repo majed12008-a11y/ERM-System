@@ -132,11 +132,6 @@ export const reviewSubmissionSchema = z.object({
   comment_text: z.string().optional().default(''),
 })
 
-export const committeeDecisionSchema = z.object({
-  decision: z.string().default('APPROVED'),
-  notes: z.string().optional().default(''),
-})
-
 export const meetingAgendaSchema = z.object({
   title: z.string({ message: 'Title is required' }).min(1),
   description: z.string().optional().default(''),
@@ -210,9 +205,7 @@ export const createCycleSchema = z.object({
 })
 
 export const updateCycleStatusSchema = z.object({
-  to_status: z.string({ message: 'Target status is required' }).min(1),
-  decision: z.string({ message: 'Decision is required' }).min(1),
-  decided_by: z.coerce.number({ message: 'User ID is required' }),
+  transition_code: z.string({ message: 'Transition code is required' }).min(1),
   decision_reason: z.string().optional().default(''),
 })
 

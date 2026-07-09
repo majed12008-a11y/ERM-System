@@ -138,8 +138,8 @@ if ($r) { $assignId = $r.data.id }
 $r = Post "/committee/reviews/$assignId/submit" "{`"recommendation_type`":`"APPROVE`",`"justification`":`"Excellent research proposal`"}" $reviewerToken
 Check "3.10 Submit review" $r
 
-# 3.11 Committee decision (ethics_admin)
-$r = Post "/core/applications/$appId/committee-decision" "{`"decision`":`"APPROVED`",`"notes`":`"Approved with conditions`"}" $ethicsToken
+# 3.11 Committee decision (ethics_admin) via generic workflow endpoint
+$r = Patch "/core/applications/$appId/status" "{`"transition_code`":`"COMMITTEE_APPROVE`",`"comment`":`"Approved with conditions`"}" $ethicsToken
 Check "3.11 Committee decision" $r
 
 # 3.12 Get project applications

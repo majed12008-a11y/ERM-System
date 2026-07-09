@@ -10,8 +10,12 @@ import { AuthService } from '../../services/auth.service';
 const router = Router();
 const service = new AuthService();
 
-const registerLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Too many registration attempts. Try again later.' } });
-const forgotLimiter = rateLimit({ windowMs: 60 * 1000, max: 3, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Too many password reset requests. Try again later.' } });
+const authLimiter = (max: number) => rateLimit({ windowMs: env.RATE_LIMIT_AUTH_WINDOW_MS, max, standardHeaders: true, legacyHeaders: false });
+const registerLimiter = authLimiter(env.RATE_LIMIT_REGISTER_MAX);
+const forgotLimiter = authLimiter(env.RATE_LIMIT_FORGOT_MAX);
+const refreshLimiter = authLimiter(env.RATE_LIMIT_REFRESH_MAX);
+const resetPasswordLimiter = authLimiter(env.RATE_LIMIT_RESET_PASSWORD_MAX);
+const resendVerificationLimiter = authLimiter(env.RATE_LIMIT_RESEND_VERIFICATION_MAX);
 
 function parseCookies(header: string | undefined): Record<string, string> {
   if (!header) return {};
@@ -62,7 +66,7 @@ router.post('/forgot-password', forgotLimiter, validate(forgotPasswordSchema), a
   }
 });
 
-router.post('/reset-password', validate(resetPasswordSchema), async (req: Request, res: Response) => {
+router.post('/reset-password', resetPasswordLimiter, validate(resetPasswordSchema), async (req: Request, res: Response) => {
   try {
     await service.resetPassword(req.body.token, req.body.password);
     res.json(successResponse(null, 'Password has been reset successfully'));
@@ -71,7 +75,7 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req: Reques
   }
 });
 
-router.post('/refresh', async (req: Request, res: Response) => {
+router.post('/refresh', refreshLimiter, async (req: Request, res: Response) => {
   try {
     const cookies = parseCookies(req.headers.cookie);
     const refreshToken = cookies.refreshToken;
@@ -115,7 +119,7 @@ router.post('/verify-email', validate(verifyEmailSchema), async (req: Request, r
   }
 });
 
-router.post('/resend-verification', authenticate, async (req: Request, res: Response) => {
+router.post('/resend-verification', authenticate, resendVerificationLimiter, async (req: Request, res: Response) => {
   try {
     const result = await service.resendVerificationEmail((req as any).user.id);
     res.json(successResponse(result, 'Verification email resent'));

@@ -128,11 +128,6 @@ export const signDocumentSchema = z.object({
   signature_type: z.enum(['ELECTRONIC', 'DIGITAL', 'WET']).default('ELECTRONIC'),
 });
 
-export const committeeDecisionSchema = z.object({
-  decision: z.enum(['APPROVED', 'REJECTED', 'CONDITIONAL']),
-  notes: z.string().max(2000).optional(),
-});
-
 export const forgotPasswordSchema = z.object({
   email: z.string().email('Valid email is required').max(255),
 });
@@ -325,12 +320,22 @@ export const updateConsentReviewSchema = z.object({
 });
 
 export const updateApplicationStatusSchema = z.object({
-  status: z.string().max(50).optional(),
-  transition_code: z.string().optional(),
+  transition_code: z.string().min(1, 'transition_code is required'),
   comment: z.string().max(2000).optional(),
   remarks: z.string().max(2000).optional(),
-}).refine(data => data.status || data.transition_code, {
-  message: 'Either status or transition_code is required',
+});
+
+export const createConditionSchema = z.object({
+  condition_text: z.string().min(1, 'Condition text is required').max(2000),
+  severity: z.enum(['CRITICAL', 'MAJOR', 'MINOR']).optional().default('MAJOR'),
+  category: z.string().max(100).optional(),
+  due_date: z.string().optional(),
+});
+
+export const updateConditionSchema = createConditionSchema.partial();
+
+export const resolveConditionSchema = z.object({
+  status: z.enum(['MET', 'NOT_MET', 'WAIVED']),
 });
 
 export const updateApplicationSchema = z.object({
@@ -338,9 +343,4 @@ export const updateApplicationSchema = z.object({
   target_committee_id: z.coerce.number().positive().optional(),
   priority_level: z.string().max(50).optional(),
   remarks: z.string().max(2000).optional(),
-});
-
-export const submitApplicationSchema = z.object({
-  transition_code: z.string().optional(),
-  comment: z.string().max(2000).optional(),
 });

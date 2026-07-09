@@ -17,6 +17,7 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { documentUploadSchema } from '../../lib/schemas'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type UploadFormData = { document_type_id?: string; entity_type?: string; entity_id?: string; document_title?: string }
 
@@ -44,7 +45,7 @@ export default function DocumentsPage() {
   const uploadMutation = useMutation({
     mutationFn: (formData: FormData) => api.post('/documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
     onSuccess: () => { toast.success(t('documents.uploaded')); queryClient.invalidateQueries({ queryKey: ['documents'] }); setOpen(false); resetForm() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('documents.uploadFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('documents.uploadFailed')),
   })
 
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)

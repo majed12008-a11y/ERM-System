@@ -476,7 +476,7 @@ ALTER FUNCTION system.fn_generate_project_code() OWNER TO ethics_owner;
 
 -- Name: fn_init_workflow(character varying, character varying, bigint); Type: FUNCTION; Schema: system; Owner: ethics_owner
 
-CREATE FUNCTION system.fn_init_workflow(p_workflow_code character varying, p_entity_type character varying, p_entity_id bigint) RETURNS bigint
+CREATE OR REPLACE FUNCTION system.fn_init_workflow(p_workflow_code character varying, p_entity_type character varying, p_entity_id bigint) RETURNS bigint
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 DECLARE
@@ -484,19 +484,18 @@ DECLARE
     v_initial_state BIGINT;
     v_instance_id   BIGINT;
 BEGIN
-    -- Get workflow definition
     SELECT id INTO v_workflow_id
     FROM workflow.workflows
     WHERE workflow_code = p_workflow_code AND is_active = TRUE;
 
-    -- Get initial state
     SELECT id INTO v_initial_state
     FROM workflow.workflow_states
     WHERE workflow_id = v_workflow_id AND is_initial = TRUE;
 
-    -- Create instance
     INSERT INTO workflow.workflow_instances (workflow_id, entity_type, entity_id, current_state_id)
     VALUES (v_workflow_id, p_entity_type, p_entity_id, v_initial_state)
+    ON CONFLICT (entity_type, entity_id) WHERE status_code = 'ACTIVE' AND deleted_at IS NULL
+    DO NOTHING
     RETURNING id INTO v_instance_id;
 
     RETURN v_instance_id;

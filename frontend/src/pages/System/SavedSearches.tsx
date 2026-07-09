@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { savedSearchSchema } from '../../lib/schemas'
 import { Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { AxiosError } from 'axios'
 
 type SearchFormData = { name: string; search_type: string; criteria?: string; is_shared?: boolean }
 
@@ -43,7 +44,7 @@ export default function SavedSearches() {
   const createMutation = useMutation({
     mutationFn: (body: any) => api.post('/system/saved-searches', body),
     onSuccess: () => { toast.success(t('savedSearches.saved')); queryClient.invalidateQueries({ queryKey: ['saved-searches'] }); setOpen(false); reset() },
-    onError: (err: any) => toast.error(err.response?.data?.error || t('savedSearches.saveFailed')),
+    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('savedSearches.saveFailed')),
   })
 
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
