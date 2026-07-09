@@ -5,7 +5,8 @@ import {
   createConsentTemplateSchema, updateConsentTemplateSchema,
   createConsentVersionSchema, updateConsentVersionSchema,
   assignConsentSchema, replaceConsentVersionSchema,
-  createConsentReviewSchema, updateConsentReviewSchema
+  createConsentReviewSchema, updateConsentReviewSchema,
+  updateConsentRequiredSchema
 } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { ConsentTemplateRepository } from '../../repositories/consent-template.repository';
@@ -137,7 +138,7 @@ router.put('/application-consents/:id/replace-version', authenticate, authorize(
   } catch (err: any) { res.status(400).json(errorResponse(err.message)); }
 });
 
-router.put('/application-consents/:id/required', authenticate, authorize('ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'SUPER_ADMIN'), async (req: Request, res: Response) => {
+router.put('/application-consents/:id/required', authenticate, authorize('ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'SUPER_ADMIN'), validate(updateConsentRequiredSchema), async (req: Request, res: Response) => {
   try {
     const ac = await appConsentRepo.markRequired(parseInt(String(req.params.id)), req.body.is_required);
     if (!ac) return res.status(404).json(errorResponse('Application consent not found'));

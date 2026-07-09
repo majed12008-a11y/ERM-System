@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createResponsibilitySchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { UsersService } from '../../services/users.service';
 
@@ -18,7 +20,7 @@ router.get('/user-responsibilities', authenticate, async (req: Request, res: Res
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/user-responsibilities', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/user-responsibilities', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), validate(createResponsibilitySchema), async (req: Request, res: Response) => {
   try {
     res.status(201).json(successResponse(await service.createResponsibility(req.body, (req as any).user), 'Responsibility assigned'));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }

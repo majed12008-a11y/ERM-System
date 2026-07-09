@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createEmailConfigSchema, updateEmailConfigSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { EmailConfigRepository } from '../../repositories/email-config.repository';
 import { clearTransportCache, sendEmail } from '../../services/email.service';
@@ -33,36 +35,23 @@ router.get('/:id', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(createEmailConfigSchema), async (req: Request, res: Response) => {
   try {
-    const { config_name, smtp_host, smtp_port, smtp_username, smtp_password, use_tls, from_address, from_name, is_active } = req.body;
-    if (!config_name || !smtp_host || !smtp_port || !from_address) {
-      return res.status(400).json(errorResponse('config_name, smtp_host, smtp_port, and from_address are required'));
-    }
-    if (is_active) await repo.deactivateAll();
-    const config = await repo.create({
-      config_name, smtp_host, smtp_port: parseInt(String(smtp_port), 10),
-      smtp_username: smtp_username || '', smtp_password: smtp_password || '',
-      use_tls: use_tls !== false, from_address, from_name: from_name || '',
-      is_active: is_active !== false,
-    });
+    if (req.body.is_active) await repo.deactivateAll();
+    const config = await repo.create(req.body);
     clearTransportCache();
     res.status(201).json(successResponse(config, 'Email config created'));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validate(updateEmailConfigSchema), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json(errorResponse('Invalid id'));
     const existing = await repo.findById(id);
     if (!existing) return res.status(404).json(errorResponse('Email config not found'));
-    const data: any = {};
-    for (const key of ['config_name', 'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'use_tls', 'from_address', 'from_name', 'is_active']) {
-      if (req.body[key] !== undefined) data[key] = key === 'smtp_port' ? parseInt(String(req.body[key]), 10) : req.body[key];
-    }
-    if (data.is_active === true) await repo.deactivateAll();
-    const config = await repo.update(id, data);
+    if (req.body.is_active === true) await repo.deactivateAll();
+    const config = await repo.update(id, req.body);
     clearTransportCache();
     res.json(successResponse(config, 'Email config updated'));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }

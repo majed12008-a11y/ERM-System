@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createRiskIncidentSchema, createCorrectiveActionSchema } from '../../middleware/schemas';
+import { createRiskIncidentSchema, createCorrectiveActionSchema, updateRiskRegisterSchema, createMitigationSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { SafetyService } from '../../services/safety.service';
 
@@ -18,7 +18,7 @@ router.post('/risk-register', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN'
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/risk-register/:id', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.put('/risk-register/:id', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), validate(updateRiskRegisterSchema), async (req: Request, res: Response) => {
   try { res.json(successResponse(await service.updateRisk(parseInt(String(req.params.id)), req.body))); }
   catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
@@ -36,7 +36,7 @@ router.get('/risk-register/:id/mitigations', authenticate, async (req: Request, 
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/risk-register/:id/mitigations', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/risk-register/:id/mitigations', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), validate(createMitigationSchema), async (req: Request, res: Response) => {
   try { res.status(201).json(successResponse(await service.createMitigation(parseInt(String(req.params.id)), req.body))); }
   catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });

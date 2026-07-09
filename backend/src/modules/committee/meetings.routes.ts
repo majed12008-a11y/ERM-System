@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createMeetingSchema, createAgendaSchema, addAttendanceSchema, createMinutesSchema } from '../../middleware/schemas';
+import { createMeetingSchema, createAgendaSchema, addAttendanceSchema, createMinutesSchema, updateMeetingSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { CommitteeService } from '../../services/committee.service';
 
@@ -80,7 +80,7 @@ router.patch('/:id/minutes/:minutesId/approve', authenticate, authorize('COMMITT
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
-router.post('/:id', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id', authenticate, authorize('COMMITTEE_CHAIR', 'ETHICS_ADMIN'), validate(updateMeetingSchema), async (req: Request, res: Response) => {
   try {
     res.json(successResponse(await service.updateMeeting(parseInt(String(req.params.id)), req.body)));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }

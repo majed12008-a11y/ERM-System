@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createCommitteeSchema, updateCommitteeSchema } from '../../middleware/schemas';
+import { createCommitteeSchema, updateCommitteeSchema, addCommitteeMemberSchema, updateCommitteeMemberSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { CommitteeService } from '../../services/committee.service';
 
@@ -81,20 +81,11 @@ router.get('/:id/members', authenticate, async (req: Request, res: Response) => 
   }
 });
 
-router.post('/:id/members', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id/members', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ETHICS_ADMIN'), validate(addCommitteeMemberSchema), async (req: Request, res: Response) => {
   try {
-    const { user_id, role_id } = req.body;
-    if (!user_id) return res.status(400).json(errorResponse('user_id is required'));
-    const parsedUserId = parseInt(String(user_id), 10);
-    if (isNaN(parsedUserId)) return res.status(400).json(errorResponse('Invalid user_id'));
-    let parsedRoleId: number | undefined;
-    if (role_id != null) {
-      parsedRoleId = parseInt(String(role_id), 10);
-      if (isNaN(parsedRoleId)) parsedRoleId = undefined;
-    }
     const member = await service.addMember(parseInt(String(req.params.id), 10), {
-      user_id: parsedUserId,
-      role_id: parsedRoleId,
+      user_id: req.body.user_id,
+      role_id: req.body.role_id,
     });
     res.status(201).json(successResponse(member, 'Member added'));
   } catch (err: any) {
@@ -102,11 +93,9 @@ router.post('/:id/members', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 
   }
 });
 
-router.put('/:id/members/:memberId', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
+router.put('/:id/members/:memberId', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ETHICS_ADMIN'), validate(updateCommitteeMemberSchema), async (req: Request, res: Response) => {
   try {
-    const role_id = parseInt(String(req.body.role_id), 10);
-    if (isNaN(role_id)) return res.status(400).json(errorResponse('Invalid role_id'));
-    const result = await service.updateMemberRole(parseInt(String(req.params.memberId), 10), role_id);
+    const result = await service.updateMemberRole(parseInt(String(req.params.memberId), 10), req.body.role_id);
     res.json(successResponse(result, 'Role updated'));
   } catch (err: any) {
     res.status(err.status || 500).json(errorResponse(err.message));

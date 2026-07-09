@@ -54,6 +54,8 @@ export const createMessageSchema = z.object({
   }).pipe(z.array(z.number().positive()).min(1, 'At least one recipient required')),
   subject: z.string().min(1, 'Subject is required').max(500),
   message_body: z.string().optional().default(''),
+  related_entity_type: z.string().max(100).optional(),
+  related_entity_id: z.string().max(100).optional(),
 });
 
 export const createReviewFormSchema = z.object({
@@ -344,3 +346,275 @@ export const updateApplicationSchema = z.object({
   priority_level: z.string().max(50).optional(),
   remarks: z.string().max(2000).optional(),
 });
+
+// ── PB-001 new schemas ──────────────────────────────────────────────────────
+
+export const updateRoleSchema = createRoleSchema.partial();
+
+export const createResponsibilitySchema = z.object({
+  user_id: z.coerce.number().positive(),
+  responsibility_type_id: z.coerce.number().positive(),
+  entity_type: z.string().max(100).optional(),
+  entity_id: z.string().max(100).optional(),
+});
+
+export const withdrawApplicationSchema = z.object({
+  comment: z.string().max(2000).optional(),
+});
+
+export const appealApplicationSchema = z.object({
+  comment: z.string().min(1, 'Appeal justification is required').max(2000),
+});
+
+export const uploadEvidenceSchema = z.object({
+  document_title: z.string().max(500).optional(),
+});
+
+export const revokeCertificateSchema = z.object({
+  reason: z.string().min(1, 'Revocation reason is required').max(2000),
+});
+
+export const updateMeetingSchema = z.object({
+  meeting_date: z.string().optional(),
+  location: z.string().max(500).optional(),
+  meeting_status: z.string().max(50).optional(),
+  chairperson_id: z.coerce.number().positive().optional(),
+});
+
+export const submitReviewSchema = z.object({
+  recommendation_type: z.enum(['APPROVE', 'REJECT', 'CONDITIONAL', 'ABSTAIN']),
+  justification: z.string().max(2000).optional(),
+  comment_text: z.string().max(2000).optional(),
+  is_internal: z.boolean().optional(),
+  answers: z.array(z.object({
+    question_id: z.coerce.number().positive(),
+    answer_text: z.string().optional(),
+    answer_score: z.coerce.number().min(0).max(100).optional(),
+  })).optional(),
+});
+
+export const addCommitteeMemberSchema = z.object({
+  user_id: z.coerce.number().positive('user_id is required'),
+  role_id: z.coerce.number().positive().optional(),
+});
+
+export const updateCommitteeMemberSchema = z.object({
+  role_id: z.coerce.number().positive('role_id is required'),
+});
+
+export const updateConsentRequiredSchema = z.object({
+  is_required: z.boolean(),
+});
+
+export const updateEthicsRiskAssessmentSchema = z.object({
+  overall_risk_level: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+  recommendation: z.string().max(100).optional(),
+  summary: z.string().max(2000).optional(),
+});
+
+export const uploadDocumentSchema = z.object({
+  document_type_id: z.coerce.number().positive().optional(),
+  entity_type: z.string().max(100).optional(),
+  entity_id: z.coerce.number().positive().optional(),
+  document_title: z.string().max(500).optional(),
+  file_name: z.string().max(500).optional(),
+  mime_type: z.string().max(100).optional(),
+});
+
+export const updateRiskRegisterSchema = z.object({
+  risk_title: z.string().min(1).max(300).optional(),
+  risk_description: z.string().min(1).optional(),
+  likelihood: z.coerce.number().int().min(1).max(5).optional(),
+  impact: z.coerce.number().int().min(1).max(5).optional(),
+  risk_level: z.string().max(50).optional(),
+  owner_id: z.coerce.number().positive().optional(),
+  status: z.string().max(50).optional(),
+});
+
+export const createMitigationSchema = z.object({
+  mitigation_plan: z.string().min(1, 'Mitigation plan is required').max(2000),
+  responsible_party: z.string().max(255).optional(),
+  target_date: z.string().min(1, 'Target date is required'),
+  status: z.string().max(50).optional(),
+});
+
+export const createEmailConfigSchema = z.object({
+  config_name: z.string().min(1, 'Config name is required').max(100),
+  smtp_host: z.string().min(1, 'SMTP host is required').max(255),
+  smtp_port: z.coerce.number().int().positive('SMTP port is required'),
+  smtp_username: z.string().max(255).optional().default(''),
+  smtp_password: z.string().max(255).optional().default(''),
+  use_tls: z.boolean().optional().default(true),
+  from_address: z.string().min(1, 'From address is required').max(255),
+  from_name: z.string().max(255).optional().default(''),
+  is_active: z.boolean().optional().default(true),
+});
+
+export const updateEmailConfigSchema = createEmailConfigSchema.partial();
+
+export const createPushConfigSchema = z.object({
+  config_name: z.string().min(1, 'Config name is required').max(100),
+  provider: z.string().min(1, 'Provider is required').max(100),
+  server_key: z.string().max(500).optional().default(''),
+  app_id: z.string().max(255).optional().default(''),
+  is_active: z.boolean().optional().default(true),
+});
+
+export const updatePushConfigSchema = createPushConfigSchema.partial();
+
+// ── SMS Config ───────────────────────────────────────────────────────────────
+
+export const createSmsConfigSchema = z.object({
+  config_name: z.string().min(1, 'Config name is required').max(200),
+  provider: z.string().min(1, 'Provider is required').max(100),
+  api_key: z.string().max(500).optional().default(''),
+  api_secret: z.string().max(500).optional().default(''),
+  sender_name: z.string().max(100).optional().default(''),
+  is_active: z.boolean().optional().default(true),
+});
+
+export const updateSmsConfigSchema = createSmsConfigSchema.partial();
+
+// ── System Config ────────────────────────────────────────────────────────────
+
+export const updateSystemConfigSchema = z.object({
+  config_value: z.string().min(1, 'config_value is required'),
+  description: z.string().max(500).optional().default(''),
+}).strict();
+
+// ── Reference Data Per-Entity Schemas ────────────────────────────────────────
+
+export const referenceDataSchemas: Record<string, z.ZodObject<any>> = {
+  'academic-titles': z.object({
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    display_order: z.coerce.number().int().min(0).optional(),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'institutions': z.object({
+    institution_type_id: z.coerce.number().positive(),
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(300),
+    name_en: z.string().max(300).optional().default(''),
+    license_number: z.string().max(100).optional().default(''),
+    registration_number: z.string().max(100).optional().default(''),
+    email: z.string().email().max(200).optional().or(z.literal('')),
+    phone: z.string().max(100).optional().default(''),
+    address: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'institution-types': z.object({
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    description: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'departments': z.object({
+    institution_id: z.coerce.number().positive(),
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'research-categories': z.object({
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    description: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'risk-classifications': z.object({
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    severity_level: z.string().max(50).optional().default(''),
+    description: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'vulnerable-populations': z.object({
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    description: z.string().optional().default(''),
+    safeguards_required: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'document-types': z.object({
+    type_code: z.string().min(1).max(50),
+    type_name_ar: z.string().min(1).max(200),
+    type_name_en: z.string().max(200).optional().default(''),
+    description: z.string().optional().default(''),
+    is_required: z.boolean().optional().default(false),
+  }).strict(),
+
+  'committee-types': z.object({
+    type_code: z.string().min(1).max(50),
+    type_name: z.string().min(1).max(200),
+    description: z.string().optional().default(''),
+  }).strict(),
+
+  'committee-roles': z.object({
+    role_code: z.string().min(1).max(50),
+    role_name: z.string().min(1).max(200),
+    description: z.string().optional().default(''),
+  }).strict(),
+
+  'notification-channels': z.object({
+    channel_code: z.string().min(1).max(50),
+    channel_name: z.string().min(1).max(200),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'lookup-categories': z.object({
+    category_code: z.string().min(1).max(50),
+    category_name_ar: z.string().min(1).max(200),
+    category_name_en: z.string().max(200).optional().default(''),
+    description: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'lookup-values': z.object({
+    category_id: z.coerce.number().positive(),
+    value_code: z.string().min(1).max(50),
+    value_name_ar: z.string().min(1).max(200),
+    value_name_en: z.string().max(200).optional().default(''),
+    display_order: z.coerce.number().int().min(0).optional(),
+    is_default: z.boolean().optional().default(false),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'professions': z.object({
+    code: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(200),
+    name_en: z.string().max(200).optional().default(''),
+    category: z.string().max(100).optional().default(''),
+    description: z.string().optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+
+  'institutions-registry': z.object({
+    national_id: z.string().min(1).max(50),
+    name_ar: z.string().min(1).max(300),
+    name_en: z.string().max(300).optional().default(''),
+    type: z.string().max(100).optional().default(''),
+    address: z.string().optional().default(''),
+    city: z.string().max(100).optional().default(''),
+    country: z.string().max(100).optional().default(''),
+    phone: z.string().max(50).optional().default(''),
+    email: z.string().max(200).optional().default(''),
+    website: z.string().max(500).optional().default(''),
+    is_accredited: z.boolean().optional().default(false),
+    accreditation_body: z.string().max(200).optional().default(''),
+    license_number: z.string().max(100).optional().default(''),
+    is_active: z.boolean().optional().default(true),
+  }).strict(),
+};

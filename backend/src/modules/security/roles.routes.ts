@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createRoleSchema } from '../../middleware/schemas';
+import { createRoleSchema, updateRoleSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { AuthorizationService } from '../../services/authorization.service';
 
@@ -26,7 +26,7 @@ router.post('/', authenticate, authorize('SUPER_ADMIN'), validate(createRoleSche
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/:id', authenticate, authorize('SUPER_ADMIN'), async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorize('SUPER_ADMIN'), validate(updateRoleSchema), async (req: Request, res: Response) => {
   try {
     res.json(successResponse(await service.updateRole(parseInt(String(req.params.id)), req.body), 'Role updated'));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }

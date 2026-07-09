@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { signDocumentSchema } from '../../middleware/schemas';
+import { signDocumentSchema, uploadDocumentSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { DocumentService } from '../../services/document.service';
@@ -48,7 +48,7 @@ router.get('/types', authenticate, async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/', authenticate, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', authenticate, upload.single('file'), validate(uploadDocumentSchema), async (req: Request, res: Response) => {
   try {
     const doc = await service.upload(req.file, req.body, (req as any).user);
     res.status(201).json(successResponse(doc, 'Document uploaded'));
