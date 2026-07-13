@@ -172,6 +172,8 @@ export const createMinutesSchema = z.object({
 
 export const createVotingSessionSchema = z.object({
   meeting_id: z.coerce.number().positive(),
+  application_id: z.coerce.number().positive(),
+  voting_type: z.string().min(1).max(50).default('STANDARD'),
   title: z.string().min(1).max(500),
   description: z.string().optional(),
 });

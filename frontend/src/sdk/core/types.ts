@@ -321,8 +321,16 @@ export interface AuditLogEntry {
 
 // ─── Monitoring ───
 export interface HealthStatus {
+  service: string
+  version: string
   status: string
+  requestId: string
+  uptime: number
   timestamp: string
+  checks: {
+    database: string
+    smtp: string
+  }
 }
 
 // ─── Permissions ───

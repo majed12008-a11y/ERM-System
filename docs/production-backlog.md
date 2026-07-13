@@ -8,9 +8,9 @@
 | Category | Original | Adjusted | Change | Reason |
 |----------|----------|----------|--------|--------|
 | Security | 7/10 | 7/10 | — | H2 remains high; C5 scope doubled (35 routes) |
-| Operations | 6/10 | 7/10 | +1 | H6/H7/H8 resolved; M7/M10 remain |
+| Operations | 6/10 | 8/10 | +2 | H6/H7/H8 resolved; M7 (npm audit) fixed; M10 (stop-prod.ps1) fixed |
 | Database | 7/10 | 8/10 | +1 | H9 false positive; M4 fixed |
-| **Overall** | **7/10** | **7.5/10** | **+0.5** | |
+| **Overall** | **7/10** | **7.5/10** | **+0.5** | M7 (npm audit) fixed, M10 (stop-prod.ps1) fixed |
 
 ## Validation Results
 
@@ -37,10 +37,10 @@
 | M4 | HEALTHCHECK | ✅ OBSOLETE | All containers have health checks |
 | M5 | JSON body limit | ✅ FIXED | |
 | M6 | question_options JSONB | ✅ FIXED | |
-| **M7** | **npm audit in CI** | **⚠️ CONFIRMED** | Trivy scans images only; no early-stage audit |
+| **M7** | **npm audit in CI** | **✅ FIXED** | PB-003 implemented and certified (Gate 2 PASS) |
 | **M8** | **Health endpoint format** | **⚠️ CONFIRMED** | 3 different formats across /live, /ready, /health |
 | **M9** | **ZodError response** | **⚠️ PARTIALLY** | Returns 400 (not 422), but response shape differs |
-| **M10** | **stop-prod.ps1** | **⚠️ CONFIRMED** | File does not exist |
+| **M10** | **stop-prod.ps1** | **✅ FIXED** | PB-006 implemented and certified (Gate 3 PASS) |
 
 ---
 
@@ -66,8 +66,10 @@
 | **Estimated time** | 2-3 days |
 | **Required tests** | Unit: schema validation tests. Integration: hit each route with valid/invalid payloads. E2E: existing workflow tests should continue passing. |
 | **Rollback** | Revert individual route file changes; each route's validate() call is a one-line addition. |
-| **Status** | ⏳ Not started |
+| **Status** | ✅ PASS — Accepted |
 | **Owner** | TBD |
+
+> **Completion note:** Completed under original implementation scope. Additional findings PB-007 and PB-008 were identified during release certification and tracked separately.
 
 ---
 
@@ -101,22 +103,22 @@
 | Field | Value |
 |-------|-------|
 | **Severity** | Medium |
-| **Category** | CI / Security |
-| **Description** | CI pipeline (`.github/workflows/ci.yml`) has no `npm audit` step. Trivy scans Docker images but only on `main`/tag pushes. Dependency vulnerabilities are not caught early on PR branches. |
+| **Category** | Operations |
+| **Description** | No `npm audit` step exists in CI pipeline. Dependency vulnerabilities are only detected post-merge by Trivy scanning Docker images (image-level), which is too late for pre-merge prevention. |
 | **Affected files** | `.github/workflows/ci.yml` |
-| **Root cause** | CI was designed with Trivy for container scanning but omitted npm-level audit. |
-| **Business impact** | Vulnerable dependencies may be merged undetected. Only caught post-merge during image build. |
-| **Technical impact** | Delayed vulnerability detection. |
-| **Production impact** | Low (Trivy catches known vulns eventually), but violates shift-left security principle. |
-| **Regression risk** | None — adds a new CI step that doesn't affect build output. `npm audit` may fail on existing vulnerabilities; `--audit-level=high` can gate only high/critical. |
+| **Root cause** | CI was set up with `npm install`/`npm ci` only; dependency auditing was not configured. |
+| **Business impact** | Vulnerable dependencies can be merged into main without warning. Vulnerabilities are only caught at image-scan time. |
+| **Technical impact** | CI lacks a gate for dependency vulnerabilities. |
+| **Production impact** | Medium — vulnerable packages could reach production if Trivy misses them (e.g., runtime-only vulnerabilities not in final image). |
+| **Regression risk** | Low — `npm audit` runs in a separate step. No existing behavior changes. |
 | **Dependencies** | None. |
-| **Recommended solution** | Add `npm audit --audit-level=high` to both backend and frontend jobs in CI after `npm ci`. Optionally: add `npm audit` as a separate scheduled workflow (weekly). |
-| **Implementation order** | 1 (alongside PB-001) |
+| **Recommended solution** | Add `npm audit --audit-level=high` to both backend and frontend CI jobs after `npm ci`. Include `--production` flag to focus on runtime dependencies. |
+| **Implementation order** | 1 (alongside PB-006) |
 | **Complexity** | Low |
 | **Estimated time** | 1 hour |
-| **Required tests** | CI pipeline run after change. No application tests needed. |
-| **Rollback** | Revert `.github/workflows/ci.yml` changes. |
-| **Status** | ⏳ Not started |
+| **Required tests** | CI: run `backend` and `frontend` jobs, verify audit output. |
+| **Rollback** | Revert `.github/workflows/ci.yml` |
+| **Status** | ✅ Accepted — Completed — Closed (Gate 2 PASS) |
 | **Owner** | TBD |
 
 ---
@@ -141,7 +143,7 @@
 | **Estimated time** | 2-4 hours |
 | **Required tests** | Integration: hit all three endpoints, verify response shapes match a shared type. Update Docker health check tests if they parse response body. |
 | **Rollback** | Revert `monitoring/index.ts` changes. |
-| **Status** | ⏳ Not started |
+| **Status** | ✅ Accepted — Completed — Closed |
 | **Owner** | TBD |
 
 ---
@@ -166,7 +168,7 @@
 | **Estimated time** | 30 minutes |
 | **Required tests** | Integration: submit invalid request body, verify response includes `requestId` field. |
 | **Rollback** | Revert `validate.ts` change. |
-| **Status** | ⏳ Not started |
+| **Status** | ✅ Accepted — Completed — Closed |
 | **Owner** | TBD |
 
 ---
@@ -191,7 +193,107 @@
 | **Estimated time** | 1-2 hours |
 | **Required tests** | Manual: run in staging, verify containers stop gracefully. |
 | **Rollback** | Delete the file. |
+| **Status** | ✅ Accepted — Completed — Closed (Gate 3 PASS) |
+| **Owner** | TBD |
+
+---
+
+### PB-009: Fix CI health probe URL alignment
+
+| Field | Value |
+|-------|-------|
+| **Severity** | High |
+| **Category** | CI/DevOps |
+| **Description** | The CI pipeline at `.github/workflows/ci.yml` line 231 uses `curl -sf http://localhost:8080/api/v1/health` to wait for the server to start. The actual health endpoint is at `/api/v1/monitoring/health`. The wrong URL returns 404, causing `curl -sf` to always fail. The wait loop exhausts its 30 retries × 2s = 60s and errors out with "Server failed to start". Discovered during PB-004 triage. |
+| **Affected files** | `.github/workflows/ci.yml` (line 231) |
+| **Root cause** | Health endpoint URL was never updated after refactoring monitoring routes to the `/api/v1/monitoring/` prefix. The logger ignore list already contains `/api/v1/health`, suggesting someone suppressed the 404 noise instead of fixing the URL. |
+| **Business impact** | High — CI E2E tests cannot run because the server readiness check always fails. Every CI run fails at "Wait for server", blocking all E2E validation. |
+| **Technical impact** | CI E2E job is broken. The wait loop is effectively a 60-second sleep followed by unconditional failure; the server may be healthy but CI never knows. |
+| **Production impact** | None (CI-only, not production) |
+| **Regression risk** | 🟢 Low — single URL change in CI pipeline YAML |
+| **Dependencies** | PB-004 (PB-009 discovered during PB-004 triage; verify correct URL after PB-004 endpoint changes) |
+| **Recommended solution** | Change URL from `/api/v1/health` to `/api/v1/monitoring/health` in `.github/workflows/ci.yml` line 231. |
+| **Implementation order** | 4 (same batch as Sprint 3 — CI fix alongside health endpoint changes) |
+| **Complexity** | Low (one URL segment change) |
+| **Estimated time** | 5 minutes |
+| **Required tests** | CI pipeline run (manual trigger after merge) — verify E2E job health check succeeds |
+| **Rollback** | Revert the URL change in `.github/workflows/ci.yml` |
+| **Status** | ✅ Accepted — Completed — Closed |
+| **Owner** | TBD |
+
+---
+
+### PB-007: Add Zod validation to saved-search routes in system/index.ts
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Category** | Validation |
+| **Description** | `system/index.ts` has two routes (`POST /saved-searches` and `PUT /saved-searches/:id`) that accept request body data without Zod schema validation. Discovered during PB-001 release certification — outside the original PB-001 implementation scope. |
+| **Affected files** | `backend/src/modules/system/index.ts` (lines 19, 27) |
+| **Root cause** | Routes were never included in the initial PB-001 audit due to being in an `index.ts` aggregator rather than a `.routes.ts` file. |
+| **Business impact** | Low — saved searches are per-user and non-critical. Malformed data could cause client-side errors. |
+| **Technical impact** | No type safety, no error normalization for these two endpoints. |
+| **Production impact** | Low — data is user-owned and isolated. |
+| **Regression risk** | Low — adding validation may reject previously-accepted malformed data from the frontend. |
+| **Dependencies** | None. |
+| **Recommended solution** | Define a createSavedSearchSchema and updateSavedSearchSchema in `middleware/schemas.ts`, add `validate()` middleware to both routes. |
+| **Implementation order** | 5 |
+| **Complexity** | Low |
+| **Estimated time** | 1 hour |
+| **Required tests** | Unit: schema validation. Integration: POST/PUT with valid/invalid payloads. |
+| **Rollback** | Revert route changes in `system/index.ts`. |
 | **Status** | ⏳ Not started |
+| **Owner** | TBD |
+
+---
+
+### PB-008: Review update schemas using .default() to prevent unintended overwrite
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Medium |
+| **Category** | Validation / Data Integrity |
+| **Description** | Several update schemas use `.partial(createSchema)` where the base create schema uses `.default()`. When `.partial()` is applied, the `.default()` values still fire for unprovided fields, causing PUT handlers to send default values to the repository. This overwrites existing database values with empty defaults during partial updates. Affects `updateEmailConfigSchema`, `updateSmsConfigSchema`, `updatePushConfigSchema`, and any similar update schemas. Discovered during PB-001 release certification. |
+| **Affected files** | `backend/src/middleware/schemas.ts` — `updateEmailConfigSchema`, `updateSmsConfigSchema`, `updatePushConfigSchema` (line 453, 476, 465) |
+| **Root cause** | The pattern `updateXSchema = createXSchema.partial()` carries `.default()` values from the create schema into the update schema. Zod applies defaults before the route handler reads `req.body`. |
+| **Business impact** | Medium — updating one field on an email/SMS/push config could silently reset other fields to their default values (empty strings, `true`, etc.). |
+| **Technical impact** | PUT semantics drift from PATCH semantics. Update is no longer partial — it replaces unprovided fields with defaults. |
+| **Production impact** | Low unless operators rely on partial update behavior for config management. |
+| **Regression risk** | Medium — changing defaults to `.optional()` would reject previously-accepted empty values in create scenarios. Must verify create routes still accept omitted optional fields. |
+| **Dependencies** | PB-001 (these schemas were introduced there). |
+| **Recommended solution** | Review each update schema and replace `.default()` with `.optional()` where the update should preserve existing values. Keep `.default()` only in create schemas. The review should determine where `.optional()` is more appropriate than `.default()`. |
+| **Implementation order** | 5 |
+| **Complexity** | Low (per-schema review, one-line changes) |
+| **Estimated time** | 2-4 hours (including testing) |
+| **Required tests** | Create: verify omitted optional fields get default values. Update: verify omitted fields are not sent to DB (preserving existing values). |
+| **Rollback** | Revert schema changes in `schemas.ts`. |
+| **Status** | ⏳ Not started |
+| **Owner** | TBD |
+
+---
+
+### PB-010: Automate SDK generation from OpenAPI
+
+| Field | Value |
+|-------|-------|
+| **Severity** | Low |
+| **Category** | Developer Experience |
+| **Description** | The frontend SDK at `frontend/src/sdk/` is manually maintained. Despite `orval` being installed as a backend devDependency (`^8.16.0`), there is no configuration file, no npm codegen script, and no CI codegen step. Every API contract change requires manual synchronization between the OpenAPI spec and the SDK, creating maintenance burden and risk of contract drift. Automate SDK generation from the canonical OpenAPI spec at `backend/openapi/openapi.yaml`. |
+| **Affected files** | `frontend/orval.config.ts` (new), `frontend/src/sdk/` (generated), `backend/package.json` (move orval to workspace root or frontend) |
+| **Root cause** | SDK was written by hand during initial development without a code generation pipeline. |
+| **Business impact** | Low — existing SDK works correctly but requires manual updates when API contracts change. No production impact. |
+| **Technical impact** | Manual SDK syncing is error-prone and slows down development. Each API contract change requires manual edits to 2-3 SDK files and type definitions. |
+| **Production impact** | None |
+| **Regression risk** | 🟡 Medium — generated SDK may differ from hand-written patterns, requiring frontend import changes |
+| **Dependencies** | None (post-RC work) |
+| **Recommended solution** | Configure orval with `orval.config.ts`, generate via `npm run generate` in frontend, use mutator to inject existing Axios client. See `docs/sdk-automation-plan.md` for full migration strategy. |
+| **Implementation order** | 6 (post-RC) |
+| **Complexity** | Medium |
+| **Estimated time** | 1-2 days |
+| **Required tests** | Verify all generated SDK methods match existing API behavior. Regression: full frontend build + existing SDK consumer tests. |
+| **Rollback** | Delete generated files, restore SDK to pre-generation state via git |
+| **Status** | ⏳ Deferred — Post Release Candidate |
 | **Owner** | TBD |
 
 ---

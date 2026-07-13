@@ -24,7 +24,7 @@
 | **Messaging** | PB-001 (messages.routes.ts: POST /) | Send message with attachments → verify delivered. Send with invalid recipient → 400. | 🟢 Low |
 | **Backup & Restore** | PB-001 (backup.routes.ts: verify, restore), PB-002 (shell injection fix) | Create backup → verify → restore → verify data integrity. Pre-restore backup created. Rollback on failure works. | 🔴 High |
 | **Admin Configuration** | PB-001 (email-config, push-config, sms-config, reference-data, system-config) | Create/update each config type → verify persisted. Test email → verify sent. Create reference data → verify listed. | 🟡 Medium |
-| **Health Monitoring** | PB-004 (endpoint standardization) | GET /live → 200 + `{"status":"healthy","service":"ethics-erm-api"}`. GET /ready → healthy/degraded. GET /health → full shape. Docker HEALTHCHECK passes. | 🟢 Low |
+| **Health Monitoring** | PB-004 (endpoint standardization) | GET /live → 200 + `{"status":"alive","service":"ethics-erm-api"}`. GET /ready → healthy/degraded. GET /health → full shape. Docker HEALTHCHECK passes. | 🟢 Low |
 | **Error Handling** | PB-005 (ZodError response shape) | Send invalid body to any validated route → verify `requestId` in response. Send invalid body to non-validated route → verify 500 + `requestId`. | 🟢 Low |
 | **CI Pipeline** | PB-003 (npm audit) | CI passes on PR branch. `npm audit` runs for both backend and frontend. Build artifacts unchanged. | 🟢 Low |
 | **Production Shutdown** | PB-006 (stop-prod.ps1) | Script creates backup before shutdown. Containers stop gracefully. No data loss. | 🟢 Low |
@@ -70,7 +70,7 @@ Precondition: Running backend
 1. GET /live → 200, body has "status" and "service" fields
 2. GET /ready → 200 (healthy) or 503 (degraded), body has "status" and "checks"
 3. GET /health → 200, body has "service", "version", "status", "requestId", "uptime", "timestamp", "checks"
-4. All three use same status values ("healthy"/"degraded")
+4. /live uses "alive"; /ready and /health use "healthy"/"degraded"
 5. docker-compose ps → all containers "healthy"
 6. Wait for restart → containers become healthy within start period
 

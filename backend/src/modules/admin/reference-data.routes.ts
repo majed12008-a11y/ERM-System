@@ -1,5 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { authenticate, authorize } from '../../middleware/auth';
+import { referenceDataSchemas } from '../../middleware/schemas';
 import { query } from '../../config/database';
 import { successResponse, errorResponse } from '../../shared/utils';
 
@@ -34,6 +36,29 @@ function getConfig(entity: string) {
   return { fullTable: `"${cfg.schema}"."${cfg.table}"`, ...cfg };
 }
 
+function validateRefData() {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const entity = getEntity(req);
+    const schema = referenceDataSchemas[entity];
+    if (!schema) {
+      res.status(400).json(errorResponse('Unknown entity: ' + entity));
+      return;
+    }
+    const effectiveSchema = req.method === 'PUT' ? schema.partial() : schema;
+    try {
+      req.body = effectiveSchema.parse(req.body);
+      next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const messages = err.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ');
+        res.status(400).json(errorResponse(messages));
+        return;
+      }
+      next(err);
+    }
+  };
+}
+
 router.get('/:entity', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN', 'ETHICS_ADMIN'), async (req: Request, res: Response) => {
   try {
     const entity = getEntity(req);
@@ -54,7 +79,7 @@ router.get('/:entity/:id', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', '
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/:entity', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN'), async (req: Request, res: Response) => {
+router.post('/:entity', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN'), validateRefData(), async (req: Request, res: Response) => {
   try {
     const cfg = getConfig(getEntity(req));
     if (!cfg) return res.status(400).json(errorResponse('Unknown entity'));
@@ -67,7 +92,7 @@ router.post('/:entity', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADM
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/:entity/:id', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN'), async (req: Request, res: Response) => {
+router.put('/:entity/:id', authenticate, authorize('SUPER_ADMIN', 'SYS_ADMIN', 'ADMIN'), validateRefData(), async (req: Request, res: Response) => {
   try {
     const cfg = getConfig(getEntity(req));
     if (!cfg) return res.status(400).json(errorResponse('Unknown entity'));

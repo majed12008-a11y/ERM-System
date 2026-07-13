@@ -106,4 +106,9 @@ CREATE SCHEMA workflow;
 
 --
 
+-- Name: templates; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA templates;
+
 

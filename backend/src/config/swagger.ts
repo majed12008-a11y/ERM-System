@@ -112,14 +112,6 @@ const options: swaggerJsdoc.Options = {
       },
     },
     paths: {
-      // ─── Health ───
-      '/health': {
-        get: {
-          tags: ['System'], summary: 'Health check',
-          responses: { '200': { description: 'Service healthy' } },
-        },
-      },
-
       // ─── Auth ───
       '/security/auth/login': {
         post: {
@@ -406,7 +398,10 @@ const options: swaggerJsdoc.Options = {
       '/monitoring/health': {
         get: {
           tags: ['Monitoring'], summary: 'Database health check',
-          responses: { '200': { description: 'Healthy' }, '503': { description: 'Unhealthy' } },
+          responses: {
+            '200': { description: 'Service healthy' },
+            '503': { description: 'Service unhealthy' },
+          },
         },
       },
       '/monitoring/audit': {

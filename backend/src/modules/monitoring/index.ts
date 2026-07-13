@@ -10,7 +10,7 @@ const router = Router();
 const service = new MonitoringService();
 
 router.get('/live', (_req: Request, res: Response) => {
-  res.json({ status: 'alive' });
+  res.json({ status: 'alive', service: 'ethics-erm-api' });
 });
 
 router.get('/ready', async (_req: Request, res: Response) => {
@@ -27,7 +27,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
 
   checks.smtp = env.SMTP_HOST ? 'configured' : 'not_configured';
 
-  res.status(dbHealthy ? 200 : 503).json({ status: dbHealthy ? 'healthy' : 'unhealthy', checks });
+  res.status(dbHealthy ? 200 : 503).json({ status: dbHealthy ? 'healthy' : 'degraded', service: 'ethics-erm-api', checks });
 });
 
 router.get('/health', async (req: Request, res: Response) => {
