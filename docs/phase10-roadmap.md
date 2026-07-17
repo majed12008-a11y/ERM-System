@@ -273,9 +273,61 @@ Batch 5 ── Maintenance (post-certification findings)
 
 ---
 
-## Sprint 4 — Security Hardening
+## Sprint 3 — API Consistency + Milestone 2
+
+**Duration:** 3 days
+
+**Status:** ✅ COMPLETED
+
+**Completion:** 100% (3/3 issues + Milestone 2)
+
+**Overall Regression:** PASS
+
+**Release Gate:** PASS
+
+**Objectives:**
+- ✅ Standardize health endpoint response formats
+- ✅ Fix ZodError response consistency
+- ✅ Fix CI health probe URL
+- ✅ Execute all 18 E2E workflow scenarios against real PostgreSQL
+- ✅ Fix 2 integration defects found during E2E validation
+- ✅ Verify 0 regressions across 999 tests
+
+**Issues:**
+| ID | Title | Effort | Status |
+|----|-------|--------|--------|
+| PB-005 | Fix ZodError response format consistency | 30min | ✅ Gate 4 PASS |
+| PB-004 | Standardize health check endpoint responses | 2-4h | ✅ Gate 5 PASS |
+| PB-009 | Fix CI health probe URL alignment | 5min | ✅ Gate 6 PASS |
+| M2 | Milestone 2 — System Integration Validation | 3 days | ✅ Gate 7 PASS |
+
+**Files modified/created:**
+- ✅ `backend/src/middleware/validate.ts` — `requestId` added to ZodError 400 response
+- ✅ `backend/src/modules/monitoring/index.ts` — unify /live, /ready, /health formats
+- ✅ `backend/src/config/swagger.ts` — stale path removed, response doc expanded
+- ✅ `backend/src/config/logger.ts` — health endpoint ignore list updated
+- ✅ `backend/openapi/modules/monitoring.yaml` — health response schema expanded
+- ✅ `frontend/src/sdk/core/types.ts` — HealthStatus interface expanded
+- ✅ `.github/workflows/ci.yml` — CI health probe URL fixed (PB-009)
+- ✅ `backend/src/test/e2e-workflow-scenarios.test.ts` — 18 E2E scenarios (new)
+- ✅ `backend/src/test/milestone-2-reports.md` — 5 validation reports (new)
+- ✅ `backend/src/repositories/workflow.repository.ts` — INT-001 fix
+- ✅ `backend/src/middleware/schemas.ts` — INT-002 fix
+
+**Validation:**
+- ✅ ALL 18 E2E scenarios pass against real PostgreSQL
+- ✅ 2 integration defects fixed with 0 regression
+- ✅ 999 tests passing, 8 pre-existing failures, 60 skipped
+- ✅ `tsc --noEmit` 0 errors
+- ✅ 5 validation reports produced
+
+---
+
+## Sprint 4 — Security Hardening (PB-002)
 
 **Duration:** 1-2 days
+
+**Status:** ⏳ Pending Architecture Review
 
 **Objectives:**
 - Eliminate shell injection vector in backup service

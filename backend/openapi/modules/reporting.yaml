@@ -3,16 +3,37 @@ paths:
     get:
       tags: [Reporting]
       summary: Get dashboard statistics
+      description: Returns aggregated KPI counts for the current user's dashboard.
       responses:
         '200':
           description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardStats'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
 
   /reporting/dashboard/stream:
     get:
       tags: [Reporting]
       summary: SSE dashboard stream
-      description: Server-Sent Events stream for real-time dashboard updates.
+      description: Server-Sent Events stream for real-time dashboard updates. Emits `dashboard-stats` events when data changes.
       security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: JWT access token for authentication
       responses:
         '200':
           description: SSE stream
@@ -20,43 +41,137 @@ paths:
             text/event-stream:
               schema:
                 type: string
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
 
   /reporting/applications:
     get:
       tags: [Reporting]
       summary: Get applications report
+      description: Paginated and filtered list of applications for reporting purposes.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, CONDITIONAL, WITHDRAWN, CLOSED]
+          description: Filter by application status
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter applications created on or after this date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter applications created on or before this date
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by application number or project title
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
       responses:
         '200':
-          description: Application report data
+          description: Paginated application report data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReportApplication'
+                      pagination:
+                        $ref: '../components.yaml#/components/schemas/pagination'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
 
   /reporting/committees:
     get:
       tags: [Reporting]
       summary: Get committees report
+      description: Returns committee statistics including review and meeting counts.
       responses:
         '200':
           description: Committee report data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReportCommittee'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
 
   /reporting/status-summary:
     get:
       tags: [Reporting]
       summary: Get status summary
+      description: Returns application counts grouped by current status.
       responses:
         '200':
           description: Status aggregate
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/StatusSummary'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
 
   /reporting/applications-trend:
     get:
       tags: [Reporting]
       summary: Get applications monthly trend
+      description: Returns monthly application submission counts for the last 12 months.
       responses:
         '200':
           description: Monthly trend data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ApplicationTrend'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
 
   /reporting/export/applications:
     get:
       tags: [Reporting]
       summary: Export applications as CSV
+      description: Downloads all applications as a CSV file. Note: Unbounded query — may be slow for large datasets.
       responses:
         '200':
           description: CSV file download
@@ -64,3 +179,70 @@ paths:
             text/csv:
               schema:
                 type: string
+                format: byte
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+components:
+  schemas:
+    DashboardStats:
+      type: object
+      required: [applications, projects, upcomingMeetings, pendingReviews]
+      properties:
+        applications:
+          type: object
+          required: [total, submitted, under_review, approved, rejected]
+          properties:
+            total: { type: integer }
+            submitted: { type: integer }
+            under_review: { type: integer }
+            approved: { type: integer }
+            rejected: { type: integer }
+        projects:
+          type: object
+          properties:
+            total: { type: integer }
+        upcomingMeetings:
+          type: object
+          properties:
+            total: { type: integer }
+        pendingReviews:
+          type: object
+          properties:
+            pending: { type: integer }
+
+    ReportApplication:
+      type: object
+      properties:
+        id: { type: integer }
+        application_number: { type: string }
+        current_status: { type: string }
+        application_type: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time, nullable: true }
+        project_title: { type: string, nullable: true }
+        project_title_en: { type: string, nullable: true }
+        committee_name: { type: string, nullable: true }
+
+    ReportCommittee:
+      type: object
+      properties:
+        id: { type: integer }
+        committee_name_ar: { type: string }
+        committee_type: { type: string, nullable: true }
+        total_reviews: { type: integer }
+        total_meetings: { type: integer }
+
+    StatusSummary:
+      type: object
+      properties:
+        current_status: { type: string }
+        count: { type: integer }
+
+    ApplicationTrend:
+      type: object
+      properties:
+        month: { type: string, example: "2026-07" }
+        count: { type: integer }

@@ -74,12 +74,37 @@ export class DocumentService {
     return this.repo.addSignature(documentId, user.id, hash);
   }
 
-  async softDelete(id: number): Promise<void> {
+  async softDelete(id: number): Promise<{ id: number }> {
     const result = await this.repo.softDelete(id);
     if (!result.deleted) throw Object.assign(new Error('Document not found or already deleted'), { status: 404 });
+    return { id };
+  }
 
-    if (result.storage_path) {
-      try { await fs.promises.unlink(result.storage_path); } catch { /* file may not exist */ }
-    }
+  async getById(id: number) {
+    const doc = await this.repo.findById(id);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+    if (doc.deleted_at) throw Object.assign(new Error('Document has been deleted'), { status: 410 });
+    return doc;
+  }
+
+  async restore(id: number): Promise<{ id: number }> {
+    const doc = await this.repo.findById(id);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+    if (!doc.deleted_at) throw Object.assign(new Error('Document is not deleted'), { status: 400 });
+    const restored = await this.repo.restore(id);
+    if (!restored) throw Object.assign(new Error('Restore failed'), { status: 500 });
+    return { id };
+  }
+
+  getStoragePath(doc: any): string {
+    return doc.storage_path;
+  }
+
+  getMimeType(doc: any): string {
+    return doc.mime_type || 'application/octet-stream';
+  }
+
+  getFileName(doc: any): string {
+    return doc.file_name || doc.document_title || 'document';
   }
 }

@@ -5,7 +5,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../../api/client'
+import { reviews } from '../../sdk/domains/reviews.sdk'
 import DataTable from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { ClipboardCheck } from 'lucide-react'
@@ -15,7 +15,7 @@ export default function MyReviews() {
   const navigate = useNavigate()
   const { data, isLoading } = useQuery({
     queryKey: ['my-reviews'],
-    queryFn: () => api.get('/committee/reviews/my').then((r) => r.data.data),
+    queryFn: () => reviews.getMy().then((r) => r.data.data),
   })
 
   return (
@@ -32,8 +32,8 @@ export default function MyReviews() {
             { key: 'application_number', label: t('reviews.application'), sortable: true },
             { key: 'project_title', label: t('reviews.project'), sortable: true },
             { key: 'review_type', label: t('reviews.reviewType'), sortable: true },
-            { key: 'status_code', label: t('reviews.status'), sortable: true, render: (i) => <StatusBadge status={i.status_code} /> },
-            { key: 'assigned_at', label: t('reviews.assigned'), sortable: true, render: (i) => new Date(i.assigned_at).toLocaleDateString() },
+            { key: 'status_code', label: t('reviews.status'), sortable: true, render: (i) => <StatusBadge status={i.status_code || i.status} /> },
+            { key: 'assigned_at', label: t('reviews.assigned'), sortable: true, render: (i) => i.assigned_at ? new Date(i.assigned_at).toLocaleDateString() : '—' },
             { key: 'due_date', label: t('reviews.dueDate'), sortable: true, render: (i) => i.due_date ? new Date(i.due_date).toLocaleDateString() : '\u2014' },
           ]}
           data={data || []}

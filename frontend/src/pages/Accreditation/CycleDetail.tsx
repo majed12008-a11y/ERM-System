@@ -10,6 +10,7 @@ import api from '../../api/client'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Button } from '../../components/ui/button'
 
+
 export default function CycleDetail() {
   const { t } = useTranslation()
   const { id } = useParams()
@@ -87,7 +88,7 @@ export default function CycleDetail() {
               className="flex items-center gap-1 text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
             >
               <BarChart4 className="w-4 h-4" />
-              {t('dashboard.title')}
+              {t('accreditation.dashboard.title')}
             </button>
           </div>
         </div>

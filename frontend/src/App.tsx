@@ -61,6 +61,12 @@ const AccreditationEvidence = lazy(() => import('./pages/Accreditation/Evidence'
 const AccreditationAssessments = lazy(() => import('./pages/Accreditation/AssessmentsList'))
 const AccreditationConditions = lazy(() => import('./pages/Accreditation/ConditionsList'))
 const AccreditationDashboard = lazy(() => import('./pages/Accreditation/Dashboard'))
+const TemplateLibrary = lazy(() => import('./pages/Templates/TemplateLibrary'))
+const TemplateDetail = lazy(() => import('./pages/Templates/TemplateDetail'))
+const TemplateVersionDetail = lazy(() => import('./pages/Templates/TemplateVersionDetail'))
+const TemplatePreview = lazy(() => import('./pages/Templates/TemplatePreview'))
+const TemplateCreate = lazy(() => import('./pages/Templates/TemplateCreate'))
+const TemplateVersionCreate = lazy(() => import('./pages/Templates/TemplateVersionCreate'))
 
 
 const queryClient = new QueryClient({
@@ -150,6 +156,12 @@ export default function App() {
                 <Route path="/admin/accreditation/cycles/:id/assessments" element={<AccreditationAssessments />} />
                 <Route path="/admin/accreditation/cycles/:id/conditions" element={<AccreditationConditions />} />
                 <Route path="/admin/accreditation/cycles/:id/dashboard" element={<AccreditationDashboard />} />
+                <Route path="/templates" element={<TemplateLibrary />} />
+                <Route path="/templates/create" element={<TemplateCreate />} />
+                <Route path="/templates/:id" element={<TemplateDetail />} />
+                <Route path="/templates/:id/versions/create" element={<TemplateVersionCreate />} />
+                <Route path="/templates/versions/:versionId" element={<TemplateVersionDetail />} />
+                <Route path="/templates/preview/:templateCode" element={<TemplatePreview />} />
               </Route>
             </Route>
           </Routes>

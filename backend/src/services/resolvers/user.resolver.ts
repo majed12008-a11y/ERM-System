@@ -1,9 +1,8 @@
 import { BaseResolver } from './base.resolver';
 import { UserResolveDTO, ResolveContext, VariableMapping } from '../../shared/template-resolver.types';
+import { EntityDataRepository } from './entity-data.repository';
 
 export class UserResolver extends BaseResolver<UserResolveDTO> {
-
-
   protected variableMap = new Map<string, string>([
     ['username', 'username'],
     ['email', 'email'],
@@ -35,44 +34,47 @@ export class UserResolver extends BaseResolver<UserResolveDTO> {
   }
 
   get repositoryDependencies(): string[] {
-    return ['UsersRepository'];
+    return ['EntityDataRepository'];
   }
 
-  constructor(private userRepo: { findById(id: number): Promise<UserResolveDTO | null> }) {
+  constructor(private entityDataRepo: EntityDataRepository) {
     super('User');
   }
 
-  async resolve(entityId: number, variableCode: string, _context?: ResolveContext): Promise<unknown> {
-    const fieldPath = this.getFieldPath(variableCode);
-    if (!fieldPath) this.createRejection(entityId, variableCode, `Unknown variable code "${variableCode}"`);
-
-    const entity = await this.userRepo.findById(entityId);
-    if (!entity) this.createRejection(entityId, variableCode, `User ${entityId} not found`);
-
-    const value = this.resolveField(entity, fieldPath!);
-    if (value === undefined) this.createRejection(entityId, variableCode, `Field "${fieldPath}" not resolved on User ${entityId}`);
-    return value;
+  async resolve(entityId: number, variableCode: string, context?: ResolveContext): Promise<unknown> {
+    if (!this.variableMap.has(variableCode)) {
+      this.createRejection(entityId, variableCode, `Unknown variable code "${variableCode}"`);
+    }
+    const results = await this.resolveBatch([entityId], [variableCode], context);
+    const entity = results.get(entityId);
+    if (!entity) {
+      this.createRejection(entityId, variableCode, `User ${entityId} not found`);
+    }
+    if (!(variableCode in entity!)) {
+      this.createRejection(entityId, variableCode, `Variable "${variableCode}" not resolved on User ${entityId}`);
+    }
+    return (entity as any)[variableCode];
   }
 
   async resolveBatch(entityIds: number[], requestedVariables: string[], _context?: ResolveContext): Promise<Map<number, Partial<UserResolveDTO>>> {
     const results = new Map<number, Partial<UserResolveDTO>>();
-    for (const id of [...new Set(entityIds)]) {
-      const entity = await this.userRepo.findById(id);
-      if (!entity) continue;
+    const uniqueIds = [...new Set(entityIds)];
+    if (uniqueIds.length === 0) return results;
+
+    const rows = await this.entityDataRepo.findUserBatch(uniqueIds);
+
+    for (const id of uniqueIds) {
+      const row = rows.get(id);
+      if (!row) continue;
       const partial: Partial<UserResolveDTO> = {};
       for (const varCode of requestedVariables) {
-        const fieldPath = this.getFieldPath(varCode);
-        if (fieldPath) {
-          const value = this.resolveField(entity, fieldPath);
-          if (value !== undefined) (partial as any)[varCode] = value;
+        const field = this.variableMap.get(varCode);
+        if (field && row[field] !== undefined) {
+          (partial as any)[varCode] = row[field];
         }
       }
       results.set(id, partial);
     }
     return results;
-  }
-
-  private resolveField(obj: any, fieldPath: string): unknown {
-    return fieldPath.includes('.') ? fieldPath.split('.').reduce((o, k) => o?.[k], obj) : obj[fieldPath];
   }
 }

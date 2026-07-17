@@ -69,7 +69,13 @@ export class LocalBackupDestination implements BackupDestination {
     const base = path.basename(name);
     if (!base.endsWith('.dump')) throw new Error('Invalid backup file (must be .dump)');
     const resolved = path.resolve(this.dir, base);
-    if (!resolved.startsWith(this.dir)) throw new Error('Invalid backup file path');
+    if (!resolved.startsWith(path.resolve(this.dir))) throw new Error('Invalid backup file path');
+    try {
+      const canonical = fs.realpathSync(resolved);
+      if (!canonical.startsWith(path.resolve(this.dir))) throw new Error('Invalid backup file path (canonical mismatch)');
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') throw err;
+    }
     return resolved;
   }
 }

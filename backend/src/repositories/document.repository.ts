@@ -8,7 +8,7 @@ import { PaginationParams } from '../shared/pagination';
 
 export class DocumentRepository extends AuditableRepository {
   async findAll(params: PaginationParams): Promise<{ rows: any[]; total: number }> {
-    const countResult = await this.query('SELECT COUNT(*) FROM documents.documents');
+    const countResult = await this.query('SELECT COUNT(*) FROM documents.documents WHERE deleted_at IS NULL');
     const total = parseInt(countResult.rows[0].count);
 
     const result = await this.query(
@@ -16,6 +16,7 @@ export class DocumentRepository extends AuditableRepository {
        FROM documents.documents d
        LEFT JOIN documents.document_types dt ON d.document_type_id = dt.id
        LEFT JOIN security.users u ON d.uploaded_by = u.id
+       WHERE d.deleted_at IS NULL
        ORDER BY d.uploaded_at DESC
        LIMIT $1 OFFSET $2`,
       [params.limit, (params.page - 1) * params.limit]
@@ -79,6 +80,14 @@ export class DocumentRepository extends AuditableRepository {
     return { deleted: true, storage_path: result.rows[0].storage_path };
   }
 
+  async restore(id: number): Promise<boolean> {
+    const result = await this.query(
+      `UPDATE documents.documents SET deleted_at = NULL, deleted_by = NULL WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id`,
+      [id]
+    );
+    return result.rows.length > 0;
+  }
+
   async getTypes(): Promise<any[]> {
     const result = await this.query('SELECT * FROM documents.document_types ORDER BY type_name_ar');
     return result.rows;
@@ -129,7 +138,9 @@ export class DocumentRepository extends AuditableRepository {
          SELECT document_id FROM documents.document_signatures WHERE signer_id = $1
        )
        AND (d.entity_type = 'MeetingMinutes' OR d.entity_type = 'Decision')
-       ORDER BY d.uploaded_at DESC`,
+       AND d.deleted_at IS NULL
+       ORDER BY d.uploaded_at DESC
+       LIMIT 50`,
       [userId]
     );
     return result.rows;

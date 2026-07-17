@@ -70,6 +70,12 @@ paths:
           description: Meeting list
 
   /committee/meetings:
+    get:
+      tags: [Committees]
+      summary: List all meetings
+      responses:
+        '200':
+          description: Meeting list
     post:
       tags: [Committees]
       summary: Create meeting
@@ -89,7 +95,7 @@ paths:
       responses:
         '200':
           description: Meeting details
-    patch:
+    post:
       tags: [Committees]
       summary: Update meeting
       parameters:
@@ -487,6 +493,8 @@ paths:
       responses:
         '200':
           description: Voting session data
+
+  '/committee/voting/sessions/{id}/vote':
     post:
       tags: [Voting]
       summary: Cast vote
@@ -498,7 +506,9 @@ paths:
       responses:
         '201':
           description: Vote recorded
-    patch:
+
+  '/committee/voting/sessions/{id}/close':
+    post:
       tags: [Voting]
       summary: Close voting session
       parameters:
@@ -509,3 +519,5 @@ paths:
       responses:
         '200':
           description: Voting session closed
+
+

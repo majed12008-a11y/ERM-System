@@ -5,12 +5,14 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
-import api from '../../api/client'
+import { reporting } from '../../sdk/domains/reporting.sdk'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import DataTable from '../../components/DataTable'
-import { BarChart3, Download, FileText, Building2, ListChecks, TrendingUp } from 'lucide-react'
+import DocumentGenerationSection from '../../components/DocumentGenerationSection'
+import type { DocumentAction } from '../../components/DocumentGenerationSection'
+import { BarChart3, Download, FileText, Building2, ListChecks, TrendingUp, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { useTranslation } from 'react-i18next'
 
@@ -34,32 +36,35 @@ export default function ReportsPage() {
   const dateTo = watch('dateTo')
   const search = watch('search')
 
-  const { data: apps } = useQuery({
+  const appsQuery = useQuery({
     queryKey: ['report-apps', statusFilter, dateFrom, dateTo, search],
-    queryFn: () => api.get('/reporting/applications', { params: { status: statusFilter || undefined, from: dateFrom || undefined, to: dateTo || undefined, search: search || undefined } }).then(r => r.data.data),
+    queryFn: () => reporting.getApplications({
+      status: statusFilter || undefined, from: dateFrom || undefined,
+      to: dateTo || undefined, search: search || undefined,
+    }).then(r => r.data),
     enabled: tab === 'applications',
   })
 
-  const { data: committees } = useQuery({
+  const committeesQuery = useQuery({
     queryKey: ['report-committees'],
-    queryFn: () => api.get('/reporting/committees').then(r => r.data.data),
+    queryFn: () => reporting.getCommittees().then(r => r.data),
     enabled: tab === 'committees',
   })
 
-  const { data: statusSummary } = useQuery({
+  const statusQuery = useQuery({
     queryKey: ['report-status-summary'],
-    queryFn: () => api.get('/reporting/status-summary').then(r => r.data.data),
+    queryFn: () => reporting.getStatusSummary().then(r => r.data),
     enabled: tab === 'status' || tab === 'charts',
   })
 
-  const { data: trend } = useQuery({
+  const trendQuery = useQuery({
     queryKey: ['report-trend'],
-    queryFn: () => api.get('/reporting/applications-trend').then(r => r.data.data),
+    queryFn: () => reporting.getApplicationsTrend().then(r => r.data),
     enabled: tab === 'charts',
   })
 
   async function exportCSV() {
-    const res = await api.get('/reporting/export/applications', { responseType: 'blob' })
+    const res = await reporting.exportApplications()
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const a = document.createElement('a')
     a.href = url
@@ -68,12 +73,23 @@ export default function ReportsPage() {
     window.URL.revokeObjectURL(url)
   }
 
+  const reportActions: DocumentAction[] = [
+    { key: 'annual', labelKey: 'reports.docAnnual', templateCode: 'report.annual', getVariables: () => ({ report_type: 'annual', year: new Date().getFullYear() }) },
+  ]
+
   const tabs = [
     { key: 'applications' as const, label: t('reports.applicationsReport'), icon: FileText },
     { key: 'committees' as const, label: t('reports.committeeStats'), icon: Building2 },
     { key: 'status' as const, label: t('reports.statusSummary'), icon: ListChecks },
     { key: 'charts' as const, label: t('reports.chartsTrends'), icon: TrendingUp },
   ]
+
+  const renderError = (msg: string) => (
+    <div className="flex items-center gap-2 text-red-600 text-sm p-4">
+      <AlertCircle className="w-4 h-4" />
+      <span>{msg}</span>
+    </div>
+  )
 
   return (
     <div>
@@ -115,52 +131,67 @@ export default function ReportsPage() {
             </div>
             <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-3 h-3 mr-1" />{t('reports.exportCsv')}</Button>
           </div>
-          <DataTable
-            columns={[
-              { key: 'application_number', label: t('reports.appNumber') },
-              { key: 'project_title', label: t('reports.project') },
-              { key: 'current_status', label: t('reports.status') },
-              { key: 'application_type', label: t('reports.type') },
-              { key: 'committee_name', label: t('reports.committee') },
-              { key: 'created_at', label: t('reports.created'), render: r => new Date(r.created_at).toLocaleDateString() },
-            ]}
-            data={apps || []}
-          />
+          {appsQuery.isError ? renderError(t('common.error')) : (
+            <DataTable
+              columns={[
+                { key: 'application_number', label: t('reports.appNumber') },
+                { key: 'project_title', label: t('reports.project') },
+                { key: 'current_status', label: t('reports.status') },
+                { key: 'application_type', label: t('reports.type') },
+                { key: 'committee_name', label: t('reports.committee') },
+                { key: 'created_at', label: t('reports.created'), render: (r: any) => new Date(r.created_at).toLocaleDateString() },
+              ]}
+              data={appsQuery.data?.data || []}
+              loading={appsQuery.isLoading}
+            />
+          )}
         </div>
       )}
 
       {tab === 'committees' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {committees && committees.length > 0 ? committees.map((c: any) => (
-            <Card key={c.id}>
-              <CardHeader><CardTitle className="text-sm">{c.committee_name}</CardTitle></CardHeader>
-              <CardContent className="text-sm space-y-2">
-                <p><span className="text-slate-500">{t('reports.typeLabel')}</span> {c.committee_type}</p>
-                <p><span className="text-slate-500">{t('reports.totalReviews')}</span> {c.total_reviews}</p>
-                <p><span className="text-slate-500">{t('reports.totalMeetings')}</span> {c.total_meetings}</p>
-              </CardContent>
-            </Card>
-          )) : <p className="text-slate-400">{t('reports.noCommitteeData')}</p>}
+        <div>
+          {committeesQuery.isError ? renderError(t('common.error')) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {committeesQuery.isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i}><CardContent className="p-6 animate-pulse"><div className="h-20 bg-slate-100 rounded" /></CardContent></Card>
+                ))
+              ) : committeesQuery.data?.data && committeesQuery.data.data.length > 0 ? committeesQuery.data.data.map((c: any) => (
+                <Card key={c.id}>
+                  <CardHeader><CardTitle className="text-sm">{c.committee_name_ar}</CardTitle></CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p><span className="text-slate-500">{t('reports.typeLabel')}</span> {c.committee_type || '-'}</p>
+                    <p><span className="text-slate-500">{t('reports.totalReviews')}</span> {c.total_reviews}</p>
+                    <p><span className="text-slate-500">{t('reports.totalMeetings')}</span> {c.total_meetings}</p>
+                  </CardContent>
+                </Card>
+              )) : <p className="text-slate-400">{t('reports.noCommitteeData')}</p>}
+            </div>
+          )}
         </div>
       )}
 
       {tab === 'status' && (
         <div className="max-w-md">
-          <Card>
-            <CardHeader><CardTitle className="text-sm">{t('reports.statusBreakdown')}</CardTitle></CardHeader>
-            <CardContent>
-              {statusSummary && statusSummary.length > 0 ? (
-                <div className="space-y-3">
-                  {statusSummary.map((s: any) => (
-                    <div key={s.current_status} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
-                      <span className="font-medium">{s.current_status}</span>
-                      <span className="text-lg font-bold text-blue-600">{s.count}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : <p className="text-slate-400">{t('reports.noData')}</p>}
-            </CardContent>
-          </Card>
+          {statusQuery.isError ? renderError(t('common.error')) : (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">{t('reports.statusBreakdown')}</CardTitle></CardHeader>
+              <CardContent>
+                {statusQuery.isLoading ? (
+                  <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-8 bg-slate-100 rounded animate-pulse" />)}</div>
+                ) : statusQuery.data?.data && statusQuery.data.data.length > 0 ? (
+                  <div className="space-y-3">
+                    {statusQuery.data.data.map((s: any) => (
+                      <div key={s.current_status} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
+                        <span className="font-medium">{s.current_status}</span>
+                        <span className="text-lg font-bold text-blue-600">{s.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-slate-400">{t('reports.noData')}</p>}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -169,11 +200,13 @@ export default function ReportsPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">{t('reports.statusDistribution')}</CardTitle></CardHeader>
             <CardContent>
-              {statusSummary && statusSummary.length > 0 ? (
+              {statusQuery.isError ? renderError(t('common.error')) : statusQuery.isLoading ? (
+                <div className="h-[300px] bg-slate-100 rounded animate-pulse" />
+              ) : statusQuery.data?.data && statusQuery.data.data.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie data={statusSummary} dataKey="count" nameKey="current_status" cx="50%" cy="50%" outerRadius={100} label={({ name, value }: any) => `${name}: ${value}`}>
-                      {statusSummary.map((s: any) => <Cell key={s.current_status} fill={STATUS_COLORS[s.current_status] || '#94a3b8'} />)}
+                    <Pie data={statusQuery.data.data} dataKey="count" nameKey="current_status" cx="50%" cy="50%" outerRadius={100} label={({ name, value }: any) => `${name}: ${value}`}>
+                      {statusQuery.data.data.map((s: any) => <Cell key={s.current_status} fill={STATUS_COLORS[s.current_status] || '#94a3b8'} />)}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -185,15 +218,17 @@ export default function ReportsPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">{t('reports.statusBarChart')}</CardTitle></CardHeader>
             <CardContent>
-              {statusSummary && statusSummary.length > 0 ? (
+              {statusQuery.isError ? renderError(t('common.error')) : statusQuery.isLoading ? (
+                <div className="h-[300px] bg-slate-100 rounded animate-pulse" />
+              ) : statusQuery.data?.data && statusQuery.data.data.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statusSummary}>
+                  <BarChart data={statusQuery.data.data}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="current_status" tick={{ fontSize: 12 }} />
                     <YAxis />
                     <Tooltip />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {statusSummary.map((s: any) => <Cell key={s.current_status} fill={STATUS_COLORS[s.current_status] || '#94a3b8'} />)}
+                      {statusQuery.data.data.map((s: any) => <Cell key={s.current_status} fill={STATUS_COLORS[s.current_status] || '#94a3b8'} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -204,9 +239,11 @@ export default function ReportsPage() {
           <Card className="lg:col-span-2">
             <CardHeader><CardTitle className="text-sm">{t('reports.monthlyTrend')}</CardTitle></CardHeader>
             <CardContent>
-              {trend && trend.length > 0 ? (
+              {trendQuery.isError ? renderError(t('common.error')) : trendQuery.isLoading ? (
+                <div className="h-[300px] bg-slate-100 rounded animate-pulse" />
+              ) : trendQuery.data?.data && trendQuery.data.data.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={trend}>
+                  <LineChart data={trendQuery.data.data}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                     <YAxis />
@@ -219,6 +256,8 @@ export default function ReportsPage() {
           </Card>
         </div>
       )}
+
+      <DocumentGenerationSection actions={reportActions} />
     </div>
   )
 }

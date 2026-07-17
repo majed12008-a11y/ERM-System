@@ -4,12 +4,16 @@ import { TemplateResolverService } from '../services/template-resolver.service';
 import { ApplicationResolver } from '../services/resolvers/application.resolver';
 import { ConditionResolver } from '../services/resolvers/condition.resolver';
 import { UserResolver } from '../services/resolvers/user.resolver';
-import { CommitteeResolver, MeetingResolver } from '../services/resolvers/committee.resolver';
+import { CommitteeResolver } from '../services/resolvers/committee.resolver';
+import { MeetingResolver } from '../services/resolvers/meeting.resolver';
 import { DocumentResolver } from '../services/resolvers/document.resolver';
-import {
-  InstitutionResolver, NotificationResolver, ReviewResolver,
-  ReportResolver, CommunicationResolver, SafetyReportResolver,
-} from '../services/resolvers/reference.resolver';
+import { InstitutionResolver } from '../services/resolvers/institution.resolver';
+import { NotificationResolver } from '../services/resolvers/notification.resolver';
+import { ReviewResolver } from '../services/resolvers/review.resolver';
+import { ReportResolver } from '../services/resolvers/report.resolver';
+import { CommunicationResolver } from '../services/resolvers/communication.resolver';
+import { SafetyReportResolver } from '../services/resolvers/safety-report.resolver';
+import { EntityDataRepository } from '../services/resolvers/entity-data.repository';
 import { IResolver, ResolverCache } from '../shared/template-resolver.types';
 import { BaseResolver } from '../services/resolvers/base.resolver';
 
@@ -20,6 +24,7 @@ const mockApplication = {
   project_title: 'Clinical Trial X', project_code: 'CTX-001',
   application_type: 'INITIAL', submitted_by: 100,
   submitted_by_username: 'researcher1', target_committee_id: 5,
+  committee_name_ar: 'لجنة الأخلاقيات', committee_name_en: 'Ethics Committee',
   current_status: 'SUBMITTED', status_name_ar: 'مقدم',
   created_at: new Date('2025-01-15'), created_by: 100,
 };
@@ -62,14 +67,34 @@ const mockCommunication = { id: 1, communication_type: 'EMAIL', subject: 'Meetin
 
 const mockSafetyReport = { id: 1, application_id: 1, report_type: 'ADVERSE_EVENT', severity: 'MODERATE', description: 'Patient reported headache', reported_by: 100, reported_at: new Date(), status: 'UNDER_REVIEW' };
 
-// ─── Mock Repository Factory ───────────────────────────────────────
+const mockMeeting = { id: 1, committee_id: 5, meeting_date: new Date('2025-03-01'), meeting_type: 'REGULAR', status: 'SCHEDULED', location: 'Room A', committee_name_ar: 'لجنة الأخلاقيات' };
 
-function mockRepo<T>(data: T | null) {
-  return { findById: vi.fn().mockResolvedValue(data) };
-}
+// ─── Mock EntityDataRepository Factory ──────────────────────────────
 
-function mockConditionRepo<T>(data: T | null) {
-  return { findById: vi.fn().mockResolvedValue(data), findByApplication: vi.fn().mockResolvedValue(data ? [data] : []) };
+function createMockEntityDataRepo(overrides: Partial<Record<string, any>> = {}): EntityDataRepository {
+  const defaults: Record<string, any> = {
+    findApplicationBatch: new Map([[1, mockApplication]]),
+    findConditionBatch: new Map([[1, mockCondition]]),
+    findUserBatch: new Map([[100, mockUser]]),
+    findCommitteeBatch: new Map([[5, mockCommittee]]),
+    findInstitutionBatch: new Map([[1, mockInstitution]]),
+    findNotificationBatch: new Map([[1, mockNotification]]),
+    findMeetingBatch: new Map([[1, mockMeeting]]),
+    findReviewBatch: new Map([[1, mockReview]]),
+    findDocumentBatch: new Map([[1, mockDocument]]),
+    findReportBatch: new Map([[1, mockReport]]),
+    findCommunicationBatch: new Map([[1, mockCommunication]]),
+    findSafetyReportBatch: new Map([[1, mockSafetyReport]]),
+  };
+
+  const data = { ...defaults, ...overrides };
+  const repo = {} as EntityDataRepository;
+
+  for (const [method, batchResult] of Object.entries(data)) {
+    (repo as any)[method] = vi.fn().mockResolvedValue(batchResult);
+  }
+
+  return repo;
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────
@@ -82,7 +107,7 @@ describe('ResolverRegistry', () => {
   });
 
   it('registers and retrieves a resolver', () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     registry.register(resolver);
     expect(registry.has('Application')).toBe(true);
     expect(registry.get('Application')).toBe(resolver);
@@ -97,7 +122,7 @@ describe('ResolverRegistry', () => {
   });
 
   it('getOrThrow returns resolver for registered type', () => {
-    const resolver = new UserResolver(mockRepo(mockUser));
+    const resolver = new UserResolver(createMockEntityDataRepo());
     registry.register(resolver);
     expect(registry.getOrThrow('User')).toBe(resolver);
   });
@@ -108,31 +133,31 @@ describe('ResolverRegistry', () => {
   });
 
   it('rejects duplicate registration', () => {
-    const r1 = new ApplicationResolver(mockRepo(mockApplication));
-    const r2 = new ApplicationResolver(mockRepo(mockApplication));
+    const r1 = new ApplicationResolver(createMockEntityDataRepo());
+    const r2 = new ApplicationResolver(createMockEntityDataRepo());
     registry.register(r1);
     expect(() => registry.register(r2)).toThrow('already registered');
   });
 
   it('lists registered types', () => {
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
-    registry.register(new UserResolver(mockRepo(mockUser)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
+    registry.register(new UserResolver(createMockEntityDataRepo()));
     const types = registry.getRegisteredTypes();
     expect(types).toContain('Application');
     expect(types).toContain('User');
   });
 
   it('unregisters a resolver', () => {
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
     expect(registry.unregister('Application')).toBe(true);
     expect(registry.has('Application')).toBe(false);
   });
 
   it('reports correct size', () => {
     expect(registry.size).toBe(0);
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
     expect(registry.size).toBe(1);
-    registry.register(new UserResolver(mockRepo(mockUser)));
+    registry.register(new UserResolver(createMockEntityDataRepo()));
     expect(registry.size).toBe(2);
   });
 
@@ -142,7 +167,7 @@ describe('ResolverRegistry', () => {
   });
 
   it('clears all resolvers', () => {
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
     registry.clear();
     expect(registry.size).toBe(0);
   });
@@ -150,35 +175,36 @@ describe('ResolverRegistry', () => {
 
 describe('ApplicationResolver', () => {
   it('resolves a single variable', async () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'application_number');
     expect(value).toBe('APP-2025-001');
   });
 
   it('resolves alias variable applicant_name', async () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'applicant_name');
     expect(value).toBe('researcher1');
   });
 
   it('resolves alias variable protocol_number', async () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'protocol_number');
     expect(value).toBe('APP-2025-001');
   });
 
   it('throws for unknown variable code', async () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     await expect(resolver.resolve(1, 'unknown_var')).rejects.toThrow('Unknown variable code');
   });
 
   it('throws for non-existent entity', async () => {
-    const resolver = new ApplicationResolver(mockRepo(null));
+    const repo = createMockEntityDataRepo({ findApplicationBatch: new Map() });
+    const resolver = new ApplicationResolver(repo);
     await expect(resolver.resolve(999, 'application_number')).rejects.toThrow('not found');
   });
 
   it('resolves batch of variables', async () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     const results = await resolver.resolveBatch([1], ['application_number', 'current_status', 'project_title']);
     expect(results.size).toBe(1);
     const data = results.get(1)!;
@@ -188,58 +214,68 @@ describe('ApplicationResolver', () => {
   });
 
   it('batch skips non-existent entities', async () => {
-    const resolver = new ApplicationResolver(mockRepo(null));
+    const repo = createMockEntityDataRepo({ findApplicationBatch: new Map() });
+    const resolver = new ApplicationResolver(repo);
     const results = await resolver.resolveBatch([999], ['application_number']);
     expect(results.size).toBe(0);
   });
 
   it('deduplicates entity IDs in batch', async () => {
-    const repo = { findById: vi.fn().mockResolvedValue(mockApplication) };
+    const repo = createMockEntityDataRepo();
     const resolver = new ApplicationResolver(repo);
     await resolver.resolveBatch([1, 1, 1], ['application_number']);
-    expect(repo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves committee_name via locale', async () => {
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
+    const arVal = await resolver.resolve(1, 'committee_name_ar');
+    expect(arVal).toBe('لجنة الأخلاقيات');
+    const enVal = await resolver.resolve(1, 'committee_name_en');
+    expect(enVal).toBe('Ethics Committee');
   });
 });
 
 describe('ConditionResolver', () => {
   it('resolves a condition variable', async () => {
-    const resolver = new ConditionResolver(mockConditionRepo(mockCondition));
+    const resolver = new ConditionResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'condition_text');
     expect(value).toBe('Submit updated consent form');
   });
 
   it('resolves condition status', async () => {
-    const resolver = new ConditionResolver(mockConditionRepo(mockCondition));
+    const resolver = new ConditionResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'status');
     expect(value).toBe('OPEN');
   });
 
   it('throws for unknown variable', async () => {
-    const resolver = new ConditionResolver(mockConditionRepo(mockCondition));
+    const resolver = new ConditionResolver(createMockEntityDataRepo());
     await expect(resolver.resolve(1, 'bad_var')).rejects.toThrow('Unknown variable code');
   });
 
   it('throws when condition not found', async () => {
-    const resolver = new ConditionResolver(mockConditionRepo(null));
+    const repo = createMockEntityDataRepo({ findConditionBatch: new Map() });
+    const resolver = new ConditionResolver(repo);
     await expect(resolver.resolve(999, 'status')).rejects.toThrow('not found');
   });
 });
 
 describe('UserResolver', () => {
   it('resolves user display name', async () => {
-    const resolver = new UserResolver(mockRepo(mockUser));
+    const resolver = new UserResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(100, 'display_name');
     expect(value).toBe('باحث');
   });
 
   it('resolves user email', async () => {
-    const resolver = new UserResolver(mockRepo(mockUser));
+    const resolver = new UserResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(100, 'email');
     expect(value).toBe('r1@test.com');
   });
 
   it('resolves user roles', async () => {
-    const resolver = new UserResolver(mockRepo(mockUser));
+    const resolver = new UserResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(100, 'roles');
     expect(value).toEqual(['RESEARCHER']);
   });
@@ -247,13 +283,13 @@ describe('UserResolver', () => {
 
 describe('CommitteeResolver', () => {
   it('resolves committee name', async () => {
-    const resolver = new CommitteeResolver(mockRepo(mockCommittee));
+    const resolver = new CommitteeResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(5, 'committee_name_ar');
     expect(value).toBe('لجنة الأخلاقيات');
   });
 
   it('resolves committee code', async () => {
-    const resolver = new CommitteeResolver(mockRepo(mockCommittee));
+    const resolver = new CommitteeResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(5, 'committee_code');
     expect(value).toBe('IRB-01');
   });
@@ -261,8 +297,7 @@ describe('CommitteeResolver', () => {
 
 describe('MeetingResolver', () => {
   it('resolves meeting fields', async () => {
-    const mockMeeting = { id: 1, committee_id: 5, meeting_date: new Date('2025-03-01'), meeting_type: 'REGULAR', status: 'SCHEDULED', location: 'Room A' };
-    const resolver = new MeetingResolver(mockRepo(mockMeeting));
+    const resolver = new MeetingResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'meeting_type');
     expect(value).toBe('REGULAR');
   });
@@ -270,66 +305,74 @@ describe('MeetingResolver', () => {
 
 describe('DocumentResolver', () => {
   it('resolves document fields', async () => {
-    const resolver = new DocumentResolver(mockRepo(mockDocument));
+    const resolver = new DocumentResolver(createMockEntityDataRepo());
     const value = await resolver.resolve(1, 'file_name');
     expect(value).toBe('consent.pdf');
   });
 });
 
-describe('Reference Resolvers', () => {
+describe('Individual Reference Resolvers', () => {
   it('InstitutionResolver resolves name', async () => {
-    const r = new InstitutionResolver(mockRepo(mockInstitution));
+    const r = new InstitutionResolver(createMockEntityDataRepo());
     expect(await r.resolve(1, 'name_ar')).toBe('جامعة الاختبار');
     expect(await r.resolve(1, 'code')).toBe('TU-001');
   });
 
   it('NotificationResolver resolves fields', async () => {
-    const r = new NotificationResolver(mockRepo(mockNotification));
+    const r = new NotificationResolver(createMockEntityDataRepo());
     expect(await r.resolve(1, 'subject')).toBe('Test Notification');
   });
 
   it('ReviewResolver resolves fields', async () => {
-    const r = new ReviewResolver(mockRepo(mockReview));
+    const r = new ReviewResolver(createMockEntityDataRepo());
     expect(await r.resolve(1, 'decision')).toBe('APPROVED');
   });
 
   it('ReportResolver resolves fields', async () => {
-    const r = new ReportResolver(mockRepo(mockReport));
+    const r = new ReportResolver(createMockEntityDataRepo());
     expect(await r.resolve(1, 'report_type')).toBe('ANNUAL');
   });
 
   it('CommunicationResolver resolves fields', async () => {
-    const r = new CommunicationResolver(mockRepo(mockCommunication));
+    const r = new CommunicationResolver(createMockEntityDataRepo());
     expect(await r.resolve(1, 'communication_type')).toBe('EMAIL');
   });
 
   it('SafetyReportResolver resolves fields', async () => {
-    const r = new SafetyReportResolver(mockRepo(mockSafetyReport));
+    const r = new SafetyReportResolver(createMockEntityDataRepo());
     expect(await r.resolve(1, 'severity')).toBe('MODERATE');
   });
 
-  it('all reference resolvers throw for unknown vars', async () => {
+  it('all resolvers throw for unknown vars', async () => {
     const resolvers = [
-      { resolver: new InstitutionResolver(mockRepo(mockInstitution)), varCode: 'nonexistent' },
-      { resolver: new NotificationResolver(mockRepo(mockNotification)), varCode: 'nonexistent' },
-      { resolver: new ReviewResolver(mockRepo(mockReview)), varCode: 'nonexistent' },
-      { resolver: new ReportResolver(mockRepo(mockReport)), varCode: 'nonexistent' },
-      { resolver: new CommunicationResolver(mockRepo(mockCommunication)), varCode: 'nonexistent' },
-      { resolver: new SafetyReportResolver(mockRepo(mockSafetyReport)), varCode: 'nonexistent' },
+      { resolver: new InstitutionResolver(createMockEntityDataRepo()), varCode: 'nonexistent' },
+      { resolver: new NotificationResolver(createMockEntityDataRepo()), varCode: 'nonexistent' },
+      { resolver: new ReviewResolver(createMockEntityDataRepo()), varCode: 'nonexistent' },
+      { resolver: new ReportResolver(createMockEntityDataRepo()), varCode: 'nonexistent' },
+      { resolver: new CommunicationResolver(createMockEntityDataRepo()), varCode: 'nonexistent' },
+      { resolver: new SafetyReportResolver(createMockEntityDataRepo()), varCode: 'nonexistent' },
     ];
     for (const { resolver, varCode } of resolvers) {
       await expect(resolver.resolve(1, varCode)).rejects.toThrow('reject: Unknown');
     }
   });
 
-  it('all reference resolvers throw for missing entities', async () => {
+  it('all resolvers throw for missing entities', async () => {
+    const emptyRepos = {
+      findInstitutionBatch: new Map(),
+      findNotificationBatch: new Map(),
+      findReviewBatch: new Map(),
+      findReportBatch: new Map(),
+      findCommunicationBatch: new Map(),
+      findSafetyReportBatch: new Map(),
+    };
     const resolvers = [
-      { resolver: new InstitutionResolver(mockRepo(null)), varCode: 'name_ar' },
-      { resolver: new NotificationResolver(mockRepo(null)), varCode: 'subject' },
-      { resolver: new ReviewResolver(mockRepo(null)), varCode: 'decision' },
-      { resolver: new ReportResolver(mockRepo(null)), varCode: 'report_type' },
-      { resolver: new CommunicationResolver(mockRepo(null)), varCode: 'subject' },
-      { resolver: new SafetyReportResolver(mockRepo(null)), varCode: 'severity' },
+      { resolver: new InstitutionResolver(createMockEntityDataRepo(emptyRepos)), varCode: 'name_ar' },
+      { resolver: new NotificationResolver(createMockEntityDataRepo(emptyRepos)), varCode: 'subject' },
+      { resolver: new ReviewResolver(createMockEntityDataRepo(emptyRepos)), varCode: 'decision' },
+      { resolver: new ReportResolver(createMockEntityDataRepo(emptyRepos)), varCode: 'report_type' },
+      { resolver: new CommunicationResolver(createMockEntityDataRepo(emptyRepos)), varCode: 'subject' },
+      { resolver: new SafetyReportResolver(createMockEntityDataRepo(emptyRepos)), varCode: 'severity' },
     ];
     for (const { resolver, varCode } of resolvers) {
       await expect(resolver.resolve(999, varCode)).rejects.toThrow('reject:');
@@ -343,9 +386,9 @@ describe('TemplateResolverService — Single Resolve', () => {
 
   beforeEach(() => {
     registry = new ResolverRegistry();
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
-    registry.register(new UserResolver(mockRepo(mockUser)));
-    registry.register(new ConditionResolver(mockConditionRepo(mockCondition)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
+    registry.register(new UserResolver(createMockEntityDataRepo()));
+    registry.register(new ConditionResolver(createMockEntityDataRepo()));
     service = new TemplateResolverService(registry);
     service.clearCache();
   });
@@ -367,9 +410,8 @@ describe('TemplateResolverService — Single Resolve', () => {
   });
 
   it('returns error when entity not found', async () => {
-    const customRepo = { findById: vi.fn((id: number) => id === 999 ? Promise.resolve(null) : Promise.resolve(mockApplication)) };
     const reg = new ResolverRegistry();
-    reg.register(new ApplicationResolver(customRepo));
+    reg.register(new ApplicationResolver(createMockEntityDataRepo({ findApplicationBatch: new Map() })));
     const svc = new TemplateResolverService(reg);
     const result = await svc.resolveSingle({
       entityType: 'Application', entityId: 999, variableCode: 'application_number',
@@ -379,7 +421,7 @@ describe('TemplateResolverService — Single Resolve', () => {
   });
 
   it('uses cache on repeated resolution', async () => {
-    const repo = { findById: vi.fn().mockResolvedValue(mockApplication) };
+    const repo = createMockEntityDataRepo();
     const reg = new ResolverRegistry();
     reg.register(new ApplicationResolver(repo));
     const svc = new TemplateResolverService(reg);
@@ -387,11 +429,11 @@ describe('TemplateResolverService — Single Resolve', () => {
 
     const r1 = await svc.resolveSingle({ entityType: 'Application', entityId: 1, variableCode: 'application_number' });
     expect(r1.resolved).toBe(true);
-    expect(repo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
 
     const r2 = await svc.resolveSingle({ entityType: 'Application', entityId: 1, variableCode: 'application_number' });
     expect(r2.resolved).toBe(true);
-    expect(repo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -401,10 +443,10 @@ describe('TemplateResolverService — Batch Resolve', () => {
 
   beforeEach(() => {
     registry = new ResolverRegistry();
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
-    registry.register(new UserResolver(mockRepo(mockUser)));
-    registry.register(new ConditionResolver(mockConditionRepo(mockCondition)));
-    registry.register(new DocumentResolver(mockRepo(mockDocument)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
+    registry.register(new UserResolver(createMockEntityDataRepo()));
+    registry.register(new ConditionResolver(createMockEntityDataRepo()));
+    registry.register(new DocumentResolver(createMockEntityDataRepo()));
     service = new TemplateResolverService(registry);
     service.clearCache();
   });
@@ -425,9 +467,9 @@ describe('TemplateResolverService — Batch Resolve', () => {
   });
 
   it('groups requests by entity type', async () => {
-    const appRepo = { findById: vi.fn().mockResolvedValue(mockApplication) };
+    const repo = createMockEntityDataRepo();
     const reg = new ResolverRegistry();
-    reg.register(new ApplicationResolver(appRepo));
+    reg.register(new ApplicationResolver(repo));
     const svc = new TemplateResolverService(reg);
     svc.clearCache();
 
@@ -438,13 +480,13 @@ describe('TemplateResolverService — Batch Resolve', () => {
         { entityType: 'Application', entityId: 2, variableCode: 'project_title' },
       ],
     });
-    expect(appRepo.findById).toHaveBeenCalledTimes(2);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
   });
 
   it('deduplicates identical requests', async () => {
-    const appRepo = { findById: vi.fn().mockResolvedValue(mockApplication) };
+    const repo = createMockEntityDataRepo();
     const reg = new ResolverRegistry();
-    reg.register(new ApplicationResolver(appRepo));
+    reg.register(new ApplicationResolver(repo));
     const svc = new TemplateResolverService(reg);
     svc.clearCache();
 
@@ -455,7 +497,7 @@ describe('TemplateResolverService — Batch Resolve', () => {
         { entityType: 'Application', entityId: 1, variableCode: 'application_number' },
       ],
     });
-    expect(appRepo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
   });
 
   it('handles unregistered entity type in batch', async () => {
@@ -471,21 +513,21 @@ describe('TemplateResolverService — Batch Resolve', () => {
   });
 
   it('returns cached results without re-resolving', async () => {
-    const appRepo = { findById: vi.fn().mockResolvedValue(mockApplication) };
+    const repo = createMockEntityDataRepo();
     const reg = new ResolverRegistry();
-    reg.register(new ApplicationResolver(appRepo));
+    reg.register(new ApplicationResolver(repo));
     const svc = new TemplateResolverService(reg);
     svc.clearCache();
 
     await svc.resolveBatch({
       requests: [{ entityType: 'Application', entityId: 1, variableCode: 'application_number' }],
     });
-    expect(appRepo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
 
     const result = await svc.resolveBatch({
       requests: [{ entityType: 'Application', entityId: 1, variableCode: 'application_number' }],
     });
-    expect(appRepo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
     expect(result.cachedCount).toBe(1);
     expect(result.results[0].value).toBe('APP-2025-001');
   });
@@ -504,7 +546,7 @@ describe('TemplateResolverService — resolveFromVariableDefinitions', () => {
 
   beforeEach(() => {
     registry = new ResolverRegistry();
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
     service = new TemplateResolverService(registry);
     service.clearCache();
   });
@@ -539,7 +581,7 @@ describe('Cache integration', () => {
     };
 
     const registry = new ResolverRegistry();
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
     const service = new TemplateResolverService(registry, customCache);
     service.clearCache();
 
@@ -550,20 +592,20 @@ describe('Cache integration', () => {
 
   it('clearCache works', async () => {
     const registry = new ResolverRegistry();
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
     const service = new TemplateResolverService(registry);
     service.clearCache();
 
     await service.resolveSingle({ entityType: 'Application', entityId: 1, variableCode: 'application_number' });
     service.clearCache();
 
-    const repo = { findById: vi.fn().mockResolvedValue(mockApplication) };
+    const repo = createMockEntityDataRepo();
     const reg = new ResolverRegistry();
     reg.register(new ApplicationResolver(repo));
     const svc = new TemplateResolverService(reg);
 
     await svc.resolveSingle({ entityType: 'Application', entityId: 1, variableCode: 'application_number' });
-    expect(repo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findApplicationBatch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -601,7 +643,7 @@ describe('Entity whitelist enforcement', () => {
 
 describe('Resolver metadata', () => {
   it('ApplicationResolver exposes supported variables', () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
     const vars = resolver.supportedVariables;
     expect(vars.length).toBeGreaterThan(10);
     expect(vars.find(v => v.variableCode === 'application_number')).toBeDefined();
@@ -609,26 +651,26 @@ describe('Resolver metadata', () => {
   });
 
   it('ApplicationResolver exposes repository dependencies', () => {
-    const resolver = new ApplicationResolver(mockRepo(mockApplication));
-    expect(resolver.repositoryDependencies).toContain('ApplicationRepository');
+    const resolver = new ApplicationResolver(createMockEntityDataRepo());
+    expect(resolver.repositoryDependencies).toContain('EntityDataRepository');
   });
 });
 
 describe('Resolver coverage matrix', () => {
   it('all 12 entity roots have resolvers in the registry', () => {
     const registry = new ResolverRegistry();
-    registry.register(new ApplicationResolver(mockRepo(mockApplication)));
-    registry.register(new ConditionResolver(mockConditionRepo(mockCondition)));
-    registry.register(new UserResolver(mockRepo(mockUser)));
-    registry.register(new CommitteeResolver(mockRepo(mockCommittee)));
-    registry.register(new MeetingResolver(mockRepo({ id: 1 })));
-    registry.register(new DocumentResolver(mockRepo(mockDocument)));
-    registry.register(new InstitutionResolver(mockRepo(mockInstitution)));
-    registry.register(new NotificationResolver(mockRepo(mockNotification)));
-    registry.register(new ReviewResolver(mockRepo(mockReview)));
-    registry.register(new ReportResolver(mockRepo(mockReport)));
-    registry.register(new CommunicationResolver(mockRepo(mockCommunication)));
-    registry.register(new SafetyReportResolver(mockRepo(mockSafetyReport)));
+    registry.register(new ApplicationResolver(createMockEntityDataRepo()));
+    registry.register(new ConditionResolver(createMockEntityDataRepo()));
+    registry.register(new UserResolver(createMockEntityDataRepo()));
+    registry.register(new CommitteeResolver(createMockEntityDataRepo()));
+    registry.register(new MeetingResolver(createMockEntityDataRepo()));
+    registry.register(new DocumentResolver(createMockEntityDataRepo()));
+    registry.register(new InstitutionResolver(createMockEntityDataRepo()));
+    registry.register(new NotificationResolver(createMockEntityDataRepo()));
+    registry.register(new ReviewResolver(createMockEntityDataRepo()));
+    registry.register(new ReportResolver(createMockEntityDataRepo()));
+    registry.register(new CommunicationResolver(createMockEntityDataRepo()));
+    registry.register(new SafetyReportResolver(createMockEntityDataRepo()));
 
     expect(registry.size).toBe(12);
     const expected = ['Application', 'Condition', 'User', 'Committee', 'Meeting',

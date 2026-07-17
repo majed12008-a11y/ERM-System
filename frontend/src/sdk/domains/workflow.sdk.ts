@@ -3,7 +3,7 @@
  * وحالات workflow والانتقالات بينها.
  */
 import api from '../../api/client'
-import type { SuccessResponse, WorkflowDefinition, WorkflowInstance, WorkflowTransition } from '../core/types'
+import type { SuccessResponse, WorkflowDefinition, WorkflowInstance, AvailableTransitionsResponse } from '../core/types'
 
 export const workflow = {
   getDefinitions() {
@@ -15,7 +15,7 @@ export const workflow = {
   },
 
   getAvailableTransitions(entityType: string, entityId: number) {
-    return api.get<SuccessResponse<WorkflowTransition[]>>(`/workflow/available-transitions/${entityType}/${entityId}`)
+    return api.get<SuccessResponse<AvailableTransitionsResponse>>(`/workflow/available-transitions/${entityType}/${entityId}`)
   },
 
   executeTransition(data: { entity_type: string; entity_id: number; transition: string; comment?: string }) {

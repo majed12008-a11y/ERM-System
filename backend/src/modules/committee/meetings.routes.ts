@@ -8,6 +8,12 @@ import { CommitteeService } from '../../services/committee.service';
 const router = Router();
 const service = new CommitteeService();
 
+router.get('/', authenticate, async (req: Request, res: Response) => {
+  try {
+    res.json(successResponse(await service.getAllMeetings()));
+  } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
 router.get('/committee/:committeeId', authenticate, async (req: Request, res: Response) => {
   try {
     res.json(successResponse(await service.getMeetings(parseInt(String(req.params.committeeId)))));

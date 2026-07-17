@@ -18,7 +18,7 @@ import {
   CalendarDays, ClipboardCheck, ClipboardList, Bell, LogOut, Menu, X,
   AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, Search,
   UserCircle, FileUp, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen,
-  HardDrive, KeyRound, BookMarked, Settings2, Building2, Moon, Sun
+  HardDrive, KeyRound, BookMarked, Settings2, Building2, Moon, Sun, LayoutTemplate
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
@@ -125,6 +125,7 @@ export default function RootLayout() {
         { to: '/admin/notification-channels', labelKey: 'nav.notificationChannels', icon: Settings2, permission: 'user.view' },
         { to: '/admin/reference-data', labelKey: 'nav.referenceData', icon: BookOpen, permission: 'user.view' },
         { to: '/admin/backup', labelKey: 'nav.backup', icon: HardDrive, permission: 'user.view' },
+        { to: '/templates', labelKey: 'nav.templateLibrary', icon: LayoutTemplate, permission: 'user.view' },
       ],
     },
     {

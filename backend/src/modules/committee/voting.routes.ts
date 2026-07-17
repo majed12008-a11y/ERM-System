@@ -3,10 +3,10 @@ import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { createVotingSessionSchema, castVoteSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
-import { CommitteeService } from '../../services/committee.service';
+import { VotingService } from '../../services/voting.service';
 
 const router = Router();
-const service = new CommitteeService();
+const service = new VotingService();
 
 router.get('/meeting/:meetingId', authenticate, async (req: Request, res: Response) => {
   try {

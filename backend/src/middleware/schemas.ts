@@ -164,6 +164,7 @@ export const createAgendaSchema = z.object({
 export const addAttendanceSchema = z.object({
   user_id: z.coerce.number().positive(),
   attendance_status: z.string().min(1).max(50),
+  remarks: z.string().optional(),
 });
 
 export const createMinutesSchema = z.object({
@@ -186,15 +187,20 @@ export const castVoteSchema = z.object({
 export const createTermSchema = z.object({
   start_date: z.string().min(1),
   end_date: z.string().optional(),
-  role_id: z.coerce.number().positive(),
+  appointment_decision_no: z.string().optional(),
+  termination_decision_no: z.string().optional(),
 });
 
 export const createQualificationSchema = z.object({
-  qualification_type: z.string().min(1).max(100),
-  description: z.string().optional(),
+  specialization: z.string().min(1).max(100),
+  academic_degree: z.string().min(1).max(100),
+  institution_name: z.string().optional(),
+  experience_years: z.coerce.number().positive().optional(),
 });
 
 export const createConflictSchema = z.object({
+  entity_type: z.string().min(1).max(50),
+  entity_id: z.coerce.number().positive(),
   conflict_type: z.string().min(1).max(100),
   description: z.string().optional(),
 });

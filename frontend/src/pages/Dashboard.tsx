@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useDashboardStream } from '../hooks/useDashboardStream'
+import { reporting } from '../sdk/domains/reporting.sdk'
+import { admin } from '../sdk/domains/admin.sdk'
+import { notifications } from '../sdk/domains/communication.sdk'
 import {
   FileText, FolderKanban, CalendarDays, ClipboardCheck, Bell,
   BarChart3, ArrowRight, History, CheckCircle2, AlertTriangle
@@ -35,26 +37,30 @@ export default function Dashboard() {
 
   useDashboardStream()
 
-  const { data: stats, isPending: statsLoading, isError: statsError } = useQuery({
+  const statsQuery = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: () => api.get('/reporting/dashboard/stats').then((r) => r.data.data),
+    queryFn: () => reporting.getDashboardStats().then(r => r.data.data),
   })
 
-  const { data: unread } = useQuery({
+  const unreadQuery = useQuery({
     queryKey: ['notifications-count'],
-    queryFn: () => api.get('/communication/notifications').then((r) =>
-      (r.data.data || []).filter((n: any) => !n.is_read).length
-    ),
+    queryFn: () => notifications.getUnreadCount().then(r => r.data.data.count),
   })
 
-  const chartData = [
-    { name: 'Jan', applications: 4 },
-    { name: 'Feb', applications: 7 },
-    { name: 'Mar', applications: 5 },
-    { name: 'Apr', applications: 9 },
-    { name: 'May', applications: 6 },
-    { name: 'Jun', applications: 8 },
-  ]
+  const trendQuery = useQuery({
+    queryKey: ['report-trend'],
+    queryFn: () => reporting.getApplicationsTrend().then(r => r.data.data),
+  })
+
+  const activityQuery = useQuery({
+    queryKey: ['recent-activity'],
+    queryFn: () => admin.getRecentActivity().then(r => r.data.data),
+  })
+
+  const stats = statsQuery.data
+  const trendData = trendQuery.data || []
+  const activity = activityQuery.data || []
+  const pendingCount = stats?.pendingReviews?.pending ?? 0
 
   const quickActions = [
     { labelKey: 'dashboard.newApplication', icon: FileText, link: '/applications/create', show: canCreateApp },
@@ -62,6 +68,16 @@ export default function Dashboard() {
     { labelKey: 'dashboard.reports', icon: BarChart3, link: '/reports', show: true },
     { labelKey: 'dashboard.scheduleMeeting', icon: CalendarDays, link: '/committee/meetings', show: true },
   ].filter(a => a.show)
+
+  const renderError = (msg: string) => (
+    <div role="alert" className="bg-danger-light text-danger rounded-lg px-4 py-3 text-sm flex items-center gap-2 mb-4">
+      <AlertTriangle className="w-4 h-4 shrink-0" />
+      <span>{msg}</span>
+      <Button variant="ghost" size="sm" className="ms-auto" onClick={() => window.location.reload()}>
+        {t('common.retry')}
+      </Button>
+    </div>
+  )
 
   return (
     <div>
@@ -73,7 +89,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      {statsLoading ? (
+      {statsQuery.isPending ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="rounded-xl bg-muted p-6 space-y-3 animate-pulse">
@@ -83,18 +99,12 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-      ) : statsError ? (
-        <div role="alert" className="bg-danger-light text-danger rounded-lg px-4 py-3 text-sm flex items-center gap-2 mb-4">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>{t('dashboard.loadError')}</span>
-          <Button variant="ghost" size="sm" className="ms-auto" onClick={() => window.location.reload()}>
-            {t('common.retry')}
-          </Button>
-        </div>
+      ) : statsQuery.isError ? (
+        renderError(t('dashboard.loadError'))
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {kpiConfig.map((cfg) => {
-            const value = cfg.key ? (getNested(stats, cfg.key) ?? '—') : (unread ?? 0)
+            const value = cfg.key ? (getNested(stats, cfg.key) ?? '—') : (unreadQuery.data ?? 0)
             const Icon = cfg.icon
             return (
               <Card
@@ -127,22 +137,30 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-semibold">{t('dashboard.applicationsTrend')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                  }}
-                />
-                <Bar dataKey="applications" fill="#0a2540" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {trendQuery.isPending ? (
+              <div className="h-[280px] bg-muted rounded animate-pulse" />
+            ) : trendQuery.isError ? (
+              <p className="text-sm text-muted-foreground">{t('common.error')}</p>
+            ) : trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#0a2540" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('reports.noData')}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -152,10 +170,27 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-semibold">{t('dashboard.recentActivity')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <History className="w-10 h-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm text-muted-foreground">{t('dashboard.noRecentActivity')}</p>
-            </div>
+            {activityQuery.isPending ? (
+              <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}</div>
+            ) : activity.length > 0 ? (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {activity.slice(0, 5).map((a: any) => (
+                  <div key={a.id} className="flex items-start gap-3 text-sm border-b pb-2 last:border-0">
+                    <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{a.username || t('dashboard.system')}</p>
+                      <p className="text-muted-foreground text-xs truncate">{a.action} — {a.entity_type}</p>
+                      <p className="text-muted-foreground text-xs">{new Date(a.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <History className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">{t('dashboard.noRecentActivity')}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -188,10 +223,22 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-semibold">{t('dashboard.pendingReviews')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <CheckCircle2 className="w-10 h-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm text-muted-foreground">{t('dashboard.allCaughtUp')}</p>
-            </div>
+            {statsQuery.isPending ? (
+              <div className="h-24 bg-muted rounded animate-pulse" />
+            ) : pendingCount > 0 ? (
+              <div className="flex flex-col items-center justify-center py-4">
+                <p className="text-4xl font-bold text-primary">{pendingCount}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('dashboard.pendingReviewItems')}</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate('/committee/reviews')}>
+                  {t('dashboard.viewAll')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <CheckCircle2 className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">{t('dashboard.allCaughtUp')}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

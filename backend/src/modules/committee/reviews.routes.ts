@@ -3,10 +3,10 @@ import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { assignReviewSchema, createReviewFormSchema, addQuestionSchema, submitReviewSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
-import { CommitteeService } from '../../services/committee.service';
+import { ReviewService } from '../../services/review.service';
 
 const router = Router();
-const service = new CommitteeService();
+const service = new ReviewService();
 
 router.get('/my', authenticate, async (req: Request, res: Response) => {
   try {

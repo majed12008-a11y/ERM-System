@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import api from '../../api/client'
+import { reviews } from '../../sdk/domains/reviews.sdk'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -41,30 +41,30 @@ export default function ReviewFormsPage() {
 
   const { data: forms, isLoading } = useQuery({
     queryKey: ['review-forms'],
-    queryFn: () => api.get('/committee/reviews/forms').then(r => r.data.data),
+    queryFn: () => reviews.getForms().then(r => r.data.data),
   })
 
   const { data: questions } = useQuery({
     queryKey: ['form-questions', expandedForm],
-    queryFn: () => api.get(`/committee/reviews/forms/${expandedForm}/questions`).then(r => r.data.data),
+    queryFn: () => reviews.getQuestions(expandedForm!).then(r => r.data.data),
     enabled: !!expandedForm,
   })
 
   const createFormMut = useMutation({
-    mutationFn: (data: any) => api.post('/committee/reviews/forms', data),
+    mutationFn: (data: any) => reviews.createForm(data),
     onSuccess: () => { toast.success(t('reviewForms.created')); queryClient.invalidateQueries({ queryKey: ['review-forms'] }); setShowCreateForm(false); formForm.reset() },
     onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('reviewForms.createFailed')),
   })
 
   const addQuestionMut = useMutation({
-    mutationFn: (data: any) => api.post(`/committee/reviews/forms/${expandedForm}/questions`, data),
+    mutationFn: (data: any) => reviews.addQuestion(expandedForm!, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['form-questions'] }); setAddingQuestion(null); questionForm.reset() },
     onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('reviewForms.addQuestionFailed')),
   })
 
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
   const deleteQuestionMut = useMutation({
-    mutationFn: (id: number) => api.delete(`/committee/reviews/forms/${expandedForm}/questions/${id}`),
+    mutationFn: (id: number) => reviews.deleteQuestion(expandedForm!, id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['form-questions'] }); setDeleteTarget(null) },
   })
 

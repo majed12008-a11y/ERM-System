@@ -143,7 +143,7 @@
 | **Estimated time** | 2-4 hours |
 | **Required tests** | Integration: hit all three endpoints, verify response shapes match a shared type. Update Docker health check tests if they parse response body. |
 | **Rollback** | Revert `monitoring/index.ts` changes. |
-| **Status** | ✅ Accepted — Completed — Closed |
+| **Status** | ✅ Closed — Verified — Released (Gate 5 PASS) |
 | **Owner** | TBD |
 
 ---
@@ -168,7 +168,7 @@
 | **Estimated time** | 30 minutes |
 | **Required tests** | Integration: submit invalid request body, verify response includes `requestId` field. |
 | **Rollback** | Revert `validate.ts` change. |
-| **Status** | ✅ Accepted — Completed — Closed |
+| **Status** | ✅ Closed — Verified — Released (Gate 4 PASS) |
 | **Owner** | TBD |
 
 ---
@@ -218,7 +218,7 @@
 | **Estimated time** | 5 minutes |
 | **Required tests** | CI pipeline run (manual trigger after merge) — verify E2E job health check succeeds |
 | **Rollback** | Revert the URL change in `.github/workflows/ci.yml` |
-| **Status** | ✅ Accepted — Completed — Closed |
+| **Status** | ✅ Closed — Verified — Released (Gate 6 PASS) |
 | **Owner** | TBD |
 
 ---

@@ -106,7 +106,9 @@ export class ReportingRepository extends AuditableRepository {
   async getStatusSummary(): Promise<any[]> {
     const result = await this.query(
       `SELECT current_status, COUNT(*)::int as count
-       FROM core.applications GROUP BY current_status ORDER BY current_status`
+       FROM core.applications
+       WHERE deleted_at IS NULL
+       GROUP BY current_status ORDER BY current_status`
     );
     return result.rows;
   }
