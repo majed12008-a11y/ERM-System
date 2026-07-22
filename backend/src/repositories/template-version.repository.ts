@@ -50,6 +50,16 @@ export class TemplateVersionRepository extends AuditableRepository
     return result.rows;
   }
 
+  async findByTemplateId(templateId: number): Promise<VersionData[]> {
+    const result = await this.query(
+      `SELECT * FROM templates.template_versions
+       WHERE template_id = $1
+       ORDER BY created_at DESC`,
+      [templateId]
+    );
+    return result.rows;
+  }
+
   async updateStatus(id: number, newStatus: string, userId: number, client?: PoolClient): Promise<VersionData> {
     if (newStatus === 'APPROVED') {
       const result = await this.query(

@@ -14,7 +14,9 @@ export interface UserContext {
 export const userContext = new AsyncLocalStorage<UserContext>();
 
 export function getUserId(): number {
-  return userContext.getStore()?.userId ?? 0;
+  const id = userContext.getStore()?.userId;
+  if (typeof id === 'number' && Number.isFinite(id)) return id;
+  return 0;
 }
 
 export function getRequestId(): string {

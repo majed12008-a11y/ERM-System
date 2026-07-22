@@ -57,8 +57,7 @@ export default function templateVersionRoutes(
       let versions = code ? await versionRepo.findByTemplateCode(code) : [];
 
       if (templateId && !code) {
-        const allVersions = await versionRepo.findAll();
-        versions = allVersions.filter(v => v.template_id === templateId);
+        versions = await versionRepo.findByTemplateId(templateId);
       }
 
       if (status) {
@@ -110,7 +109,7 @@ export default function templateVersionRoutes(
     }
   });
 
-  router.post('/versions/:id/submit', authenticate, validate(submitSchema), async (req: Request, res: Response) => {
+  router.post('/versions/:id/submit', authenticate, authorize(...ADMIN_ROLES), validate(submitSchema), async (req: Request, res: Response) => {
     try {
       const user = (req as any).user as AuthUser;
       const version = await versionRepo.findById(parseInt(req.params.id as string));

@@ -219,6 +219,44 @@ describe('BackupService', () => {
     it('rejects name with backslash', () => {
       expect(() => (service as any).validateName('sub\\dir\\backup.dump')).toThrow(ValidationError);
     });
+
+    it('rejects name with angle brackets', () => {
+      expect(() => (service as any).validateName('<script>.dump')).toThrow(ValidationError);
+      expect(() => (service as any).validateName('test>out.dump')).toThrow(ValidationError);
+    });
+
+    it('rejects name with double quotes', () => {
+      expect(() => (service as any).validateName('test"quote.dump')).toThrow(ValidationError);
+    });
+
+    it('rejects name with single quotes', () => {
+      expect(() => (service as any).validateName("test'quote.dump")).toThrow(ValidationError);
+    });
+
+    it('rejects unicode filenames', () => {
+      expect(() => (service as any).validateName('اختبار.dump')).toThrow(ValidationError);
+      expect(() => (service as any).validateName('backup_\u0000.dump')).toThrow(ValidationError);
+      expect(() => (service as any).validateName('test\u200B.dump')).toThrow(ValidationError);
+    });
+
+    it('rejects name longer than 1000 chars', () => {
+      const longName = 'a'.repeat(1000) + '.dump';
+      expect(() => (service as any).validateName(longName)).toThrow(ValidationError);
+    });
+
+    it('sanitizeDbName strips injection characters', () => {
+      const safe = (service as any).sanitizeDbName('test; rm -rf /');
+      expect(safe).not.toContain(';');
+      expect(safe).not.toContain(' ');
+      expect(safe).not.toContain('-');
+      expect(safe).toMatch(/^[a-zA-Z0-9_]+$/);
+    });
+
+    it('sanitizeDbName handles unicode injection', () => {
+      const safe = (service as any).sanitizeDbName('test\u0000injection');
+      expect(safe).not.toContain('\u0000');
+      expect(safe).toMatch(/^[a-zA-Z0-9_]+$/);
+    });
   });
 
   describe('2. Structured errors', () => {

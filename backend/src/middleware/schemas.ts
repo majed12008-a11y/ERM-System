@@ -458,7 +458,17 @@ export const createEmailConfigSchema = z.object({
   is_active: z.boolean().optional().default(true),
 });
 
-export const updateEmailConfigSchema = createEmailConfigSchema.partial();
+export const updateEmailConfigSchema = z.object({
+  config_name: z.string().min(1).max(100).optional(),
+  smtp_host: z.string().min(1).max(255).optional(),
+  smtp_port: z.coerce.number().int().positive().optional(),
+  smtp_username: z.string().max(255).optional(),
+  smtp_password: z.string().max(255).optional(),
+  use_tls: z.boolean().optional(),
+  from_address: z.string().min(1).max(255).optional(),
+  from_name: z.string().max(255).optional(),
+  is_active: z.boolean().optional(),
+}).strict();
 
 export const createPushConfigSchema = z.object({
   config_name: z.string().min(1, 'Config name is required').max(100),
@@ -468,7 +478,13 @@ export const createPushConfigSchema = z.object({
   is_active: z.boolean().optional().default(true),
 });
 
-export const updatePushConfigSchema = createPushConfigSchema.partial();
+export const updatePushConfigSchema = z.object({
+  config_name: z.string().min(1).max(100).optional(),
+  provider: z.string().min(1).max(100).optional(),
+  server_key: z.string().max(500).optional(),
+  app_id: z.string().max(255).optional(),
+  is_active: z.boolean().optional(),
+}).strict();
 
 // ── SMS Config ───────────────────────────────────────────────────────────────
 
@@ -481,7 +497,14 @@ export const createSmsConfigSchema = z.object({
   is_active: z.boolean().optional().default(true),
 });
 
-export const updateSmsConfigSchema = createSmsConfigSchema.partial();
+export const updateSmsConfigSchema = z.object({
+  config_name: z.string().min(1).max(200).optional(),
+  provider: z.string().min(1).max(100).optional(),
+  api_key: z.string().max(500).optional(),
+  api_secret: z.string().max(500).optional(),
+  sender_name: z.string().max(100).optional(),
+  is_active: z.boolean().optional(),
+}).strict();
 
 // ── System Config ────────────────────────────────────────────────────────────
 
@@ -626,3 +649,16 @@ export const referenceDataSchemas: Record<string, z.ZodObject<any>> = {
     is_active: z.boolean().optional().default(true),
   }).strict(),
 };
+
+export const createSavedSearchSchema = z.object({
+  name: z.string().min(1).max(200),
+  search_type: z.string().min(1).max(50),
+  criteria: z.record(z.string(), z.unknown()),
+  is_shared: z.boolean().optional().default(false),
+}).strict();
+
+export const updateSavedSearchSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  criteria: z.record(z.string(), z.unknown()).optional(),
+  is_shared: z.boolean().optional(),
+}).strict();

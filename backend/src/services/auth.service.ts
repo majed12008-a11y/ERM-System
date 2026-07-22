@@ -8,6 +8,7 @@ import { jwtVerify } from 'jose';
 import { createHash, randomBytes } from 'crypto';
 import { AuthRepository } from '../repositories/auth.repository';
 import { UsersRepository } from '../repositories/users.repository';
+import { logger } from '../config/logger';
 import { AuthUser } from '../shared/types';
 import { generateTokens, signToken } from '../middleware/auth';
 import { env } from '../config/env';
@@ -172,7 +173,9 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await this.repo.saveEmailVerificationToken(user.id, verificationHash, expiresAt);
 
-    sendVerificationEmail(user.email, verificationToken).catch(() => {});
+    sendVerificationEmail(user.email, verificationToken).catch((err) => {
+      logger.warn({ err, email: user.email }, 'Email delivery failed');
+    });
     return { userId: user.id, username: user.username, email: user.email };
   }
 
@@ -215,7 +218,9 @@ export class AuthService {
 
     await this.repo.saveResetToken(user.id, tokenHash, expiresAt);
 
-    sendPasswordResetEmail(user.email, token).catch(() => {});
+    sendPasswordResetEmail(user.email, token).catch((err) => {
+      logger.warn({ err, email: user.email }, 'Email delivery failed');
+    });
     return { message: 'If the email exists, a reset link has been sent.' };
   }
 

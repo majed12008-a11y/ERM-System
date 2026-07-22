@@ -37,6 +37,7 @@ export default function templateRenderRoutes(integrationService: TemplateIntegra
         renderResult: result.renderResult,
         snapshot: result.snapshot,
         snapshotHash: result.snapshotHash,
+        correlationId: result.correlationId,
       }));
     } catch (err: any) {
       res.status(err.status || 500).json(errorResponse(err.message));

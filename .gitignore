@@ -10,5 +10,6 @@ cookies.txt
 uploads/
 *.session.sql
 *.pgerd
+*.dump
 
 testsprite_tests/

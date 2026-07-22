@@ -1,0 +1,206 @@
+{
+  "_meta": {
+    "version": "1.0.0-rc3-baseline",
+    "captured_at": "2026-07-22T21:30:00Z",
+    "sprint": 0,
+    "purpose": "RC3 Baseline Certification — all snapshots for comparison against Epic 5 changes"
+  },
+
+  "e001_verify_composite": {
+    "description": "npm run verify results — each check run independently",
+    "checks": {
+      "backend_lint": { "command": "tsc --noEmit", "exit_code": 0, "status": "PASS", "notes": "Root tsconfig has files:[], so this is a no-op. Real check requires tsc -b." },
+      "frontend_build": { "command": "tsc -b && vite build", "exit_code": 0, "status": "PASS", "notes": "vite v8.0.16 built in 3.38s. Chunk size warning for index.js (502 kB)." },
+      "frontend_lint": { "command": "eslint .", "exit_code": 1, "status": "FAIL", "notes": "254 problems (239 errors, 15 warnings). Pre-existing. Errors: 201 @typescript-eslint/no-explicit-any, 6 react-hooks/incompatible-library, 1 react-hooks/exhaustive-deps, 1 @typescript-eslint/no-unused-vars, 1 react-hooks/set-state-in-effect." },
+      "backend_tests": { "command": "vitest run", "exit_code": 1, "status": "FAIL", "notes": "1181 tests: 1075 passed, 3 failed, 103 skipped. 6 failed test files (5 integration requiring running server + 1 template-timeline unit)." },
+      "frontend_tests": { "command": "vitest run", "exit_code": 1, "status": "FAIL", "notes": "3 tests: 2 passed, 1 failed. LoginPage duplicate 'Sign In' text." },
+      "backend_audit": { "command": "npm audit --audit-level=high", "exit_code": 0, "status": "PASS", "notes": "10 vulnerabilities (2 low, 3 moderate, 5 high), 0 critical." },
+      "root_audit": { "command": "npm audit --audit-level=high", "exit_code": 0, "status": "PASS", "notes": "12 vulnerabilities (2 low, 3 moderate, 5 high, 2 critical)." }
+    },
+    "overall_pass": false,
+    "passing": 4,
+    "failing": 3
+  },
+
+  "e003_test_suite": {
+    "description": "Test suite baseline snapshot",
+    "backend": {
+      "test_files": 31,
+      "test_files_passed": 25,
+      "test_files_failed": 6,
+      "total_tests": 1181,
+      "passed": 1075,
+      "failed": 3,
+      "skipped": 103,
+      "failed_files": [
+        { "file": "src/test/accreditation-api.test.ts", "reason": "Requires running backend server" },
+        { "file": "src/test/e2e-workflow-scenarios.test.ts", "reason": "Requires running backend server" },
+        { "file": "src/test/integration-v2.test.ts", "reason": "Requires running backend server" },
+        { "file": "src/test/integration.test.ts", "reason": "Requires running backend server" },
+        { "file": "src/test/rls-isolation.test.ts", "reason": "Requires running backend server" },
+        { "file": "src/test/template-timeline.test.ts", "reason": "3 unit test failures in TimelineService" }
+      ],
+      "failed_tests": [
+        { "test": "TimelineService — buildTimeline > sets isActive=true for approved version in effective window" },
+        { "test": "TimelineService — resolveActiveVersion > returns the currently active version" },
+        { "test": "TimelineService — getChronology > identifies the active entry" }
+      ]
+    },
+    "frontend": {
+      "test_files": 2,
+      "test_files_passed": 1,
+      "test_files_failed": 1,
+      "total_tests": 3,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "failed_files": [
+        { "file": "src/test/LoginPage.test.tsx", "reason": "Duplicate 'Sign In' text (h2 + button)" }
+      ]
+    }
+  },
+
+  "e004_api_inventory": {
+    "description": "Backend route registrations by module",
+    "total_routes": 298,
+    "total_with_authorize": 96,
+    "total_with_validate": 68,
+    "total_with_neither": 134,
+    "by_module": {
+      "security": 30,
+      "core": 33,
+      "committee": 102,
+      "workflow": 4,
+      "documents": 13,
+      "communication": 13,
+      "safety": 14,
+      "templates": 27,
+      "admin": 38,
+      "monitoring": 6,
+      "reporting": 7,
+      "integration": 2,
+      "reference": 3,
+      "public": 1,
+      "ethics_risk": 0,
+      "consent": 0,
+      "accreditation": 0,
+      "email_config": 0,
+      "sms_config": 0,
+      "push_config": 0,
+      "system_config": 0,
+      "backup": 0
+    },
+    "notes": "Modules without route counts (ethics_risk, consent, accreditation, etc.) either register under other module paths or are service-only."
+  },
+
+  "e005_database_schema": {
+    "description": "PostgreSQL database schema snapshot",
+    "schema_count": 15,
+    "schemas": [
+      "audit", "committee", "communication", "core", "documents",
+      "integration", "monitoring", "public", "reference", "reporting",
+      "safety", "security", "system", "templates", "workflow"
+    ],
+    "total_tables": 225,
+    "tables_with_rls": 87,
+    "total_policies": 291,
+    "total_custom_functions": 28,
+    "total_indexes": 623,
+    "tables_by_schema": {
+      "audit": 4,
+      "committee": 41,
+      "communication": 9,
+      "core": 25,
+      "documents": 15,
+      "integration": 10,
+      "monitoring": 10,
+      "public": 5,
+      "reference": 16,
+      "reporting": 5,
+      "safety": 12,
+      "security": 27,
+      "system": 16,
+      "templates": 16,
+      "workflow": 14
+    },
+    "extensions": ["pgcrypto", "pg_trgm"],
+    "rls_helper_functions": [
+      "committee.fn_is_admin",
+      "committee.fn_current_user_id",
+      "communication.fn_is_admin",
+      "documents.fn_is_admin",
+      "documents.fn_user_has_role",
+      "public.fn_is_admin",
+      "public.fn_current_user_id"
+    ]
+  },
+
+  "e006_openapi_spec": {
+    "description": "OpenAPI specification snapshot",
+    "version": "1.0.0",
+    "spec_file": "backend/openapi/openapi.yaml",
+    "total_paths_in_spec": 75,
+    "total_paths_in_modules": 84,
+    "module_files": 18,
+    "paths_by_module": {
+      "admin.yaml": 5,
+      "applications.yaml": 1,
+      "committee.yaml": 7,
+      "communication.yaml": 7,
+      "documents.yaml": 4,
+      "integration.yaml": 2,
+      "lookups.yaml": 4,
+      "monitoring.yaml": 3,
+      "projects.yaml": 1,
+      "reference.yaml": 3,
+      "reporting.yaml": 7,
+      "safety.yaml": 6,
+      "security.yaml": 12,
+      "system.yaml": 2,
+      "templates.yaml": 18,
+      "workflow.yaml": 2
+    },
+    "spec_completeness": {
+      "note": "OpenAPI spec has 84 unique paths vs 298 backend route registrations. Many routes are parameterized (e.g., /:id), so unique paths < route registrations.",
+      "spec_to_route_ratio": "84 unique paths covering 298 route registrations (28% unique path coverage, normal for REST APIs with parameterized routes)"
+    }
+  },
+
+  "e007_coverage_baseline": {
+    "description": "Code coverage baseline — not yet captured",
+    "status": "PENDING",
+    "notes": "Requires vitest --coverage setup. Will be captured when available."
+  },
+
+  "known_issues": {
+    "pre_existing": [
+      "5 integration test files fail (require running backend, port mismatch 3000 vs 8081)",
+      "1 template-timeline unit test file fails (3 tests: TimelineService isActive/resolveActiveVersion/getChronology)",
+      "1 frontend LoginPage test fails (duplicate 'Sign In' text in h2 and button)",
+      "Frontend eslint: 254 problems (239 errors, 15 warnings) — mostly no-explicit-any",
+      "app.user_id NaN issue in /templates/versions and /templates/history endpoints",
+      "tsc --noEmit is a no-op (root tsconfig has files:[])",
+      "Backend verify step: tsc --noEmit passes but doesn't actually check types"
+    ]
+  },
+
+  "security_audit": {
+    "backup_service": {
+      "shell_injection_pb002": "FIXED — uses execFile with BACKUP_NAME_REGEX validation",
+      "tests": 49,
+      "all_passing": true
+    },
+    "vulnerabilities": {
+      "backend": { "total": 10, "low": 2, "moderate": 3, "high": 5, "critical": 0 },
+      "root": { "total": 12, "low": 2, "moderate": 3, "high": 5, "critical": 2 }
+    }
+  },
+
+  "build_baseline": {
+    "frontend_build_time_seconds": 3.38,
+    "frontend_modules_transformed": 2719,
+    "frontend_css_size_kb": 56.18,
+    "frontend_js_total_kb": "index.js 502.52 kB (largest chunk)",
+    "chunk_size_warning": true
+  }
+}
