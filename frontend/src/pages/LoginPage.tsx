@@ -55,7 +55,7 @@ export default function LoginPage() {
             National Ethics Research Management System
           </p>
           <p className="text-white/50 text-xs">
-            Ministry of Health — Republic of Yemen
+            Ministry of Health & Environment — Republic of Yemen
           </p>
         </div>
       </div>
