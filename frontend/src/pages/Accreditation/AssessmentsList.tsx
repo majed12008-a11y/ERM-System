@@ -9,7 +9,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { AxiosError } from 'axios'
 import { ArrowLeft, Plus, Eye } from 'lucide-react'
 import { z } from 'zod'
 import api from '../../api/client'
@@ -35,13 +34,6 @@ const createAssessmentSchema = z.object({
 
 type AssessmentFormData = z.infer<typeof createAssessmentSchema>
 
-type Cycle = {
-  id: number
-  committee_name_ar?: string
-  committee_name_en?: string
-  cycle_number?: number
-}
-
 type Standard = {
   id: number
   name_ar?: string
@@ -51,13 +43,6 @@ type Standard = {
 
 type AssessmentItem = NonNullable<AssessmentFormData['items']>[number]
 
-type AssessmentItemView = AssessmentItem & {
-  id?: number
-  name_ar?: string
-  name_en?: string
-  code?: string
-}
-
 type Assessment = {
   id: number
   assessor_name: string
@@ -65,7 +50,7 @@ type Assessment = {
   overall_justification?: string
   overall_score?: number
   assessed_at: string
-  items?: AssessmentItemView[]
+  items?: AssessmentItem[]
 }
 
 const decisionOptions = [
@@ -98,7 +83,7 @@ export default function AssessmentsList() {
     defaultValues: { overall_decision: '', overall_justification: '', items: [] },
   })
 
-  const { data: cycle } = useQuery<Cycle>({
+  const { data: cycle } = useQuery<any>({
     queryKey: ['accreditation-cycle', cycleId],
     queryFn: () => api.get(`/committee/accreditation/cycles/${cycleId}`).then(r => r.data.data),
     enabled: !!cycleId,
@@ -128,7 +113,7 @@ export default function AssessmentsList() {
       setCreateOpen(false)
       createForm.reset()
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('assessment.createFailed')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('assessment.createFailed')),
   })
 
   function openCreate() {
@@ -271,7 +256,7 @@ export default function AssessmentsList() {
                 <p className="text-sm text-slate-500">{t('assessment.noStandards')}</p>
               ) : (
                 <div className="space-y-3 max-h-80 overflow-y-auto border rounded p-3">
-                  {(standards || []).map((s: Standard, index: number) => (
+                  {(standards || []).map((s: any, index: number) => (
                     <div key={s.id} className="p-3 bg-slate-50 rounded text-sm space-y-2">
                       <div className="font-medium text-xs text-slate-600">{s.name_ar || s.name_en} ({s.code})</div>
                       <div className="flex flex-wrap items-center gap-4">
@@ -356,7 +341,7 @@ export default function AssessmentsList() {
                   <p className="text-sm text-slate-500">{t('assessment.noStandards')}</p>
                 ) : (
                   <div className="space-y-2">
-                    {viewItem.items.map((item: AssessmentItemView, i: number) => (
+                    {viewItem.items.map((item: any, i: number) => (
                       <div key={item.id || i} className="p-3 bg-slate-50 rounded text-sm">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-xs">{item.name_ar || item.code}</span>

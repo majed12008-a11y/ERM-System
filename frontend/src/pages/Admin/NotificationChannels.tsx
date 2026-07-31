@@ -53,6 +53,7 @@ export default function NotificationChannels() {
 }
 
 function EmailConfigSection() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -113,8 +114,8 @@ function EmailConfigSection() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Email Configuration</h2>
-        {!showForm && <button onClick={() => { setEditId(null); reset(); setShowForm(true) }} className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"><Plus className="w-4 h-4" /> Add Config</button>}
+        <h2 className="text-lg font-semibold">{t('notification.emailConfiguration', 'Email Configuration')}</h2>
+        {!showForm && <button onClick={() => { setEditId(null); reset(); setShowForm(true) }} className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"><Plus className="w-4 h-4" /> {t('notification.addConfig', 'Add Config')}</button>}
       </div>
       {showForm && (
         <form onSubmit={handleSubmit(d => editId ? updateMut.mutate({ id: editId, data: d }) : createMut.mutate(d))} className="bg-white p-4 rounded-lg border mb-4 space-y-3 max-w-lg">
@@ -169,6 +170,7 @@ function EmailConfigSection() {
 }
 
 function SmsConfigSection() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -188,7 +190,7 @@ function SmsConfigSection() {
     defaultValues: { config_name: '', provider: '', api_key: '', api_secret: '', sender_name: '', is_active: true },
   })
 
-  const { data: configs } = useQuery({
+  const { data: configs, isLoading } = useQuery({
     queryKey: ['sms-config'],
     queryFn: () => api.get('/admin/sms-config').then(r => r.data.data || []),
   })
@@ -217,11 +219,13 @@ function SmsConfigSection() {
     setShowForm(true)
   }
 
+  if (isLoading) return <p className="text-sm text-slate-400">{t('common.loading', 'Loading...')}</p>
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">SMS Configuration</h2>
-        {!showForm && <button onClick={() => { setEditId(null); reset(); setShowForm(true) }} className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"><Plus className="w-4 h-4" /> Add Config</button>}
+        <h2 className="text-lg font-semibold">{t('notification.smsConfiguration', 'SMS Configuration')}</h2>
+        {!showForm && <button onClick={() => { setEditId(null); reset(); setShowForm(true) }} className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"><Plus className="w-4 h-4" /> {t('notification.addConfig', 'Add Config')}</button>}
       </div>
       {showForm && (
         <form onSubmit={handleSubmit(d => editId ? updateMut.mutate({ id: editId, data: d }) : createMut.mutate(d))} className="bg-white p-4 rounded-lg border mb-4 space-y-3 max-w-lg">
@@ -266,6 +270,7 @@ function SmsConfigSection() {
 }
 
 function PushConfigSection() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -284,7 +289,7 @@ function PushConfigSection() {
     defaultValues: { config_name: '', provider: 'FCM', server_key: '', app_id: '', is_active: true },
   })
 
-  const { data: configs } = useQuery({
+  const { data: configs, isLoading } = useQuery({
     queryKey: ['push-config'],
     queryFn: () => api.get('/admin/push-config').then(r => r.data.data || []),
   })
@@ -313,11 +318,13 @@ function PushConfigSection() {
     setShowForm(true)
   }
 
+  if (isLoading) return <p className="text-sm text-slate-400">{t('common.loading', 'Loading...')}</p>
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Push Notification Configuration</h2>
-        {!showForm && <button onClick={() => { setEditId(null); reset(); setShowForm(true) }} className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"><Plus className="w-4 h-4" /> Add Config</button>}
+        <h2 className="text-lg font-semibold">{t('notification.pushConfiguration', 'Push Notification Configuration')}</h2>
+        {!showForm && <button onClick={() => { setEditId(null); reset(); setShowForm(true) }} className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"><Plus className="w-4 h-4" /> {t('notification.addConfig', 'Add Config')}</button>}
       </div>
       {showForm && (
         <form onSubmit={handleSubmit(d => editId ? updateMut.mutate({ id: editId, data: d }) : createMut.mutate(d))} className="bg-white p-4 rounded-lg border mb-4 space-y-3 max-w-lg">
@@ -366,6 +373,7 @@ function PushConfigSection() {
 }
 
 function SystemConfigSection() {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [editing, setEditing] = useState<Record<string, string>>({})
 
@@ -387,10 +395,12 @@ function SystemConfigSection() {
     setEditing(prev => { const n = { ...prev }; delete n[key]; return n })
   }
 
+  if (isLoading) return <p className="text-sm text-slate-400">{t('common.loading', 'Loading...')}</p>
+
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-4">System Notification Settings</h2>
-      <p className="text-sm text-slate-500 mb-4">General notification system settings managed as key-value pairs.</p>
+      <h2 className="text-lg font-semibold mb-4">{t('notification.systemNotificationSettings', 'System Notification Settings')}</h2>
+      <p className="text-sm text-slate-500 mb-4">{t('notification.systemNotificationDescription', 'General notification system settings managed as key-value pairs.')}</p>
       <div className="space-y-2">
         {(configs || []).length === 0 && !isLoading && (
           <p className="text-sm text-slate-400">No notification settings yet. Add them via the API or database.</p>

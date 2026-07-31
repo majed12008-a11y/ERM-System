@@ -17,7 +17,6 @@ import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
-import { AxiosError } from 'axios'
 
 const CONSENT_TYPES = ['WRITTEN', 'ELECTRONIC', 'VERBAL', 'GUARDIAN', 'ASSENT', 'WAIVER', 'DEFERRED']
 
@@ -42,7 +41,7 @@ export default function ConsentTemplates() {
       queryClient.invalidateQueries({ queryKey: ['consent-templates'] })
       setOpenCreate(false); resetForm()
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const updateMutation = useMutation({
@@ -52,7 +51,7 @@ export default function ConsentTemplates() {
       queryClient.invalidateQueries({ queryKey: ['consent-templates'] })
       setOpenEdit(null); resetForm()
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const deleteMutation = useMutation({
@@ -61,7 +60,7 @@ export default function ConsentTemplates() {
       toast.success(t('consent.templateRetired'))
       queryClient.invalidateQueries({ queryKey: ['consent-templates'] })
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   function resetForm() {

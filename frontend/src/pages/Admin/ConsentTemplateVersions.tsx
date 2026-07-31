@@ -18,7 +18,6 @@ import { Textarea } from '../../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { StatusBadge } from '../../components/StatusBadge'
 import { ArrowLeft, Plus, CheckCircle, Ban } from 'lucide-react'
-import { AxiosError } from 'axios'
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-800',
@@ -55,7 +54,7 @@ export default function ConsentTemplateVersions() {
       queryClient.invalidateQueries({ queryKey: ['consent-versions', templateId] })
       setOpenCreate(false); setForm({ version_no: 1, language: 'ar', title: '', content: '', change_summary: '' })
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const approveMutation = useMutation({
@@ -64,7 +63,7 @@ export default function ConsentTemplateVersions() {
       toast.success(t('consent.versionApproved'))
       queryClient.invalidateQueries({ queryKey: ['consent-versions', templateId] })
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const retireMutation = useMutation({
@@ -73,7 +72,7 @@ export default function ConsentTemplateVersions() {
       toast.success(t('consent.versionRetired'))
       queryClient.invalidateQueries({ queryKey: ['consent-versions', templateId] })
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const columns = [

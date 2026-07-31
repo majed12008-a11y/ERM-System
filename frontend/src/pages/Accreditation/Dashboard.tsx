@@ -18,7 +18,6 @@ import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
 import { useRole } from '../../hooks/usePermission'
 import { useAuth } from '../../context/AuthContext'
-import { AxiosError } from 'axios'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog'
@@ -121,7 +120,7 @@ export default function Dashboard() {
       setStatusOpen(false)
       statusForm.reset()
     },
-    onError: (err: AxiosError<{ error?: string }>) => {
+    onError: (err: any) => {
       const msg = err.response?.status === 403 ? t('common.forbidden') : (err.response?.data?.error || t('accreditation.statusUpdateFailed'))
       toast.error(msg)
     },

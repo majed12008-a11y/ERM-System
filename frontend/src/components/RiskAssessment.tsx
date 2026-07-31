@@ -14,7 +14,6 @@ import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { AlertCircle, Shield } from 'lucide-react'
 import { z } from 'zod'
-import { AxiosError } from 'axios'
 
 const riskItemSchema = z.object({
   risk_category_id: z.coerce.number().min(1, 'Select category'),
@@ -86,7 +85,7 @@ export default function RiskAssessment({ applicationId }: { applicationId: strin
       setOpenCreate(false)
       createForm.reset()
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   const addItemMutation = useMutation({
@@ -97,7 +96,7 @@ export default function RiskAssessment({ applicationId }: { applicationId: strin
       setOpenAddItem(false)
       itemForm.reset()
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('common.error')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('common.error')),
   })
 
   if (isLoading) return null

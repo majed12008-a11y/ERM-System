@@ -8,20 +8,9 @@ import api from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
-import { FileUp, Check, ChevronRight, ChevronLeft, Save, Send } from 'lucide-react'
-import { AxiosError } from 'axios'
-import type { Application, Committee, Document, SuccessResponse } from '../../sdk/core/types'
-import { applications } from '../../sdk/domains/applications.sdk'
-import { EDITABLE_APPLICATION_STATUSES, getSubmitTransition } from '../../lib/workflow'
+import { FileUp, Check, ChevronRight, ChevronLeft, Save, Send, Trash2 } from 'lucide-react'
 
 type Step = 1 | 2 | 3 | 4
-
-type EditFormData = {
-  application_type: string
-  target_committee_id: string
-  priority_level: string
-  remarks: string
-}
 
 const STEPS: { key: Step; titleKey: string; descKey: string }[] = [
   { key: 1, titleKey: 'applications.wizardStep1', descKey: 'applications.wizardStep1Desc' },
@@ -39,31 +28,32 @@ export default function ApplicationEdit() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadTitle, setUploadTitle] = useState('')
+  const [, setDeleteTarget] = useState<number | null>(null)
 
   const { data: app, isLoading } = useQuery({
     queryKey: ['application', id],
-    queryFn: () => api.get<SuccessResponse<Application>>(`/core/applications/${id}`).then((r) => r.data.data),
+    queryFn: () => api.get(`/core/applications/${id}`).then((r) => r.data.data),
   })
 
   const { data: committees } = useQuery({
     queryKey: ['committees-dropdown'],
-    queryFn: () => api.get<SuccessResponse<Committee[]>>('/committee/committees').then((r) => r.data.data),
+    queryFn: () => api.get('/committee/committees').then((r) => r.data.data),
     enabled: !!app,
   })
 
   const { data: projectDetail } = useQuery({
     queryKey: ['project-detail', app?.project_id],
-    queryFn: () => api.get(`/core/projects/${app?.project_id}`).then((r) => r.data.data),
+    queryFn: () => api.get(`/core/projects/${app.project_id}`).then((r) => r.data.data),
     enabled: !!app?.project_id && step >= 2,
   })
 
   const { data: documents, refetch: refetchDocs } = useQuery({
     queryKey: ['application-documents', id],
-    queryFn: () => api.get<SuccessResponse<Document[]>>(`/documents/entity/Application/${id}`).then((r) => r.data.data),
+    queryFn: () => api.get(`/documents/entity/Application/${id}`).then((r) => r.data.data),
     enabled: !!id,
   })
 
-  const { register, handleSubmit, watch } = useForm<EditFormData>({
+  const { register, handleSubmit, watch } = useForm({
     defaultValues: {
       application_type: app?.application_type || 'INITIAL',
       target_committee_id: app?.target_committee_id ? String(app.target_committee_id) : '',
@@ -79,28 +69,25 @@ export default function ApplicationEdit() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (body: EditFormData) => api.put(`/core/applications/${id}`, body),
+    mutationFn: (body: any) => api.put(`/core/applications/${id}`, body),
     onSuccess: () => {
       toast.success(t('applications.draftSaved'))
       queryClient.invalidateQueries({ queryKey: ['applications'] })
       queryClient.invalidateQueries({ queryKey: ['application', id] })
       navigate('/applications')
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('applications.createFailed')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('applications.createFailed')),
   })
 
   const submitMutation = useMutation({
-    mutationFn: () => {
-      const transitionCode = getSubmitTransition(app!.current_status);
-      return applications.updateStatus(Number(id), { transition_code: transitionCode });
-    },
+    mutationFn: () => api.post(`/core/applications/${id}/submit`, {}),
     onSuccess: () => {
       toast.success(t('applications.created'))
       queryClient.invalidateQueries({ queryKey: ['applications'] })
       queryClient.invalidateQueries({ queryKey: ['application', id] })
       navigate('/applications')
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('applications.createFailed')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('applications.createFailed')),
   })
 
   const uploadMutation = useMutation({
@@ -111,7 +98,7 @@ export default function ApplicationEdit() {
       setUploadTitle('')
       refetchDocs()
     },
-    onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || t('applications.attachmentUploadFailed')),
+    onError: (err: any) => toast.error(err.response?.data?.error || t('applications.attachmentUploadFailed')),
   })
 
   function handleUpload() {
@@ -125,7 +112,7 @@ export default function ApplicationEdit() {
     uploadMutation.mutate(fd)
   }
 
-  function onSave(data: EditFormData) {
+  function onSave(data: any) {
     updateMutation.mutate(data)
   }
 
@@ -135,7 +122,7 @@ export default function ApplicationEdit() {
 
   if (isLoading) return <PageSkeleton />
   if (!app) return <p className="text-red-500">{t('applications.notFound')}</p>
-  if (!EDITABLE_APPLICATION_STATUSES.includes(app.current_status)) {
+  if (app.current_status !== 'DRAFT') {
     return (
       <div className="text-center py-12">
         <p className="text-slate-500 mb-4">{t('applications.draftInfo')}</p>
@@ -143,6 +130,7 @@ export default function ApplicationEdit() {
       </div>
     )
   }
+
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -192,7 +180,7 @@ export default function ApplicationEdit() {
                 <label className="block text-sm font-medium mb-1">{t('applications.targetCommittee')}</label>
                 <select {...register('target_committee_id')} className="w-full p-2 border rounded text-sm">
                   <option value="">{t('applications.selectCommittee')}</option>
-                  {(committees || []).map((c: Committee) => (
+                  {(committees || []).map((c: any) => (
                     <option key={c.id} value={c.id}>{c.committee_name_ar}</option>
                   ))}
                 </select>
@@ -275,10 +263,15 @@ export default function ApplicationEdit() {
               {documents && documents.length > 0 && (
                 <div className="space-y-2 mt-4">
                   <p className="text-sm font-medium">{t('applications.attachments')}</p>
-                  {documents.map((d: Document) => (
-                    <div key={d.id} className="text-sm border rounded p-2">
-                      <p className="font-medium truncate">{d.document_title}</p>
-                      <p className="text-xs text-slate-400">{d.file_name}</p>
+                  {documents.map((d: any) => (
+                    <div key={d.id} className="flex items-center justify-between text-sm border rounded p-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{d.document_title}</p>
+                        <p className="text-xs text-slate-400">{d.file_name}</p>
+                      </div>
+                      <button type="button" onClick={() => setDeleteTarget(d.id)} className="text-red-500 hover:text-red-700 ml-2">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -309,11 +302,11 @@ export default function ApplicationEdit() {
                 </div>
                 <div>
                   <dt className="text-slate-500 text-xs">{t('applications.status')}</dt>
-                  <dd className="font-medium text-amber-600">{app.current_status === 'DRAFT' ? t('applications.draft') : app.current_status}</dd>
+                  <dd className="font-medium text-amber-600">{t('applications.draft')}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-500 text-xs">{t('applications.committee')}</dt>
-                  <dd className="font-medium">{(committees || []).find((c: Committee) => String(c.id) === watch('target_committee_id'))?.committee_name_ar || '\u2014'}</dd>
+                  <dd className="font-medium">{(committees || []).find((c: any) => String(c.id) === watch('target_committee_id'))?.committee_name_ar || '\u2014'}</dd>
                 </div>
               </dl>
               <p className="text-xs text-slate-500">{t('applications.draftInfo')}</p>
