@@ -344,3 +344,14 @@ export const updateApplicationSchema = z.object({
   priority_level: z.string().max(50).optional(),
   remarks: z.string().max(2000).optional(),
 });
+
+export const createDocumentTemplateSchema = z.object({
+  template_code: z.string().min(1).max(100),
+  template_name: z.string().min(1).max(500),
+  template_type: z.string().min(1).max(100).default('HTML'),
+  template_content: z.string().min(1),
+  version_no: z.coerce.number().int().positive().optional(),
+  is_active: z.boolean().optional().default(true),
+});
+
+export const updateDocumentTemplateSchema = createDocumentTemplateSchema.partial();

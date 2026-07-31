@@ -4,10 +4,11 @@
  */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import api from '../../api/client'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
-import { Shield, Users, FileText, FolderKanban, Building2, ClipboardCheck, CalendarDays, Activity, ListChecks } from 'lucide-react'
+import { Shield, Users, FileText, FolderKanban, Building2, ClipboardCheck, CalendarDays, Activity, ListChecks, ScrollText, FileStack, ClipboardList } from 'lucide-react'
 import DataTable from '../../components/DataTable'
 import { useTranslation } from 'react-i18next'
 
@@ -51,6 +52,30 @@ export default function AdminDashboard() {
       <div className="flex items-center gap-3 mb-6">
         <Shield className="w-6 h-6 text-blue-600" />
         <h1 className="text-2xl font-bold">{t('admin.title')}</h1>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Link to="/review-forms" className="flex items-center gap-3 bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+          <div className="bg-blue-500 p-2 rounded text-white"><ClipboardList className="w-5 h-5" /></div>
+          <div>
+            <p className="font-medium text-sm">{t('nav.reviewForms')}</p>
+            <p className="text-xs text-slate-400">{t('reviewForms.title')}</p>
+          </div>
+        </Link>
+        <Link to="/admin/consent-templates" className="flex items-center gap-3 bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+          <div className="bg-teal-500 p-2 rounded text-white"><ScrollText className="w-5 h-5" /></div>
+          <div>
+            <p className="font-medium text-sm">{t('nav.consentTemplates')}</p>
+            <p className="text-xs text-slate-400">{t('consent.templates')}</p>
+          </div>
+        </Link>
+        <Link to="/admin/document-templates" className="flex items-center gap-3 bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+          <div className="bg-amber-500 p-2 rounded text-white"><FileStack className="w-5 h-5" /></div>
+          <div>
+            <p className="font-medium text-sm">{t('nav.documentTemplates')}</p>
+            <p className="text-xs text-slate-400">{t('documentTemplates.title')}</p>
+          </div>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">

@@ -52,6 +52,7 @@ const ReviewFormsPage = lazy(() => import('./pages/ReviewForms/ReviewFormsPage')
 const ESignaturesPage = lazy(() => import('./pages/ESignatures/ESignaturesPage'))
 const ConsentTemplates = lazy(() => import('./pages/Admin/ConsentTemplates'))
 const ConsentTemplateVersions = lazy(() => import('./pages/Admin/ConsentTemplateVersions'))
+const DocumentTemplates = lazy(() => import('./pages/Admin/DocumentTemplates'))
 const NotificationChannels = lazy(() => import('./pages/Admin/NotificationChannels'))
 const BackupSettings = lazy(() => import('./pages/Admin/BackupSettings'))
 const ReferenceData = lazy(() => import('./pages/Admin/ReferenceData'))
@@ -142,6 +143,7 @@ export default function App() {
                 <Route path="/admin/reference-data" element={<ReferenceData />} />
                 <Route path="/admin/consent-templates" element={<ConsentTemplates />} />
                 <Route path="/admin/consent-templates/:id/versions" element={<ConsentTemplateVersions />} />
+                <Route path="/admin/document-templates" element={<DocumentTemplates />} />
                 <Route path="/review-forms" element={<ReviewFormsPage />} />
                 <Route path="/e-signatures" element={<ESignaturesPage />} />
                 <Route path="/admin/accreditation/cycles" element={<AccreditationCycles />} />
