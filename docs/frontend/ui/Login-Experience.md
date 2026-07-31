@@ -58,7 +58,7 @@ Left hero scales down and shifts right as viewport narrows. At `< md`, hero disa
 | **NERMS Logo** | `logo-icon.svg`, 80×80, centered |
 | **Arabic Title** | النظام الوطني لإدارة الموافقات الأخلاقية للأبحاث والدراسات |
 | **English Title** | National Ethics Research Management System |
-| **Subtitle** | Ministry of Health — Kingdom of Saudi Arabia |
+| **Subtitle** | Ministry of Health — Republic of Yemen |
 | **Subtle watermark** | NERMS shield watermark at 5% opacity, positioned bottom-right |
 
 ### Hero Content
@@ -78,7 +78,7 @@ Left hero scales down and shifts right as viewport narrows. At `< md`, hero disa
       National Ethics Research Management System
     </p>
     <p className="text-white/50 text-xs">
-      Ministry of Health — Kingdom of Saudi Arabia
+      Ministry of Health — Republic of Yemen
     </p>
   </div>
 </div>

@@ -12,7 +12,7 @@
 
 ## Identity Message
 
-NERMS is the national platform for the governance and management of research ethics approvals in the Kingdom of Saudi Arabia, under the supervision of the Ministry of Health.
+NERMS is the national platform for the governance and management of research ethics approvals in the Republic of Yemen, under the supervision of the Ministry of Health.
 
 The identity must reflect:
 

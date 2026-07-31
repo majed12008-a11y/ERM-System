@@ -27,12 +27,12 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: #0a2540;
   --color-primary-hover: #0f3b6a;
   --color-primary-light: #e0edf5;
@@ -45,8 +45,8 @@
   --color-accent-hover: #14b8a6;
   --color-accent-light: #ccfbf1;
   --color-accent-foreground: #ffffff;
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
   --color-success: #16a34a;
   --color-success-light: #dcfce7;
   --color-success-foreground: #ffffff;
@@ -56,6 +56,9 @@
   --color-danger: #dc2626;
   --color-danger-light: #fee2e2;
   --color-danger-foreground: #ffffff;
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-light: #fee2e2;
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-info: #2563eb;
   --color-info-light: #dbeafe;
   --color-info-foreground: #ffffff;
@@ -65,9 +68,9 @@
   --color-sidebar-foreground: #c5cad4;
   --color-sidebar-heading: #6b7280;
   --color-sidebar-border: #1e2d45;
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
   --radius: 0.625rem;
 }
 
