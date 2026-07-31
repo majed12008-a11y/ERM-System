@@ -21,17 +21,42 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required: [file]
               properties:
                 file:
                   type: string
                   format: binary
-                document_type_id: { type: integer }
-                entity_type: { type: string }
-                entity_id: { type: integer }
-                document_title: { type: string }
+                  description: The file to upload (PDF, JPEG, PNG, TIFF, DOC, DOCX, XLS, XLSX, TXT)
+                document_type_id:
+                  type: integer
+                  description: Reference to documents.document_types
+                entity_type:
+                  type: string
+                  maxLength: 100
+                  description: Parent entity type (e.g. Application, Committee)
+                entity_id:
+                  type: integer
+                  description: Parent entity ID
+                document_title:
+                  type: string
+                  maxLength: 500
+                  description: Human-readable title (defaults to filename)
       responses:
         '201':
           description: Document uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    $ref: '#/components/schemas/Document'
+                  message: { type: string }
+        '400':
+          description: Validation error or file type not allowed
+        '413':
+          description: File exceeds 10MB limit
 
   /documents/types:
     get:
@@ -40,6 +65,16 @@ paths:
       responses:
         '200':
           description: Document type list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentType'
 
   /documents/classifications:
     get:
@@ -48,6 +83,34 @@ paths:
       responses:
         '200':
           description: Classification list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentClassification'
+
+  /documents/pending-signatures:
+    get:
+      tags: [Documents]
+      summary: Get pending signatures for current user
+      responses:
+        '200':
+          description: Pending signature list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Document'
 
   '/documents/entity/{entityType}/{entityId}':
     get:
@@ -64,12 +127,23 @@ paths:
           schema: { type: integer }
       responses:
         '200':
-          description: Document list
+          description: Document list for entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Document'
 
   '/documents/{id}':
-    delete:
+    get:
       tags: [Documents]
-      summary: Soft-delete document
+      summary: Get document metadata by ID
+      description: Returns full metadata for a single document. Returns 410 if the document has been soft-deleted.
       parameters:
         - name: id
           in: path
@@ -77,9 +151,115 @@ paths:
           schema: { type: integer }
       responses:
         '200':
-          description: Document deleted
+          description: Document metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    $ref: '#/components/schemas/Document'
         '404':
           $ref: '../components.yaml#/components/responses/NotFound'
+        '410':
+          description: Document has been deleted
+    delete:
+      tags: [Documents]
+      summary: Soft-delete document
+      description: >
+        Sets deleted_at timestamp. Physical file is preserved on disk
+        for audit trail integrity. Use POST /{id}/restore to undo.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Document soft-deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                  message: { type: string }
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/documents/{id}/download':
+    get:
+      tags: [Documents]
+      summary: Download document file
+      description: >
+        Streams the file with Content-Disposition: attachment.
+        Supports Range requests for large files. Auth required.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: 'attachment; filename="report.pdf"'
+            Content-Type:
+              schema: { type: string }
+            Content-Length:
+              schema: { type: integer }
+        '404':
+          description: Document or file not found
+        '410':
+          description: Document has been deleted
+
+  '/documents/{id}/preview':
+    get:
+      tags: [Documents]
+      summary: Preview document inline
+      description: >
+        Returns the file with Content-Disposition: inline for browser preview.
+        Only supports PDF and image types (JPEG, PNG, TIFF).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: File stream for inline preview
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: 'inline; filename="report.pdf"'
+            Content-Type:
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string }
+              example: 'private, max-age=3600'
+        '404':
+          description: Document or file not found
+        '410':
+          description: Document has been deleted
+        '415':
+          description: File type not supported for preview
 
   '/documents/{id}/sign':
     post:
@@ -90,9 +270,33 @@ paths:
           in: path
           required: true
           schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature_type:
+                  type: string
+                  enum: [ELECTRONIC, DIGITAL, WET]
+                  default: ELECTRONIC
       responses:
         '201':
           description: Document signed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    $ref: '#/components/schemas/DocumentSignature'
+                  message: { type: string }
+        '400':
+          description: Already signed
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
 
   '/documents/{id}/signatures':
     get:
@@ -106,11 +310,93 @@ paths:
       responses:
         '200':
           description: Signature list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentSignature'
 
-  /documents/pending-signatures:
-    get:
+  '/documents/{id}/restore':
+    post:
       tags: [Documents]
-      summary: Get pending signatures for current user
+      summary: Restore soft-deleted document
+      description: Clears deleted_at and deleted_by, restoring the document to active state.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
       responses:
         '200':
-          description: Pending signature list
+          description: Document restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                  message: { type: string }
+        '400':
+          description: Document is not deleted
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+components:
+  schemas:
+    Document:
+      type: object
+      properties:
+        id: { type: integer }
+        document_type_id: { type: integer, nullable: true }
+        entity_type: { type: string, nullable: true }
+        entity_id: { type: integer, nullable: true }
+        document_title: { type: string }
+        file_name: { type: string }
+        mime_type: { type: string }
+        file_size_bytes: { type: integer, nullable: true }
+        storage_path: { type: string }
+        uploaded_by: { type: integer }
+        uploaded_by_username: { type: string, nullable: true }
+        type_name_ar: { type: string, nullable: true }
+        uploaded_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        deleted_at: { type: string, format: date-time, nullable: true }
+
+    DocumentType:
+      type: object
+      properties:
+        id: { type: integer }
+        type_name_ar: { type: string }
+        type_name_en: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+
+    DocumentClassification:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name_ar: { type: string }
+        name_en: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        clearance_required: { type: boolean }
+
+    DocumentSignature:
+      type: object
+      properties:
+        id: { type: integer }
+        document_id: { type: integer }
+        signer_id: { type: integer }
+        signer_name: { type: string, nullable: true }
+        display_name: { type: string, nullable: true }
+        signature_type: { type: string }
+        signature_hash: { type: string }
+        signed_at: { type: string, format: date-time }

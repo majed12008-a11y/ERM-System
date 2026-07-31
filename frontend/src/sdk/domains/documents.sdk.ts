@@ -10,6 +10,10 @@ export const documents = {
     return api.get<SuccessResponse<Document[]> & { pagination?: Pagination }>('/documents', { params })
   },
 
+  getById(id: number) {
+    return api.get<SuccessResponse<Document>>(`/documents/${id}`)
+  },
+
   getTypes() {
     return api.get<SuccessResponse<DocumentType[]>>('/documents/types')
   },
@@ -28,12 +32,24 @@ export const documents = {
     return api.get<SuccessResponse<Document[]>>(`/documents/entity/${entityType}/${entityId}`)
   },
 
-  delete(id: number) {
-    return api.delete<SuccessResponse<null>>(`/documents/${id}`)
+  download(id: number) {
+    return api.get(`/documents/${id}/download`, { responseType: 'blob' })
   },
 
-  sign(id: number) {
-    return api.post<SuccessResponse<DocumentSignature>>(`/documents/${id}/sign`)
+  preview(id: number) {
+    return api.get(`/documents/${id}/preview`, { responseType: 'blob' })
+  },
+
+  delete(id: number) {
+    return api.delete<SuccessResponse<{ id: number }>>(`/documents/${id}`)
+  },
+
+  restore(id: number) {
+    return api.post<SuccessResponse<{ id: number }>>(`/documents/${id}/restore`)
+  },
+
+  sign(id: number, signatureType: string = 'ELECTRONIC') {
+    return api.post<SuccessResponse<DocumentSignature>>(`/documents/${id}/sign`, { signature_type: signatureType })
   },
 
   getSignatures(id: number) {

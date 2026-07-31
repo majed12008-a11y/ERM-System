@@ -30,7 +30,7 @@ export const logger = pino({
 export const httpLogger = pinoHttp({
   logger,
   autoLogging: {
-    ignore: (req) => ['/api/v1/health', '/api/v1/monitoring/live', '/api/v1/monitoring/ready', '/api/v1/monitoring/health'].includes(req.url ?? ''),
+    ignore: (req) => ['/api/v1/monitoring/live', '/api/v1/monitoring/ready', '/api/v1/monitoring/health'].includes(req.url ?? ''),
   },
   customReceivedMessage: (req) => `← ${req.method} ${req.url}`,
   customSuccessMessage: (req, res) => `→ ${req.method} ${req.url} ${res.statusCode}`,

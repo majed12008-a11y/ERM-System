@@ -32,25 +32,25 @@ export const certificates = {
     return api.get(`/core/applications/${applicationId}/certificates`)
   },
 
-  getById(certificateId: number) {
-    return api.get(`/core/applications/0/certificates/${certificateId}`)
+  getById(applicationId: number, certificateId: number) {
+    return api.get(`/core/applications/${applicationId}/certificates/${certificateId}`)
   },
 
-  download(certificateId: number) {
-    return api.get(`/core/applications/0/certificates/${certificateId}/download`, {
+  download(applicationId: number, certificateId: number) {
+    return api.get(`/core/applications/${applicationId}/certificates/${certificateId}/download`, {
       responseType: 'blob',
     })
   },
 
-  reissue(certificateId: number) {
-    return api.post(`/core/applications/0/certificates/${certificateId}/reissue`)
+  reissue(applicationId: number, certificateId: number) {
+    return api.post(`/core/applications/${applicationId}/certificates/${certificateId}/reissue`)
   },
 
-  retry(certificateId: number) {
-    return api.post(`/core/applications/0/certificates/${certificateId}/retry`)
+  retry(applicationId: number, certificateId: number) {
+    return api.post(`/core/applications/${applicationId}/certificates/${certificateId}/retry`)
   },
 
-  revoke(certificateId: number, reason: string) {
-    return api.post(`/core/applications/0/certificates/${certificateId}/revoke`, { reason })
+  revoke(applicationId: number, certificateId: number, reason: string) {
+    return api.post(`/core/applications/${applicationId}/certificates/${certificateId}/revoke`, { reason })
   },
 }

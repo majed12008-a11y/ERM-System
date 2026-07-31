@@ -105,6 +105,137 @@ components:
       format: date-time
       example: 2026-06-08T19:30:00.000Z
 
+    # ────────────────────────────────────
+    # Reviews
+    # ────────────────────────────────────
+    ReviewAssignment:
+      type: object
+      properties:
+        id: { type: integer }
+        application_id: { type: integer }
+        reviewer_id: { type: integer }
+        reviewer_name: { type: string }
+        review_type: { type: string, enum: [ETHICS, SCIENTIFIC] }
+        status_code: { type: string }
+        assigned_by: { type: integer }
+        due_date: { type: string, format: date-time, nullable: true }
+        form_id: { type: integer, nullable: true }
+        application_number: { type: string }
+        project_title: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ReviewForm:
+      type: object
+      properties:
+        id: { type: integer }
+        form_code: { type: string }
+        form_name: { type: string }
+        review_type: { type: string }
+        description: { type: string }
+        is_active: { type: boolean }
+        question_count: { type: integer }
+
+    ReviewQuestion:
+      type: object
+      properties:
+        id: { type: integer }
+        form_id: { type: integer }
+        question_code: { type: string }
+        question_text: { type: string }
+        question_type: { type: string, enum: [TEXT, SCALE, BOOLEAN, CHOICE] }
+        is_required: { type: boolean }
+        display_order: { type: integer }
+        scale_min: { type: integer, nullable: true }
+        scale_max: { type: integer, nullable: true }
+        question_options: { type: string, nullable: true }
+
+    ReviewRecommendation:
+      type: object
+      properties:
+        id: { type: integer }
+        application_id: { type: integer }
+        reviewer_id: { type: integer }
+        reviewer_name: { type: string }
+        recommendation_type: { type: string }
+        justification: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ReviewComment:
+      type: object
+      properties:
+        id: { type: integer }
+        application_id: { type: integer }
+        reviewer_id: { type: integer }
+        reviewer_name: { type: string }
+        comment_text: { type: string }
+        is_internal: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    ReviewAnswer:
+      type: object
+      properties:
+        id: { type: integer }
+        review_id: { type: integer }
+        question_id: { type: integer }
+        question_text: { type: string }
+        answer_text: { type: string }
+        answer_score: { type: number, nullable: true }
+
+    ReviewScore:
+      type: object
+      properties:
+        id: { type: integer }
+        application_id: { type: integer }
+        reviewer_id: { type: integer }
+        review_type: { type: string }
+        score: { type: number }
+
+    # ────────────────────────────────────
+    # Voting
+    # ────────────────────────────────────
+    VotingSession:
+      type: object
+      properties:
+        id: { type: integer }
+        meeting_id: { type: integer }
+        application_id: { type: integer, nullable: true }
+        voting_type: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        status_code: { type: string }
+        voting_start: { type: string, format: date-time, nullable: true }
+        voting_end: { type: string, format: date-time, nullable: true }
+        votes: { type: array, items: { $ref: '#/components/schemas/Vote' } }
+
+    Vote:
+      type: object
+      properties:
+        id: { type: integer }
+        voting_session_id: { type: integer }
+        voter_id: { type: integer }
+        voter_name: { type: string }
+        vote_value: { type: string }
+        comments: { type: string, nullable: true }
+        vote_time: { type: string, format: date-time }
+
+    # ────────────────────────────────────
+    # Communication
+    # ────────────────────────────────────
+    Notification:
+      type: object
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        title: { type: string }
+        body: { type: string }
+        is_read: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    UnreadCount:
+      type: object
+      properties:
+        count: { type: integer }
+
     paginationParams:
       type: object
       properties:

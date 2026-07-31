@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { assignReviewSchema, createReviewFormSchema, addQuestionSchema } from '../../middleware/schemas';
+import { assignReviewSchema, createReviewFormSchema, addQuestionSchema, submitReviewSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
-import { CommitteeService } from '../../services/committee.service';
+import { ReviewService } from '../../services/review.service';
 
 const router = Router();
-const service = new CommitteeService();
+const service = new ReviewService();
 
 router.get('/my', authenticate, async (req: Request, res: Response) => {
   try {
@@ -38,7 +38,7 @@ router.get('/application/:applicationId/comments', authenticate, async (req: Req
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/:assignmentId/submit', authenticate, async (req: Request, res: Response) => {
+router.post('/:assignmentId/submit', authenticate, validate(submitReviewSchema), async (req: Request, res: Response) => {
   try {
     res.json(successResponse(await service.submitReview(parseInt(String(req.params.assignmentId)), (req as any).user, req.body)));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }

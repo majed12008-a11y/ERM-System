@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createPushConfigSchema, updatePushConfigSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { PushConfigRepository } from '../../repositories/push-config.repository';
 
@@ -32,34 +34,22 @@ router.get('/:id', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(createPushConfigSchema), async (req: Request, res: Response) => {
   try {
-    const { config_name, provider, server_key, app_id, is_active } = req.body;
-    if (!config_name || !provider) {
-      return res.status(400).json(errorResponse('config_name and provider are required'));
-    }
-    if (is_active) await repo.deactivateAll();
-    const config = await repo.create({
-      config_name, provider,
-      server_key: server_key || '', app_id: app_id || '',
-      is_active: is_active !== false,
-    });
+    if (req.body.is_active) await repo.deactivateAll();
+    const config = await repo.create(req.body);
     res.status(201).json(successResponse(config, 'Push config created'));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validate(updatePushConfigSchema), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json(errorResponse('Invalid id'));
     const existing = await repo.findById(id);
     if (!existing) return res.status(404).json(errorResponse('Push config not found'));
-    const data: any = {};
-    for (const key of ['config_name', 'provider', 'server_key', 'app_id', 'is_active']) {
-      if (req.body[key] !== undefined) data[key] = req.body[key];
-    }
-    if (data.is_active === true) await repo.deactivateAll();
-    const config = await repo.update(id, data);
+    if (req.body.is_active === true) await repo.deactivateAll();
+    const config = await repo.update(id, req.body);
     res.json(successResponse(config, 'Push config updated'));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });

@@ -41,7 +41,7 @@ info:
     - Reference (institutions, professions, licenses)
 
 servers:
-  - url: http://localhost:3000/api/v1
+  - url: http://localhost:8080/api/v1
     description: Development server
 
 # ── Global Security ──
@@ -92,6 +92,8 @@ tags:
     description: Saved searches and system configuration
   - name: Reference
     description: Public reference data (institutions, professions, licenses)
+  - name: Templates
+    description: Template engine — CRUD, versioning, lifecycle, rendering, snapshots, and rollback
   - name: Health
     description: Service health check
 
@@ -235,6 +237,10 @@ paths:
     $ref: './modules/committee.yaml#/paths/~1committee~1voting~1sessions'
   '/committee/voting/sessions/{id}':
     $ref: './modules/committee.yaml#/paths/~1committee~1voting~1sessions~1{id}'
+  '/committee/voting/sessions/{id}/vote':
+    $ref: './modules/committee.yaml#/paths/~1committee~1voting~1sessions~1{id}~1vote'
+  '/committee/voting/sessions/{id}/close':
+    $ref: './modules/committee.yaml#/paths/~1committee~1voting~1sessions~1{id}~1close'
 
   # ────────────────────────────────
   # Core Module — Projects
@@ -257,6 +263,16 @@ paths:
     $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}'
   '/core/applications/{id}/status':
     $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1status'
+  '/core/applications/{id}/history':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1history'
+  '/core/applications/{id}/sla':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1sla'
+  '/core/applications/{id}/withdraw':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1withdraw'
+  '/core/applications/{id}/appeal':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1appeal'
+  '/core/applications/{id}/renewal':
+    $ref: './modules/applications.yaml#/paths/~1core~1applications~1{id}~1renewal'
   # ────────────────────────────────
   # Core Module — Lookups
   # ────────────────────────────────
@@ -282,6 +298,12 @@ paths:
     $ref: './modules/documents.yaml#/paths/~1documents~1entity~1{entityType}~1{entityId}'
   '/documents/{id}':
     $ref: './modules/documents.yaml#/paths/~1documents~1{id}'
+  '/documents/{id}/download':
+    $ref: './modules/documents.yaml#/paths/~1documents~1{id}~1download'
+  '/documents/{id}/preview':
+    $ref: './modules/documents.yaml#/paths/~1documents~1{id}~1preview'
+  '/documents/{id}/restore':
+    $ref: './modules/documents.yaml#/paths/~1documents~1{id}~1restore'
   '/documents/{id}/sign':
     $ref: './modules/documents.yaml#/paths/~1documents~1{id}~1sign'
   '/documents/{id}/signatures':
@@ -306,6 +328,10 @@ paths:
   # ────────────────────────────────
   /communication/notifications:
     $ref: './modules/communication.yaml#/paths/~1communication~1notifications'
+  /communication/notifications/unread-count:
+    $ref: './modules/communication.yaml#/paths/~1communication~1notifications~1unread-count'
+  /communication/notifications/stream:
+    $ref: './modules/communication.yaml#/paths/~1communication~1notifications~1stream'
   '/communication/notifications/{id}/read':
     $ref: './modules/communication.yaml#/paths/~1communication~1notifications~1{id}~1read'
   /communication/notifications/read-all:
@@ -388,6 +414,46 @@ paths:
     $ref: './modules/system.yaml#/paths/~1system~1saved-searches~1{id}'
   /system/config:
     $ref: './modules/system.yaml#/paths/~1system~1config'
+
+  # ────────────────────────────────
+  # Templates Module
+  # ────────────────────────────────
+  /templates:
+    $ref: './modules/templates.yaml#/paths/~1templates'
+  '/templates/{id}':
+    $ref: './modules/templates.yaml#/paths/~1templates~1{id}'
+  /templates/versions:
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions'
+  '/templates/versions/{id}':
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions~1{id}'
+  '/templates/versions/{id}/submit':
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions~1{id}~1submit'
+  '/templates/versions/{id}/approve':
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions~1{id}~1approve'
+  '/templates/versions/{id}/reject':
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions~1{id}~1reject'
+  '/templates/versions/{id}/deprecate':
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions~1{id}~1deprecate'
+  '/templates/versions/{id}/archive':
+    $ref: './modules/templates.yaml#/paths/~1templates~1versions~1{id}~1archive'
+  /templates/template-preview:
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-preview'
+  /templates/template-render:
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-render'
+  /templates/template-history:
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-history'
+  /templates/template-snapshots:
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-snapshots'
+  '/templates/template-snapshots/{hash}':
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-snapshots~1{hash}'
+  /templates/template-snapshots/verify:
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-snapshots~1verify'
+  /templates/template-rollback:
+    $ref: './modules/templates.yaml#/paths/~1templates~1template-rollback'
+  /templates/categories:
+    $ref: './modules/templates.yaml#/paths/~1templates~1categories'
+  '/templates/categories/{id}':
+    $ref: './modules/templates.yaml#/paths/~1templates~1categories~1{id}'
 
   # ────────────────────────────────
   # Reference Module

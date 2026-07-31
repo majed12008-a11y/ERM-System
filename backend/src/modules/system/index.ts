@@ -4,6 +4,8 @@
  */
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createSavedSearchSchema, updateSavedSearchSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { SystemService } from '../../services/system.service';
 
@@ -16,7 +18,7 @@ router.get('/saved-searches', authenticate, async (req: Request, res: Response) 
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/saved-searches', authenticate, async (req: Request, res: Response) => {
+router.post('/saved-searches', authenticate, validate(createSavedSearchSchema), async (req: Request, res: Response) => {
   try {
     const { name, search_type, criteria, is_shared } = req.body;
     const result = await service.createSavedSearch((req as any).user.id, { name, search_type, criteria, is_shared });
@@ -24,7 +26,7 @@ router.post('/saved-searches', authenticate, async (req: Request, res: Response)
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.put('/saved-searches/:id', authenticate, async (req: Request, res: Response) => {
+router.put('/saved-searches/:id', authenticate, validate(updateSavedSearchSchema), async (req: Request, res: Response) => {
   try {
     const { name, criteria, is_shared } = req.body;
     const result = await service.updateSavedSearch(Number(req.params.id), (req as any).user.id, { name, criteria, is_shared });

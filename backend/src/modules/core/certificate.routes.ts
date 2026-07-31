@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import { authenticate, authorize } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { revokeCertificateSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { CertificateService } from '../../services/certificate.service';
 import { CertificateRepository } from '../../repositories/certificate.repository';
@@ -54,13 +56,9 @@ router.post('/:id/retry', authenticate, authorize('ETHICS_ADMIN', 'SUPER_ADMIN')
   }
 });
 
-router.post('/:id/revoke', authenticate, authorize('ETHICS_ADMIN', 'SUPER_ADMIN'), async (req: Request, res: Response) => {
+router.post('/:id/revoke', authenticate, authorize('ETHICS_ADMIN', 'SUPER_ADMIN'), validate(revokeCertificateSchema), async (req: Request, res: Response) => {
   try {
-    const { reason } = req.body;
-    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      return res.status(400).json(errorResponse('Revocation reason is required'));
-    }
-    await certificateService.revoke(parseInt(String(req.params.id)), reason.trim(), (req as any).user);
+    await certificateService.revoke(parseInt(String(req.params.id)), req.body.reason, (req as any).user);
     res.json(successResponse(null, 'Certificate revoked'));
   } catch (err: any) {
     res.status(err.status || 500).json(errorResponse(err.message));

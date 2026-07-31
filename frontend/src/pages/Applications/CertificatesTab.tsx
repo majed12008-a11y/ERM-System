@@ -42,7 +42,7 @@ export default function CertificatesTab({ applicationId }: CertificatesTabProps)
   const certs: ApprovalCertificate[] = certsRes?.data?.data || []
 
   const downloadMutation = useMutation({
-    mutationFn: (certId: number) => certificates.download(certId),
+    mutationFn: (certId: number) => certificates.download(Number(applicationId), certId),
     onSuccess: (res, certId) => {
       const cert = certs.find(c => c.id === certId)
       const url = window.URL.createObjectURL(new Blob([res.data]))
@@ -58,7 +58,7 @@ export default function CertificatesTab({ applicationId }: CertificatesTabProps)
   })
 
   const retryMutation = useMutation({
-    mutationFn: (certId: number) => certificates.retry(certId),
+    mutationFn: (certId: number) => certificates.retry(Number(applicationId), certId),
     onSuccess: () => {
       toast.success(t('certificates.retrySuccess'))
       queryClient.invalidateQueries({ queryKey: ['application-certificates', applicationId] })
@@ -69,7 +69,7 @@ export default function CertificatesTab({ applicationId }: CertificatesTabProps)
   })
 
   const reissueMutation = useMutation({
-    mutationFn: (certId: number) => certificates.reissue(certId),
+    mutationFn: (certId: number) => certificates.reissue(Number(applicationId), certId),
     onSuccess: () => {
       toast.success(t('certificates.reissueSuccess'))
       queryClient.invalidateQueries({ queryKey: ['application-certificates', applicationId] })
@@ -81,7 +81,7 @@ export default function CertificatesTab({ applicationId }: CertificatesTabProps)
 
   const revokeMutation = useMutation({
     mutationFn: ({ certId, reason }: { certId: number; reason: string }) =>
-      certificates.revoke(certId, reason),
+      certificates.revoke(Number(applicationId), certId, reason),
     onSuccess: () => {
       toast.success(t('certificates.revokeSuccess'))
       setRevokingId(null)

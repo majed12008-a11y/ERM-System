@@ -5,7 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import api from '../api/client'
+import { notifications } from '../sdk/domains/communication.sdk'
 import DataTable from '../components/DataTable'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Bell, Check, CheckCheck, Trash2, Mail, MailOpen } from 'lucide-react'
@@ -18,28 +18,28 @@ export default function Notifications() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => api.get('/communication/notifications').then((r) => r.data.data),
+    queryFn: () => notifications.list().then((r) => r.data.data),
   })
 
   const markRead = useMutation({
-    mutationFn: (id: number) => api.patch(`/communication/notifications/${id}/read`),
+    mutationFn: (id: number) => notifications.markAsRead(id),
     onSuccess: () => { toast.success(t('notifications.markedRead')); queryClient.invalidateQueries({ queryKey: ['notifications'] }) },
   })
 
   const markAllRead = useMutation({
-    mutationFn: () => api.patch('/communication/notifications/read-all'),
+    mutationFn: () => notifications.markAllAsRead(),
     onSuccess: () => { toast.success(t('notifications.allMarkedRead')); queryClient.invalidateQueries({ queryKey: ['notifications'] }) },
   })
 
   const deleteNotif = useMutation({
-    mutationFn: (id: number) => api.delete(`/communication/notifications/${id}`),
+    mutationFn: (id: number) => notifications.delete(id),
     onSuccess: () => { toast.success(t('notifications.deleted')); queryClient.invalidateQueries({ queryKey: ['notifications'] }); setDeleteTarget(null) },
   })
 
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
 
-  const notifications = data || []
-  const unread = notifications.filter((n: any) => !n.is_read).length
+  const notificationsList = data || []
+  const unread = notificationsList.filter((n: any) => !n.is_read).length
 
   return (
     <div>
@@ -94,7 +94,7 @@ export default function Notifications() {
               </div>
             )},
           ]}
-          data={notifications}
+          data={notificationsList}
           pageSize={15}
         />
       )}

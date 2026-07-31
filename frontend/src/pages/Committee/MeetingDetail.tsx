@@ -9,7 +9,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import api from '../../api/client'
+import { meetings } from '../../sdk/domains/committee.sdk'
+import { voting } from '../../sdk/domains/reviews.sdk'
 import { useAuth } from '../../context/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -17,77 +18,12 @@ import { Input } from '../../components/ui/input'
 import { StatusBadge } from '../../components/StatusBadge'
 import { meetingAgendaSchema, agendaItemSchema, attendanceSchema, minutesSchema, votingSessionSchema } from '../../lib/schemas'
 import { z } from 'zod'
+import DocumentGenerationSection from '../../components/DocumentGenerationSection'
+import type { DocumentAction } from '../../components/DocumentGenerationSection'
 import { ArrowLeft, CalendarDays, FileText, UserCheck, MessageSquare, Vote } from 'lucide-react'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { AxiosError } from 'axios'
-import type { SuccessResponse } from '../../sdk/core/types'
-
-type MeetingDetailData = {
-  id: number
-  meeting_number: string
-  meeting_status: string
-  meeting_date: string
-  committee_name?: string
-  location?: string
-}
-
-type AgendaSection = {
-  id: number
-  title: string
-  description?: string
-  items: AgendaItemData[]
-}
-
-type AgendaItemData = {
-  id: number
-  item_order: number
-  title: string
-  app_number?: string
-}
-
-type AttendanceRecord = {
-  id: number
-  display_name?: string
-  username: string
-  attendance_status: string
-}
-
-type MemberSummary = {
-  id: number
-  user_id: number
-  display_name?: string
-  username: string
-}
-
-type MinutesRecord = {
-  id: number
-  minutes_text: string
-  created_by_username?: string
-  approved_by?: number
-  approved_by_username?: string
-  signatures: SignatureRecord[]
-}
-
-type SignatureRecord = {
-  id: number
-  signer_id: number
-  signer_name: string
-}
-
-type VotingSession = {
-  id: number
-  project_title?: string
-  application_number?: string
-  status_code: string
-  votes: VoteRecord[]
-}
-
-type VoteRecord = {
-  id: number
-  voter_id: number
-  voter_name: string
-  vote_value: string
-}
+import type { AgendaItem, Attendance, CommitteeMember } from '../../sdk/core/types'
 
 export default function MeetingDetail() {
   const { t } = useTranslation()
@@ -99,44 +35,49 @@ export default function MeetingDetail() {
 
   const { data: meeting, isLoading } = useQuery({
     queryKey: ['meeting', id],
-    queryFn: () => api.get<SuccessResponse<MeetingDetailData>>(`/committee/meetings/${id}`).then(r => r.data.data),
+    queryFn: () => meetings.getById(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: agenda } = useQuery({
     queryKey: ['meeting-agenda', id],
-    queryFn: () => api.get<SuccessResponse<AgendaSection[]>>(`/committee/meetings/${id}/agenda`).then(r => r.data.data),
+    queryFn: () => meetings.getAgenda(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: attendance } = useQuery({
     queryKey: ['meeting-attendance', id],
-    queryFn: () => api.get<SuccessResponse<AttendanceRecord[]>>(`/committee/meetings/${id}/attendance`).then(r => r.data.data),
+    queryFn: () => meetings.getAttendance(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: minutes } = useQuery({
     queryKey: ['meeting-minutes', id],
-    queryFn: () => api.get<SuccessResponse<MinutesRecord[]>>(`/committee/meetings/${id}/minutes`).then(r => r.data.data),
+    queryFn: () => meetings.getMinutes(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: members } = useQuery({
     queryKey: ['meeting-members', id],
-    queryFn: () => api.get<SuccessResponse<MemberSummary[]>>(`/committee/meetings/${id}/committee-members`).then(r => r.data.data),
+    queryFn: () => meetings.getCommitteeMembers(Number(id)).then((r) => r.data.data),
+    enabled: !!id,
+  })
+
+  const { data: votingSessions } = useQuery({
+    queryKey: ['voting-sessions', id],
+    queryFn: () => voting.getByMeeting(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const updateMeeting = useMutation({
-    mutationFn: (data: { meeting_status: string }) => api.patch(`/committee/meetings/${id}`, data),
+    mutationFn: (data: { meeting_status: string }) => meetings.update(Number(id), data),
     onSuccess: () => {
-      setStatusFilter('')
       queryClient.invalidateQueries({ queryKey: ['meeting', id] })
+      toast.success(t('meetings.statusUpdated'))
     },
     onError: (err: AxiosError<{ error?: string }>) => toast.error(err.response?.data?.error || err.message),
   })
 
-  const [statusFilter, setStatusFilter] = useState('')
   const [activeAgendaId, setActiveAgendaId] = useState<number | null>(null)
 
   const agendaForm = useForm<{ title: string; description?: string }>({
@@ -160,19 +101,14 @@ export default function MeetingDetail() {
     defaultValues: { application_id: '' },
   })
 
-  const { data: votingSessions } = useQuery({
-    queryKey: ['voting-sessions', id],
-    queryFn: () => api.get<SuccessResponse<VotingSession[]>>(`/committee/voting/meeting/${id}`).then(r => r.data.data),
-    enabled: !!id,
-  })
-
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({})
 
   async function onAgenda(data: { title: string; description?: string }) {
     try {
-      await api.post(`/committee/meetings/${id}/agenda`, data)
+      await meetings.addAgendaItem(Number(id), data)
       agendaForm.reset()
-      queryClient.invalidateQueries({ queryKey: ['meeting-agenda'] })
+      queryClient.invalidateQueries({ queryKey: ['meeting-agenda', id] })
+      toast.success(t('meetings.agendaAdded'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
@@ -181,10 +117,14 @@ export default function MeetingDetail() {
 
   async function onItem(data: { title: string; application_id?: string }, agendaId: number) {
     try {
-      await api.post(`/committee/meetings/${id}/agenda/${agendaId}/items`, { title: data.title, application_id: data.application_id || null })
+      await meetings.addAgendaSubItem(Number(id), agendaId, {
+        title: data.title,
+        application_id: data.application_id ? parseInt(data.application_id) : undefined,
+      })
       itemForm.reset()
       setActiveAgendaId(null)
-      queryClient.invalidateQueries({ queryKey: ['meeting-agenda'] })
+      queryClient.invalidateQueries({ queryKey: ['meeting-agenda', id] })
+      toast.success(t('meetings.itemAdded'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
@@ -193,9 +133,14 @@ export default function MeetingDetail() {
 
   async function onAttendance(data: z.input<typeof attendanceSchema>) {
     try {
-      await api.post(`/committee/meetings/${id}/attendance`, { user_id: parseInt(data.user_id), attendance_status: data.attendance_status, remarks: data.remarks })
+      await meetings.recordAttendance(Number(id), {
+        user_id: parseInt(data.user_id),
+        attendance_status: data.attendance_status || 'PRESENT',
+        ...(data.remarks ? { remarks: data.remarks } : {}),
+      })
       attendForm.reset()
-      queryClient.invalidateQueries({ queryKey: ['meeting-attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['meeting-attendance', id] })
+      toast.success(t('meetings.attendanceRecorded'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
@@ -204,9 +149,10 @@ export default function MeetingDetail() {
 
   async function onMinutes(data: { minutes_text: string }) {
     try {
-      await api.post(`/committee/meetings/${id}/minutes`, data)
+      await meetings.createMinutes(Number(id), data)
       minutesForm.reset()
-      queryClient.invalidateQueries({ queryKey: ['meeting-minutes'] })
+      queryClient.invalidateQueries({ queryKey: ['meeting-minutes', id] })
+      toast.success(t('meetings.minutesAdded'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
@@ -215,19 +161,24 @@ export default function MeetingDetail() {
 
   async function approveMinutes(minutesId: number) {
     try {
-      await api.patch(`/committee/meetings/${id}/minutes/${minutesId}/approve`)
-      queryClient.invalidateQueries({ queryKey: ['meeting-minutes'] })
+      await meetings.approveMinutes(Number(id), minutesId)
+      queryClient.invalidateQueries({ queryKey: ['meeting-minutes', id] })
+      toast.success(t('meetings.minutesApproved'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
     }
   }
 
-  async function onNewVote(data: { application_id: string }) {
+  async function onNewVote() {
     try {
-      await api.post('/committee/voting/sessions', { application_id: parseInt(data.application_id), meeting_id: parseInt(id!), voting_type: 'MAJORITY' })
+      await voting.createSession({
+        meeting_id: Number(id),
+        voting_type: 'MAJORITY',
+      })
       voteForm.reset()
-      queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['voting-sessions', id] })
+      toast.success(t('meetings.votingStarted'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
@@ -236,9 +187,10 @@ export default function MeetingDetail() {
 
   async function castVote(sessionId: number, voteValue: string) {
     try {
-      await api.post(`/committee/voting/sessions/${sessionId}/vote`, { vote_value: voteValue })
+      await voting.castVote(sessionId, { vote_value: voteValue })
       setVoteErrors((prev: Record<string, string>) => ({ ...prev, [sessionId]: '' }))
-      queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['voting-sessions', id] })
+      toast.success(t('meetings.voteCast'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       setVoteErrors((prev: Record<string, string>) => ({ ...prev, [sessionId]: axiosErr?.response?.data?.error || t('meetings.voteFailed') }))
@@ -247,13 +199,19 @@ export default function MeetingDetail() {
 
   async function closeSession(sessionId: number) {
     try {
-      await api.patch(`/committee/voting/sessions/${sessionId}/close`)
-      queryClient.invalidateQueries({ queryKey: ['voting-sessions'] })
+      await voting.closeSession(sessionId)
+      queryClient.invalidateQueries({ queryKey: ['voting-sessions', id] })
+      toast.success(t('meetings.votingClosed'))
     } catch (err: unknown) {
       const axiosErr = err instanceof AxiosError ? err : undefined
       toast.error(axiosErr?.response?.data?.error || t('meetings.saveFailed'))
     }
   }
+
+  const documentActions: DocumentAction[] = [
+    { key: 'agenda', labelKey: 'meetings.docAgenda', templateCode: 'meeting.agenda', getVariables: () => ({ meeting_date: meeting?.meeting_date, meeting_type: meeting?.meeting_type, status: meeting?.meeting_status, location: meeting?.location }) },
+    { key: 'minutes', labelKey: 'meetings.docMinutes', templateCode: 'meeting.minutes', getVariables: () => ({ meeting_date: meeting?.meeting_date, meeting_type: meeting?.meeting_type, status: meeting?.meeting_status, location: meeting?.location }) },
+  ]
 
   if (isLoading) return <PageSkeleton />
   if (!meeting) return <p className="text-red-500">{t('meetings.notFound')}</p>
@@ -269,7 +227,7 @@ export default function MeetingDetail() {
         <div className="flex items-center gap-2">
           <StatusBadge status={meeting.meeting_status} />
           {canEdit && (
-            <select value={statusFilter || meeting.meeting_status} onChange={e => { setStatusFilter(e.target.value); updateMeeting.mutate({ meeting_status: e.target.value }) }}
+            <select value={meeting.meeting_status} onChange={e => updateMeeting.mutate({ meeting_status: e.target.value })}
               className="text-sm border rounded p-1">
               <option value="SCHEDULED">{t('meetings.scheduledLabel')}</option>
               <option value="IN_PROGRESS">{t('meetings.inProgressLabel')}</option>
@@ -300,15 +258,15 @@ export default function MeetingDetail() {
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4" /> {t('meetings.agenda')}</CardTitle></CardHeader>
             <CardContent>
-              {agenda && agenda.length > 0 ? agenda.map((a: AgendaSection) => (
+              {agenda && agenda.length > 0 ? agenda.map((a) => (
                 <div key={a.id} className="mb-4 pb-3 border-b last:border-0">
                   <p className="font-medium text-sm">{a.title}</p>
                   {a.description && <p className="text-xs text-slate-500">{a.description}</p>}
                   {a.items && a.items.length > 0 && (
                     <div className="ms-4 mt-2 space-y-1">
-                      {a.items.map((item: AgendaItemData) => (
+                      {a.items.map((item: AgendaItem) => (
                         <div key={item.id} className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-400">#{item.item_order}</span>
+                          <span className="text-slate-400">#{item.sort_order}</span>
                           <span className="font-medium">{item.title}</span>
                           {item.app_number && <span className="text-blue-600">({item.app_number})</span>}
                         </div>
@@ -350,7 +308,7 @@ export default function MeetingDetail() {
             <CardContent>
               {attendance && attendance.length > 0 ? (
                 <div className="space-y-2">
-                  {attendance.map((a: AttendanceRecord) => (
+                  {attendance.map((a: Attendance) => (
                     <div key={a.id} className="flex items-center justify-between text-sm border-b pb-1 last:border-0">
                       <span className="font-medium">{a.display_name || a.username}</span>
                       <StatusBadge status={a.attendance_status} />
@@ -363,7 +321,7 @@ export default function MeetingDetail() {
                   <p className="text-xs font-medium text-slate-500">{t('meetings.markAttendance')}</p>
                   <select {...attendForm.register('user_id')} className="w-full p-2 border rounded text-sm">
                     <option value="">{t('meetings.selectMember')}</option>
-                    {members.map((m: MemberSummary) => <option key={m.id} value={m.user_id}>{m.display_name || m.username}</option>)}
+                    {members.map((m: CommitteeMember) => <option key={m.id} value={m.user_id}>{m.display_name || m.username}</option>)}
                   </select>
                   {attendForm.formState.errors.user_id && <p className="text-red-500 text-xs">{attendForm.formState.errors.user_id.message}</p>}
                   <select {...attendForm.register('attendance_status')} className="w-full p-2 border rounded text-sm">
@@ -382,7 +340,7 @@ export default function MeetingDetail() {
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><MessageSquare className="w-4 h-4" /> {t('meetings.minutes')}</CardTitle></CardHeader>
             <CardContent>
-              {minutes && minutes.length > 0 ? minutes.map((m: MinutesRecord) => (
+              {minutes && minutes.length > 0 ? minutes.map((m) => (
                 <div key={m.id} className="text-sm border-b pb-2 mb-2 last:border-0">
                   <p className="text-xs text-slate-600 whitespace-pre-wrap">{m.minutes_text}</p>
                   {m.created_by_username && <p className="text-xs text-slate-400 mt-1">{t('meetings.by', { name: m.created_by_username })}</p>}
@@ -395,7 +353,7 @@ export default function MeetingDetail() {
                   </div>
                   {m.signatures && m.signatures.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-2">
-                      {m.signatures.map((s: SignatureRecord) => (
+                      {m.signatures.map((s) => (
                         <span key={s.id} className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
                           {'\u270D'} {s.signer_name}
                         </span>
@@ -406,7 +364,7 @@ export default function MeetingDetail() {
                     {canEdit && !m.approved_by && (
                       <button className="text-xs text-blue-600 hover:underline" onClick={() => approveMinutes(m.id)}>{t('meetings.voteApprove')}</button>
                     )}
-                    {canEdit && m.signatures && !m.signatures.find((s: SignatureRecord) => s.signer_id === user?.id) && (
+                    {canEdit && m.signatures && !m.signatures.find((s) => s.signer_id === user?.id) && (
                       <button className="text-xs text-green-600 hover:underline" onClick={() => approveMinutes(m.id)}>{t('signatures.sign')}</button>
                     )}
                   </div>
@@ -426,20 +384,20 @@ export default function MeetingDetail() {
           <Card>
             <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Vote className="w-4 h-4" /> {t('meetings.voting')}</CardTitle></CardHeader>
             <CardContent>
-              {votingSessions && votingSessions.length > 0 ? votingSessions.map((s: VotingSession) => (
+              {votingSessions && votingSessions.length > 0 ? votingSessions.map((s) => (
                 <div key={s.id} className="text-sm border-b pb-3 mb-3 last:border-0">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{s.project_title || s.application_number}</p>
-                      <StatusBadge status={s.status_code} />
+                      <StatusBadge status={s.status} />
                     </div>
-                    {canEdit && s.status_code === 'OPEN' && (
+                    {canEdit && s.status === 'OPEN' && (
                       <Button size="sm" variant="outline" className="text-xs" onClick={() => closeSession(s.id)}>{t('meetings.closeVoting')}</Button>
                     )}
                   </div>
                   {s.votes && s.votes.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      {s.votes.map((v: VoteRecord) => (
+                      {s.votes.map((v) => (
                         <div key={v.id} className="flex items-center justify-between text-xs">
                           <span>{v.voter_name}</span>
                           <StatusBadge status={v.vote_value} />
@@ -447,7 +405,7 @@ export default function MeetingDetail() {
                       ))}
                     </div>
                   )}
-                  {s.status_code === 'OPEN' && !s.votes?.find((v: VoteRecord) => v.voter_id === user?.id) && (
+                  {s.status === 'OPEN' && !s.votes?.find((v) => v.voter_id === user?.id) && (
                     <div className="mt-2 flex gap-1">
                       <Button size="sm" variant="outline" className="text-xs text-green-600" onClick={() => castVote(s.id, 'APPROVE')}>{t('meetings.voteApprove')}</Button>
                       <Button size="sm" variant="outline" className="text-xs text-red-600" onClick={() => castVote(s.id, 'REJECT')}>{t('meetings.voteReject')}</Button>
@@ -467,6 +425,8 @@ export default function MeetingDetail() {
               )}
             </CardContent>
           </Card>
+
+          <DocumentGenerationSection actions={documentActions} />
         </div>
       </div>
     </div>

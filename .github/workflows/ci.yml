@@ -14,6 +14,9 @@ env:
   DB_PASSWORD: postgres
   JWT_SECRET: ci-test-secret-hex-for-github-actions-ci
   REQUIRED_ENV_VARS: DB_NAME DB_USER DB_PASSWORD JWT_SECRET
+  AUDIT_LEVEL: high
+  AUDIT_PRODUCTION_ONLY: 'false'
+  AUDIT_ENABLED: 'true'
 
 jobs:
   validate:
@@ -70,6 +73,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies
+        env:
+          AUDIT_LEVEL: ${{ env.AUDIT_LEVEL }}
+          AUDIT_PRODUCTION_ONLY: ${{ env.AUDIT_PRODUCTION_ONLY }}
+          AUDIT_ENABLED: ${{ env.AUDIT_ENABLED }}
+        run: |
+          if [ "$AUDIT_ENABLED" != "true" ]; then
+            echo "npm audit disabled by AUDIT_ENABLED=$AUDIT_ENABLED"
+            exit 0
+          fi
+          PROD_FLAG=""
+          if [ "$AUDIT_PRODUCTION_ONLY" = "true" ]; then
+            PROD_FLAG="--production"
+          fi
+          echo "Running npm audit (threshold: $AUDIT_LEVEL, production-only: $AUDIT_PRODUCTION_ONLY)"
+          npm audit --json $PROD_FLAG > audit-backend-report.json 2>&1 || true
+          npm audit --audit-level=$AUDIT_LEVEL $PROD_FLAG
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-backend-report
+          path: audit-backend-report.json
+          retention-days: 30
+
       - name: Type check
         run: npx tsc --noEmit
 
@@ -103,6 +132,32 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit dependencies
+        env:
+          AUDIT_LEVEL: ${{ env.AUDIT_LEVEL }}
+          AUDIT_PRODUCTION_ONLY: ${{ env.AUDIT_PRODUCTION_ONLY }}
+          AUDIT_ENABLED: ${{ env.AUDIT_ENABLED }}
+        run: |
+          if [ "$AUDIT_ENABLED" != "true" ]; then
+            echo "npm audit disabled by AUDIT_ENABLED=$AUDIT_ENABLED"
+            exit 0
+          fi
+          PROD_FLAG=""
+          if [ "$AUDIT_PRODUCTION_ONLY" = "true" ]; then
+            PROD_FLAG="--production"
+          fi
+          echo "Running npm audit (threshold: $AUDIT_LEVEL, production-only: $AUDIT_PRODUCTION_ONLY)"
+          npm audit --json $PROD_FLAG > audit-frontend-report.json 2>&1 || true
+          npm audit --audit-level=$AUDIT_LEVEL $PROD_FLAG
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-frontend-report
+          path: audit-frontend-report.json
+          retention-days: 30
 
       - name: Type check
         run: npx tsc --noEmit
@@ -173,7 +228,7 @@ jobs:
       - name: Wait for server
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/api/v1/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8080/api/v1/monitoring/health > /dev/null 2>&1; then
               echo "Server ready"
               exit 0
             fi
@@ -274,6 +329,49 @@ jobs:
           exit-code: '1'
           severity: CRITICAL,HIGH
           output: trivy-frontend-report.txt
+
+      - name: Download audit reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: audit-*-report
+          merge-multiple: true
+
+      - name: Generate audit summary
+        if: always()
+        continue-on-error: true
+        run: |
+          echo "## npm Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f audit-backend-report.json ]; then
+            echo "### Backend" >> $GITHUB_STEP_SUMMARY
+            node -e "
+              const r = require('./audit-backend-report.json');
+              const v = r.metadata ? r.metadata.vulnerabilities || {} : {};
+              console.log('| Severity | Count |');
+              console.log('|----------|-------|');
+              ['critical','high','moderate','low'].forEach(function(s) {
+                console.log('| ' + s + ' | ' + (v[s] || 0) + ' |');
+              });
+            " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Backend audit report not available" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f audit-frontend-report.json ]; then
+            echo "### Frontend" >> $GITHUB_STEP_SUMMARY
+            node -e "
+              const r = require('./audit-frontend-report.json');
+              const v = r.metadata ? r.metadata.vulnerabilities || {} : {};
+              console.log('| Severity | Count |');
+              console.log('|----------|-------|');
+              ['critical','high','moderate','low'].forEach(function(s) {
+                console.log('| ' + s + ' | ' + (v[s] || 0) + ' |');
+              });
+            " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Frontend audit report not available" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload Trivy reports
         uses: actions/upload-artifact@v4

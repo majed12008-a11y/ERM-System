@@ -16,7 +16,7 @@ export function validate(schema: ZodSchema, source: 'body' | 'query' | 'params' 
     } catch (err) {
       if (err instanceof ZodError) {
         const messages = err.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ');
-        res.status(400).json(errorResponse(messages));
+        res.status(400).json({ ...errorResponse(messages), requestId: (req as any).requestId || '-' });
         return;
       }
       next(err);

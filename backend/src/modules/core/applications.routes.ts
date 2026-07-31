@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createApplicationSchema, updateApplicationStatusSchema, updateApplicationSchema } from '../../middleware/schemas';
+import { createApplicationSchema, updateApplicationStatusSchema, updateApplicationSchema, withdrawApplicationSchema, appealApplicationSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { ApplicationService } from '../../services/application.service';
@@ -80,6 +80,7 @@ router.post(
   '/:id/withdraw',
   authenticate,
   authorize('RESEARCHER'),
+  validate(withdrawApplicationSchema),
   async (req: Request, res: Response) => {
     try {
       const app = await applicationService.withdrawApplication(
@@ -99,11 +100,9 @@ router.post(
   '/:id/appeal',
   authenticate,
   authorize('RESEARCHER'),
+  validate(appealApplicationSchema),
   async (req: Request, res: Response) => {
     try {
-      if (!req.body?.comment) {
-        return res.status(400).json(errorResponse('Appeal justification (comment) is required'));
-      }
       const app = await applicationService.appealDecision(
         parseInt(String(req.params.id)),
         req.body.comment,

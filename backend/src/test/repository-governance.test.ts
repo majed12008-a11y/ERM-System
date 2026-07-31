@@ -37,6 +37,7 @@ function getInfraServices(): string[] {
       path.join('services', 'notification.service.ts'),
       path.join('services', 'channel-router.service.ts'),
       path.join('services', 'template-renderer.service.ts'),
+      path.join('services', 'backup.service.ts'),
     );
   }
   return INFRA_SERVICE_FILES;
@@ -46,6 +47,7 @@ const INFRA_BASENAMES = new Set([
   'notification.service.ts',
   'channel-router.service.ts',
   'template-renderer.service.ts',
+  'backup.service.ts',
 ]);
 
 describe('Service Layer — No Raw SQL', () => {

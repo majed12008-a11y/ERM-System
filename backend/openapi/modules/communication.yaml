@@ -7,6 +7,31 @@ paths:
         '200':
           description: Notification list
 
+  /communication/notifications/unread-count:
+    get:
+      tags: [Communication]
+      summary: Get unread notification count
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/UnreadCount'
+
+  /communication/notifications/stream:
+    get:
+      tags: [Communication]
+      summary: SSE stream for real-time notifications
+      description: Server-Sent Events endpoint for real-time notification delivery. Returns text/event-stream.
+      responses:
+        '200':
+          description: Event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
   '/communication/notifications/{id}/read':
     patch:
       tags: [Communication]

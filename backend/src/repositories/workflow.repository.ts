@@ -182,7 +182,7 @@ export class WorkflowRepository extends AuditableRepository {
          wt.transition_name,
          wh.comments,
          wh.action_by,
-         u.full_name    AS action_by_name,
+          COALESCE(NULLIF(CONCAT(u.first_name_en, ' ', u.last_name_en), ' '), u.username) AS action_by_name,
          wh.action_date
        FROM workflow.workflow_history wh
        JOIN workflow.workflow_instances wi ON wh.workflow_instance_id = wi.id

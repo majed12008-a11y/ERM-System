@@ -183,7 +183,7 @@ export default function Dashboard() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
+          <h1 className="text-2xl font-bold">{t('accreditation.dashboard.title')}</h1>
           <p className="text-sm text-slate-500 mt-1">
             {cycle.committee_name_ar} — {t('accreditation.cycleNumber', { number: cycle.cycle_number })} — <StatusBadge status={cycle.status} />
           </p>

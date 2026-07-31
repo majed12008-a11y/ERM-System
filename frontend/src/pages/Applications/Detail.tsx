@@ -4,12 +4,11 @@
  */
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import api from '../../api/client'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import RiskAssessment from '../../components/RiskAssessment'
@@ -19,19 +18,36 @@ import CertificatesTab from './CertificatesTab'
 import { useAuth } from '../../context/AuthContext'
 import { workflowTransitionSchema, reviewSubmissionSchema } from '../../lib/schemas'
 import { applications } from '../../sdk/domains/applications.sdk'
+import { reviews } from '../../sdk/domains/reviews.sdk'
+import { workflow } from '../../sdk/domains/workflow.sdk'
+import { documents } from '../../sdk/domains/documents.sdk'
 import type { WorkflowTransition } from '../../sdk/core/types'
 import { findTransition } from '../../lib/workflow'
+import DocumentGenerationSection from '../../components/DocumentGenerationSection'
+import type { DocumentAction } from '../../components/DocumentGenerationSection'
 import {
   ArrowLeft, FileText, User, Calendar, Building2,
   BookOpen, Users, FileUp, Pencil
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog'
+import { Textarea } from '../../components/ui/textarea'
 import { z } from 'zod'
 import { AxiosError } from 'axios'
 
 type TransitionFormData = z.input<typeof workflowTransitionSchema>
 type ReviewFormData = z.input<typeof reviewSubmissionSchema>
+
+interface WorkflowHistoryItem {
+  id: number
+  transition_name?: string
+  to_state_name?: string
+  from_state_name?: string
+  action_by_name: string
+  comments?: string
+  action_date: string
+}
 
 export default function ApplicationDetail() {
   const { t } = useTranslation()
@@ -53,43 +69,53 @@ export default function ApplicationDetail() {
     queryFn: () => applications.getById(Number(id)).then((r) => r.data.data),
   })
 
-  const { data: workflowInstance } = useQuery({
-    queryKey: ['workflow-instance', 'Application', id],
-    queryFn: () => api.get(`/workflow/instances/Application/${id}`).then((r) => r.data.data),
+  useEffect(() => {
+    if (app?.current_status) setLocalStatus(app.current_status)
+  }, [app?.current_status])
+
+  const { data: workflowHistory } = useQuery({
+    queryKey: ['workflow-history', id],
+    queryFn: (): Promise<WorkflowHistoryItem[]> => applications.getHistory(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: availableTransitions } = useQuery({
     queryKey: ['available-transitions', 'Application', id],
-    queryFn: () => api.get(`/workflow/available-transitions/Application/${id}`).then((r) => r.data.data),
+    queryFn: () => workflow.getAvailableTransitions('Application', Number(id)).then((r) => r.data.data?.transitions ?? []),
     enabled: !!id,
   })
 
-  const { data: reviews } = useQuery({
+  const { data: appReviews } = useQuery({
     queryKey: ['application-reviews', id],
-    queryFn: () => api.get(`/committee/reviews/application/${id}`).then((r) => r.data.data),
+    queryFn: () => reviews.getByApplication(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
-  const { data: documents } = useQuery({
+  const { data: appDocuments } = useQuery({
     queryKey: ['application-documents', id],
-    queryFn: () => api.get(`/documents/entity/Application/${id}`).then((r) => r.data.data),
+    queryFn: () => documents.getByEntity('Application', Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: recommendations } = useQuery({
     queryKey: ['recommendations', id],
-    queryFn: () => api.get(`/committee/reviews/application/${id}/recommendations`).then((r) => r.data.data),
+    queryFn: () => reviews.getRecommendations(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
   const { data: comments } = useQuery({
     queryKey: ['review-comments', id],
-    queryFn: () => api.get(`/committee/reviews/application/${id}/comments`).then((r) => r.data.data),
+    queryFn: () => reviews.getComments(Number(id)).then((r) => r.data.data),
     enabled: !!id,
   })
 
-  const transitions: WorkflowTransition[] = availableTransitions?.transitions || []
+  const { data: sla } = useQuery({
+    queryKey: ['application-sla', id],
+    queryFn: (): Promise<{ within_sla: boolean; overdue_by?: number }> => applications.getSla(Number(id)).then((r) => r.data.data),
+    enabled: !!id,
+  })
+
+  const transitions: WorkflowTransition[] = availableTransitions || []
   const canTransition = transitions.length > 0
 
   const selectedTransCode = transitionForm.watch('transition_code')
@@ -102,7 +128,7 @@ export default function ApplicationDetail() {
     }).then(() => {
       toast.success(t('applications.statusUpdated'))
       queryClient.invalidateQueries({ queryKey: ['application', id] })
-      queryClient.invalidateQueries({ queryKey: ['workflow-instance', 'Application', id] })
+      queryClient.invalidateQueries({ queryKey: ['workflow-history', id] })
       queryClient.invalidateQueries({ queryKey: ['available-transitions', 'Application', id] })
       queryClient.invalidateQueries({ queryKey: ['application-reviews', id] })
       transitionForm.reset()
@@ -111,20 +137,25 @@ export default function ApplicationDetail() {
     })
   }
 
-  const myAssignment = reviews?.find((r: any) => r.reviewer_id === user?.id && r.status_code !== 'COMPLETED')
+  const myAssignment = appReviews?.find((r: any) => r.reviewer_id === user?.id && r.status_code !== 'COMPLETED')
 
   const [submitting, setSubmitting] = useState(false)
   const [formAnswers, setFormAnswers] = useState<Record<number, { text: string; score: number }>>({})
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false)
+  const [withdrawComment, setWithdrawComment] = useState('')
+  const [showAppealDialog, setShowAppealDialog] = useState(false)
+  const [appealComment, setAppealComment] = useState('')
+  const [localStatus, setLocalStatus] = useState<string>('')
 
   const { data: reviewForm } = useQuery({
     queryKey: ['review-form-for-type', myAssignment?.review_type],
-    queryFn: () => api.get('/committee/reviews/forms').then(r => (r.data.data || []).find((f: any) => f.review_type === myAssignment!.review_type && f.is_active)),
+    queryFn: () => reviews.getForms().then(r => (r.data.data || []).find((f: any) => f.review_type === myAssignment!.review_type && f.is_active)),
     enabled: !!myAssignment,
   })
 
   const { data: formQuestions } = useQuery({
     queryKey: ['form-questions-for-review', reviewForm?.id],
-    queryFn: () => api.get(`/committee/reviews/forms/${reviewForm!.id}/questions`).then(r => r.data.data),
+    queryFn: () => reviews.getQuestions(reviewForm!.id).then(r => r.data.data),
     enabled: !!reviewForm?.id,
   })
 
@@ -142,7 +173,7 @@ export default function ApplicationDetail() {
           answer_score: formAnswers[q.id]?.score || null,
         }))
       }
-      await api.post(`/committee/reviews/${myAssignment.id}/submit`, body)
+      await reviews.submit(myAssignment.id, body)
       toast.success(t('applications.reviewSubmitted'))
       submitReviewForm.reset()
       setFormAnswers({})
@@ -156,6 +187,59 @@ export default function ApplicationDetail() {
       setSubmitting(false)
     }
   }
+
+  function onWithdraw() {
+    applications.withdraw(Number(id), { comment: withdrawComment || undefined }).then(() => {
+      toast.success(t('applications.withdrawn'))
+      setShowWithdrawDialog(false)
+      setWithdrawComment('')
+      queryClient.invalidateQueries({ queryKey: ['application', id] })
+      queryClient.invalidateQueries({ queryKey: ['workflow-history', id] })
+      queryClient.invalidateQueries({ queryKey: ['available-transitions', 'Application', id] })
+    }).catch((err: AxiosError<{ error?: string }>) => {
+      toast.error(err.response?.data?.error || t('applications.withdrawFailed'))
+    })
+  }
+
+  function onAppeal() {
+    if (!appealComment || appealComment.length < 10) {
+      toast.error(t('applications.appealMinLength'))
+      return
+    }
+    applications.appeal(Number(id), { comment: appealComment }).then(() => {
+      toast.success(t('applications.appealSubmitted'))
+      setShowAppealDialog(false)
+      setAppealComment('')
+      queryClient.invalidateQueries({ queryKey: ['application', id] })
+      queryClient.invalidateQueries({ queryKey: ['workflow-history', id] })
+      queryClient.invalidateQueries({ queryKey: ['available-transitions', 'Application', id] })
+    }).catch((err: AxiosError<{ error?: string }>) => {
+      toast.error(err.response?.data?.error || t('applications.appealFailed'))
+    })
+  }
+
+  function onRenew() {
+    applications.renew(Number(id)).then(() => {
+      toast.success(t('applications.renewalInitiated'))
+      queryClient.invalidateQueries({ queryKey: ['application', id] })
+      queryClient.invalidateQueries({ queryKey: ['workflow-history', id] })
+      queryClient.invalidateQueries({ queryKey: ['available-transitions', 'Application', id] })
+    }).catch((err: AxiosError<{ error?: string }>) => {
+      toast.error(err.response?.data?.error || t('applications.renewalFailed'))
+    })
+  }
+
+  const documentActions: DocumentAction[] = [
+    { key: 'submission', labelKey: 'applications.docSubmission', templateCode: 'application.submission', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'receipt', labelKey: 'applications.docReceipt', templateCode: 'application.receipt', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'approval', labelKey: 'applications.docApproval', templateCode: 'application.approval', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'conditional', labelKey: 'applications.docConditional', templateCode: 'application.conditional', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'rejection', labelKey: 'applications.docRejection', templateCode: 'application.rejection', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'withdrawal', labelKey: 'applications.docWithdrawal', templateCode: 'application.withdrawal', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'consent', labelKey: 'applications.docConsent', templateCode: 'consent.form', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'safety', labelKey: 'applications.docSafety', templateCode: 'safety.report', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+    { key: 'risk', labelKey: 'applications.docRisk', templateCode: 'risk.assessment', getVariables: () => ({ application_number: app?.application_number, project_title: app?.project_title }) },
+  ]
 
   if (isLoading) return <PageSkeleton />
   if (!app) return <p className="text-red-500">{t('applications.notFound')}</p>
@@ -177,8 +261,13 @@ export default function ApplicationDetail() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{t('applications.number')}{app.application_number}</h1>
         <div className="flex items-center gap-3">
-          <StatusBadge status={app.current_status} />
-          {app.current_status === 'DRAFT' && (
+          <StatusBadge status={localStatus} />
+          {sla && !sla.within_sla && (
+            <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+              {t('applications.overdue')}{sla.overdue_by ? ` ${sla.overdue_by}d` : ''}
+            </span>
+          )}
+          {localStatus === 'DRAFT' && (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => navigate(`/applications/${id}/edit`)}>
                 <Pencil className="w-4 h-4 mr-1" /> {t('applications.editDraft')}
@@ -198,6 +287,21 @@ export default function ApplicationDetail() {
               )}
               <Button type="submit" size="sm" disabled={!selectedTransCode}>{t('applications.go')}</Button>
             </form>
+          )}
+          {localStatus === 'APPROVED' && (
+            <Button variant="outline" size="sm" onClick={onRenew}>
+              {t('applications.initiateRenewal')}
+            </Button>
+          )}
+          {localStatus === 'REJECTED' && app.submitted_by === user?.id && (
+            <Button variant="outline" size="sm" onClick={() => setShowAppealDialog(true)}>
+              {t('applications.appeal')}
+            </Button>
+          )}
+          {['DRAFT', 'SUBMITTED', 'RETURNED'].includes(localStatus) && app.submitted_by === user?.id && (
+            <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setShowWithdrawDialog(true)}>
+              {t('applications.withdraw')}
+            </Button>
           )}
         </div>
       </div>
@@ -223,7 +327,7 @@ export default function ApplicationDetail() {
             <CardContent>
               <dl className="grid grid-cols-2 gap-4 text-sm">
                 <div><dt className="text-slate-500 text-xs">{t('applications.type')}</dt><dd className="font-medium">{app.application_type}</dd></div>
-                <div><dt className="text-slate-500 text-xs">{t('applications.status')}</dt><dd><StatusBadge status={app.current_status} /></dd></div>
+                <div><dt className="text-slate-500 text-xs">{t('applications.status')}</dt><dd><StatusBadge status={localStatus} /></dd></div>
                 <div><dt className="text-slate-500 text-xs">{t('applications.projectCode')}</dt><dd className="font-medium">{app.project_code}</dd></div>
                 <div><dt className="text-slate-500 text-xs">{t('applications.committee')}</dt><dd className="font-medium">{app.committee_name || '\u2014'}</dd></div>
                 <div><dt className="text-slate-500 text-xs">{t('applications.submitted')}</dt><dd className="font-medium">{new Date(app.created_at).toLocaleString()}</dd></div>
@@ -263,12 +367,12 @@ export default function ApplicationDetail() {
             </CardContent>
           </Card>
 
-          {(reviews && reviews.length > 0) && (
+          {(appReviews && appReviews.length > 0) && (
             <Card>
               <CardHeader><CardTitle className="text-sm flex items-center gap-2"><BookOpen className="w-4 h-4" /> {t('applications.reviews')}</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {reviews.map((r: any) => (
+                  {appReviews.map((r: any) => (
                     <div key={r.id} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
                       <div>
                         <p className="font-medium">{r.reviewer_name}</p>
@@ -282,12 +386,12 @@ export default function ApplicationDetail() {
             </Card>
           )}
 
-          {(documents && documents.length > 0) && (
+          {(appDocuments && appDocuments.length > 0) && (
             <Card>
               <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileUp className="w-4 h-4" /> {t('applications.documents')}</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {documents.map((d: any) => (
+                  {appDocuments.map((d: any) => (
                     <div key={d.id} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
                       <div>
                         <p className="font-medium">{d.document_title}</p>
@@ -300,23 +404,27 @@ export default function ApplicationDetail() {
               </CardContent>
             </Card>
           )}
+
+          <DocumentGenerationSection actions={documentActions} />
         </div>
 
         <div className="space-y-6">
           <Card>
             <CardHeader><CardTitle className="text-sm">{t('applications.workflowTimeline')}</CardTitle></CardHeader>
             <CardContent>
-              {workflowInstance && workflowInstance.length > 0 ? (
+              {workflowHistory && workflowHistory.length > 0 ? (
                 <div className="space-y-3">
-                  {workflowInstance.map((w: any, i: number) => (
-                    <div key={i} className="flex gap-3">
+                  {workflowHistory.map((h: any, i: number) => (
+                    <div key={h.id || i} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-blue-500' : 'bg-slate-300'}`} />
-                        {i < workflowInstance.length - 1 && <div className="w-0.5 h-8 bg-blue-200" />}
+                        {i < workflowHistory.length - 1 && <div className="w-0.5 h-8 bg-blue-200" />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{w.current_state_name}</p>
-                        <p className="text-xs text-slate-400">{new Date(w.created_at).toLocaleString()}</p>
+                        <p className="text-sm font-medium">{h.transition_name || h.to_state_name}</p>
+                        <p className="text-xs text-slate-500">{h.action_by_name}{h.from_state_name ? ` \u2192 ${h.to_state_name}` : ''}</p>
+                        {h.comments && <p className="text-xs text-slate-400 mt-0.5">{h.comments}</p>}
+                        <p className="text-xs text-slate-400">{new Date(h.action_date).toLocaleString()}</p>
                       </div>
                     </div>
                   ))}
@@ -426,6 +534,33 @@ export default function ApplicationDetail() {
           )}
         </div>
       </div>
+
+      <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('applications.withdrawConfirm')}</DialogTitle></DialogHeader>
+          <p className="text-sm text-slate-600">{t('applications.withdrawWarning')}</p>
+          <Textarea value={withdrawComment} onChange={e => setWithdrawComment(e.target.value)} rows={3} placeholder={t('applications.commentOptional')} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWithdrawDialog(false)}>{t('common.cancel')}</Button>
+            <Button variant="destructive" onClick={onWithdraw}>{t('applications.withdraw')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAppealDialog} onOpenChange={setShowAppealDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('applications.appealTitle')}</DialogTitle></DialogHeader>
+          <p className="text-sm text-slate-600">{t('applications.appealDescription')}</p>
+          <Textarea value={appealComment} onChange={e => setAppealComment(e.target.value)} rows={4} placeholder={t('applications.appealPlaceholder')} />
+          {appealComment.length > 0 && appealComment.length < 10 && (
+            <p className="text-xs text-red-500">{t('applications.appealMinLength')}</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAppealDialog(false)}>{t('common.cancel')}</Button>
+            <Button onClick={onAppeal} disabled={!appealComment || appealComment.length < 10}>{t('common.submit')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

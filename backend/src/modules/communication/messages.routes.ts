@@ -3,6 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { createMessageSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { CommunicationService } from '../../services/communication.service';
 
@@ -52,27 +54,12 @@ router.get('/messages/:id', authenticate, async (req: Request, res: Response) =>
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
 });
 
-router.post('/messages', authenticate, upload.array('attachments'), async (req: Request, res: Response) => {
+router.post('/messages', authenticate, upload.array('attachments'), validate(createMessageSchema), async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    let recipient_ids: number[];
-    if (typeof req.body.recipient_ids === 'string') {
-      try { recipient_ids = JSON.parse(req.body.recipient_ids); } catch { recipient_ids = req.body.recipient_ids.split(',').map(Number); }
-    } else if (Array.isArray(req.body.recipient_ids)) {
-      recipient_ids = req.body.recipient_ids.map(Number);
-    } else {
-      res.status(400).json(errorResponse('At least one recipient required')); return;
-    }
-    if (!recipient_ids.length) { res.status(400).json(errorResponse('At least one recipient required')); return; }
     const msg = await service.createMessage(
       user.id,
-      {
-        recipient_ids,
-        subject: req.body.subject as string,
-        message_body: req.body.message_body as string,
-        related_entity_type: req.body.related_entity_type as string,
-        related_entity_id: req.body.related_entity_id as string,
-      },
+      req.body,
       (req as any).files as Express.Multer.File[],
     );
     res.status(201).json(successResponse(msg, 'Message sent'));

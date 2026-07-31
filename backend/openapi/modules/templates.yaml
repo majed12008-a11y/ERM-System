@@ -1,0 +1,1332 @@
+paths:
+  # ────────────────────────────────
+  # Templates CRUD
+  # ────────────────────────────────
+  /templates:
+    get:
+      tags: [Templates]
+      summary: List templates
+      description: Paginated list of templates. Supports search by name/code (`q`) and optional category filter.
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search by template name or code
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by category ID
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+      responses:
+        '200':
+          description: Paginated templates
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Template'
+                      pagination:
+                        $ref: '../components.yaml#/components/schemas/pagination'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+    post:
+      tags: [Templates]
+      summary: Create a template
+      description: Create a new template definition. Admin only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/{id}:
+    get:
+      tags: [Templates]
+      summary: Get template by ID
+      description: Returns a single template by its primary key.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Template'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+    put:
+      tags: [Templates]
+      summary: Update a template
+      description: Update template metadata. Admin only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Template'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+    delete:
+      tags: [Templates]
+      summary: Soft delete a template
+      description: Soft-deletes a template by setting `deleted_at`. Admin only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template deleted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          deleted:
+                            type: boolean
+                            example: true
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  # ────────────────────────────────
+  # Template Versions
+  # ────────────────────────────────
+  /templates/versions:
+    get:
+      tags: [Templates]
+      summary: List template versions
+      description: Paginated list of template versions. Filter by `template_id`, `status`, or `code`.
+      parameters:
+        - name: template_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by parent template ID
+        - name: code
+          in: query
+          schema:
+            type: string
+          description: Filter by template code (returns all versions for that template)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, REVIEW, APPROVED, DEPRECATED, ARCHIVED]
+          description: Filter by version status
+        - $ref: '../components.yaml#/components/schemas/paginationParams'
+      responses:
+        '200':
+          description: Paginated template versions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TemplateVersion'
+                      pagination:
+                        $ref: '../components.yaml#/components/schemas/pagination'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+    post:
+      tags: [Templates]
+      summary: Create a template version
+      description: Create a new version for a template. Admin only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVersionRequest'
+      responses:
+        '201':
+          description: Version created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/versions/{id}:
+    get:
+      tags: [Templates]
+      summary: Get template version by ID
+      description: Returns a single template version by its primary key.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Version detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+    put:
+      tags: [Templates]
+      summary: Update a template version
+      description: Update a DRAFT version. Only DRAFT versions can be updated. Admin only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVersionRequest'
+      responses:
+        '200':
+          description: Updated version
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '400':
+          description: Version is not in DRAFT status
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/errorResponse'
+              example:
+                success: false
+                error: Only DRAFT versions can be updated
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/versions/{id}/submit:
+    post:
+      tags: [Templates]
+      summary: Submit version for review
+      description: Transition a version from DRAFT to REVIEW status.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: Optional comment for the submission
+      responses:
+        '200':
+          description: Version submitted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/versions/{id}/approve:
+    post:
+      tags: [Templates]
+      summary: Approve a template version
+      description: Transition a version from REVIEW to APPROVED status. Ethics admin/chair/reviewer roles only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: Optional approval comment
+      responses:
+        '200':
+          description: Version approved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/versions/{id}/reject:
+    post:
+      tags: [Templates]
+      summary: Reject a template version
+      description: Transition a version from REVIEW to DRAFT status with a reason. Ethics admin/chair/reviewer roles only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  description: Required rejection reason
+      responses:
+        '200':
+          description: Version rejected
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/versions/{id}/deprecate:
+    post:
+      tags: [Templates]
+      summary: Deprecate a template version
+      description: Transition an APPROVED version to DEPRECATED status. Admin only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional deprecation reason
+      responses:
+        '200':
+          description: Version deprecated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/versions/{id}/archive:
+    post:
+      tags: [Templates]
+      summary: Archive a template version
+      description: Transition a version to ARCHIVED status. Admin only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional archive reason
+      responses:
+        '200':
+          description: Version archived
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  # ────────────────────────────────
+  # Preview & Render
+  # ────────────────────────────────
+  /templates/template-preview:
+    post:
+      tags: [Templates]
+      summary: Preview template render
+      description: Render a template with variables without creating a snapshot. Useful for live preview in the editor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderPreviewRequest'
+      responses:
+        '200':
+          description: Rendered preview
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RenderPreviewResult'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/template-render:
+    post:
+      tags: [Templates]
+      summary: Render template and create snapshot
+      description: Render a template with variables, create an immutable snapshot, and optionally link to an entity. Used for final document generation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderDocumentRequest'
+      responses:
+        '200':
+          description: Rendered document with snapshot
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RenderDocumentResult'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  # ────────────────────────────────
+  # History
+  # ────────────────────────────────
+  /templates/template-history:
+    get:
+      tags: [Templates]
+      summary: Get version transition history
+      description: Returns the full audit trail of status transitions for a specific template version. Both `templateCode` and `version` query parameters are required.
+      parameters:
+        - name: templateCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Template code (e.g. "ETHICS_DECISION")
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Version string (e.g. "1.0.0")
+      responses:
+        '200':
+          description: Audit trail entries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AuditEntry'
+        '400':
+          description: Missing required query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/errorResponse'
+              example:
+                success: false
+                error: templateCode and version query parameters are required
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  # ────────────────────────────────
+  # Snapshots
+  # ────────────────────────────────
+  /templates/template-snapshots:
+    get:
+      tags: [Templates]
+      summary: List snapshots for a template version
+      description: Returns all render snapshots for a given template version. The `templateVersionId` query parameter is required.
+      parameters:
+        - name: templateVersionId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Template version ID
+      responses:
+        '200':
+          description: Snapshot list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TemplateSnapshot'
+        '400':
+          description: Missing required query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/errorResponse'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/template-snapshots/{hash}:
+    get:
+      tags: [Templates]
+      summary: Get snapshot by content hash
+      description: Retrieve a specific snapshot by its content hash. The hash uniquely identifies a rendered output.
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snapshot content hash
+      responses:
+        '200':
+          description: Snapshot detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateSnapshot'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/template-snapshots/verify:
+    post:
+      tags: [Templates]
+      summary: Verify snapshot integrity
+      description: Verify that a snapshot hash matches the original rendered content. Returns whether the hash is valid and matches.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hash]
+              properties:
+                hash:
+                  type: string
+                  minLength: 1
+                  description: The snapshot hash to verify
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SnapshotVerifyResult'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  # ────────────────────────────────
+  # Rollback
+  # ────────────────────────────────
+  /templates/template-rollback:
+    post:
+      tags: [Templates]
+      summary: Rollback a template version
+      description: Roll back a template to a previous version. Creates a new ARCHIVED version from the current state and restores the target version. Admin only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RollbackRequest'
+      responses:
+        '200':
+          description: Rollback completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        description: Rollback result with archived and restored version details
+                        type: object
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components.yaml#/components/responses/Forbidden'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  # ────────────────────────────────
+  # Categories
+  # ────────────────────────────────
+  /templates/categories:
+    get:
+      tags: [Templates]
+      summary: List template categories
+      description: Returns all active template categories.
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TemplateCategory'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+  /templates/categories/{id}:
+    get:
+      tags: [Templates]
+      summary: Get category by ID
+      description: Returns a single template category by its primary key.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Category detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../components.yaml#/components/schemas/successResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemplateCategory'
+        '401':
+          $ref: '../components.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../components.yaml#/components/responses/InternalError'
+
+components:
+  schemas:
+    # ────────────────────────────────
+    # Template
+    # ────────────────────────────────
+    Template:
+      type: object
+      required: [id, category_id, code, name_ar, name_en, engine, default_locale, is_active, created_at]
+      properties:
+        id:
+          type: integer
+          example: 1
+        category_id:
+          type: integer
+          example: 1
+        code:
+          type: string
+          description: Unique template code identifier
+          example: ETHICS_DECISION
+        name_ar:
+          type: string
+          description: Arabic display name
+          example: قرار أخلاقيات البحث
+        name_en:
+          type: string
+          description: English display name
+          example: Research Ethics Decision
+        description:
+          type: string
+          nullable: true
+          example: Standard template for ethics committee decision letters
+        engine:
+          type: string
+          description: Template engine identifier (e.g. "handlebars", "nunjucks")
+          example: handlebars
+        default_locale:
+          type: string
+          description: Default locale for rendering
+          example: ar
+        tags:
+          type: array
+          items:
+            type: string
+          example: [ethics, decision, formal]
+        usage_count:
+          type: integer
+          description: Number of times this template has been rendered
+          example: 42
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateTemplateRequest:
+      type: object
+      required: [category_id, code, name_ar, name_en]
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Unique template code
+          example: ETHICS_DECISION
+        name_ar:
+          type: string
+          minLength: 1
+          example: قرار أخلاقيات البحث
+        name_en:
+          type: string
+          minLength: 1
+          example: Research Ethics Decision
+        description:
+          type: string
+        engine:
+          type: string
+          description: Template engine identifier
+          example: handlebars
+        default_locale:
+          type: string
+          description: Default locale
+          example: ar
+        tags:
+          type: array
+          items:
+            type: string
+        variable_sources:
+          description: Variable source configuration (resolver mappings)
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name_ar:
+          type: string
+          minLength: 1
+        name_en:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        variable_sources:
+          description: Variable source configuration
+        is_active:
+          type: boolean
+
+    # ────────────────────────────────
+    # Template Version
+    # ────────────────────────────────
+    TemplateVersion:
+      type: object
+      required: [id, template_id, version, status, content, content_hash, created_by, created_at]
+      properties:
+        id:
+          type: integer
+          example: 1
+        template_id:
+          type: integer
+          description: Parent template ID
+          example: 1
+        version:
+          type: string
+          description: Semantic version string
+          example: "1.0.0"
+        status:
+          type: string
+          enum: [DRAFT, REVIEW, APPROVED, DEPRECATED, ARCHIVED]
+          example: APPROVED
+        content:
+          type: object
+          description: "Locale-keyed content map (e.g. { ar: { body: '...' }, en: { body: '...' } })"
+          additionalProperties:
+            type: object
+            properties:
+              body:
+                type: string
+        content_hash:
+          type: string
+          description: SHA-256 hash of the serialized content
+          example: a1b2c3d4e5f6...
+        variable_definitions:
+          type: array
+          description: Array of variable definitions for the template engine
+          items:
+            type: object
+        change_summary:
+          type: string
+          nullable: true
+          description: Summary of changes in this version
+          example: Updated decision letter formatting
+        effective_from:
+          type: string
+          format: date-time
+          nullable: true
+          description: When this version becomes effective
+        effective_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: When this version expires
+        approved_by:
+          type: integer
+          nullable: true
+          description: User ID of the approver
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_by:
+          type: integer
+          description: User ID of the creator
+        created_at:
+          type: string
+          format: date-time
+
+    CreateVersionRequest:
+      type: object
+      required: [template_id, version, content]
+      properties:
+        template_id:
+          type: integer
+          description: Parent template ID
+          example: 1
+        version:
+          type: string
+          minLength: 1
+          description: Semantic version string
+          example: "1.0.0"
+        content:
+          type: object
+          description: "Locale-keyed content map"
+          additionalProperties:
+            type: object
+            properties:
+              body:
+                type: string
+        content_hash:
+          type: string
+          description: Optional pre-computed content hash
+        variable_definitions:
+          type: array
+          items:
+            type: object
+        change_summary:
+          type: string
+          description: Summary of changes
+
+    UpdateVersionRequest:
+      type: object
+      description: Only DRAFT versions can be updated
+      properties:
+        content:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              body:
+                type: string
+        content_hash:
+          type: string
+        variable_definitions:
+          type: array
+          items:
+            type: object
+        change_summary:
+          type: string
+
+    # ────────────────────────────────
+    # Preview / Render
+    # ────────────────────────────────
+    RenderPreviewRequest:
+      type: object
+      required: [templateCode, version, variables]
+      properties:
+        templateCode:
+          type: string
+          minLength: 1
+          description: Template code to render
+          example: ETHICS_DECISION
+        version:
+          type: string
+          minLength: 1
+          description: Version to render
+          example: "1.0.0"
+        variables:
+          type: object
+          description: Variable values for template interpolation
+          example:
+            researcher_name: Dr. Ahmad Ali
+            decision: APPROVED
+        locale:
+          type: string
+          description: Locale to render (defaults to template default)
+          example: ar
+
+    RenderPreviewResult:
+      type: object
+      required: [html, renderResult]
+      properties:
+        html:
+          type: string
+          description: Rendered HTML output
+          example: "<h1>Research Ethics Decision</h1><p>Approved</p>"
+        renderResult:
+          type: object
+          required: [html, templateCode, version, locale, renderedAt, resolutionTimeMs, cacheHit, versionId, contentHash, variableCount]
+          properties:
+            html:
+              type: string
+            templateCode:
+              type: string
+            version:
+              type: string
+            locale:
+              type: string
+            renderedAt:
+              type: string
+              format: date-time
+            resolutionTimeMs:
+              type: integer
+              description: Time taken to resolve variables (ms)
+              example: 12
+            cacheHit:
+              type: boolean
+              description: Whether the render used a cached result
+              example: false
+            versionId:
+              type: integer
+            contentHash:
+              type: string
+            variableCount:
+              type: integer
+              example: 5
+
+    RenderDocumentRequest:
+      type: object
+      required: [templateCode, version, variables]
+      properties:
+        templateCode:
+          type: string
+          minLength: 1
+          example: ETHICS_DECISION
+        version:
+          type: string
+          minLength: 1
+          example: "1.0.0"
+        variables:
+          type: object
+          example:
+            researcher_name: Dr. Ahmad Ali
+            decision: APPROVED
+        locale:
+          type: string
+          example: ar
+        entityType:
+          type: string
+          description: Optional entity type to link the snapshot to
+          example: Application
+        entityId:
+          type: integer
+          description: Optional entity ID to link the snapshot to
+          example: 42
+
+    RenderDocumentResult:
+      type: object
+      required: [html, renderResult, snapshot, snapshotHash]
+      properties:
+        html:
+          type: string
+          description: Rendered HTML output
+        renderResult:
+          $ref: '#/components/schemas/RenderPreviewResult/properties/renderResult'
+        snapshot:
+          $ref: '#/components/schemas/TemplateSnapshot'
+        snapshotHash:
+          type: string
+          description: Content-addressable hash of the snapshot
+          example: sha256:abc123...
+        correlationId:
+          type: string
+          description: Request correlation ID for tracing
+          example: req_7f3a2b1c
+
+    # ────────────────────────────────
+    # Snapshot
+    # ────────────────────────────────
+    TemplateSnapshot:
+      type: object
+      required: [id, snapshotHash, templateVersionId, contentHash, locale, renderedHtml, renderedAt, renderedBy]
+      properties:
+        id:
+          type: integer
+        snapshotHash:
+          type: string
+          description: Content-addressable hash (unique identifier)
+          example: sha256:a1b2c3d4...
+        templateVersionId:
+          type: integer
+        contentHash:
+          type: string
+        locale:
+          type: string
+          example: ar
+        renderedHtml:
+          type: string
+          description: The final rendered HTML output
+        renderedAt:
+          type: string
+          format: date-time
+        renderedBy:
+          type: integer
+          description: User ID who triggered the render
+        correlationId:
+          type: string
+          nullable: true
+          description: Request correlation ID
+        metadata:
+          type: object
+          description: Additional render metadata
+          additionalProperties: true
+
+    SnapshotVerifyResult:
+      type: object
+      required: [valid, match]
+      properties:
+        valid:
+          type: boolean
+          description: Whether the hash format is valid
+          example: true
+        match:
+          type: boolean
+          description: Whether the hash matches the stored snapshot content
+          example: true
+
+    # ────────────────────────────────
+    # Audit Entry
+    # ────────────────────────────────
+    AuditEntry:
+      type: object
+      required: [id, template_version_id, action, actor_id, created_at]
+      properties:
+        id:
+          type: integer
+        template_version_id:
+          type: integer
+        action:
+          type: string
+          description: Lifecycle action performed
+          example: APPROVE
+        actor_id:
+          type: integer
+          description: User ID who performed the action
+        previous_status:
+          type: string
+          nullable: true
+          description: Status before the transition
+          example: REVIEW
+        new_status:
+          type: string
+          nullable: true
+          description: Status after the transition
+          example: APPROVED
+        comment:
+          type: string
+          nullable: true
+          description: Optional comment or reason
+          example: Meets all ethical guidelines
+        created_at:
+          type: string
+          format: date-time
+
+    # ────────────────────────────────
+    # Rollback
+    # ────────────────────────────────
+    RollbackRequest:
+      type: object
+      required: [templateCode, version]
+      properties:
+        templateCode:
+          type: string
+          minLength: 1
+          description: Template code to rollback
+          example: ETHICS_DECISION
+        version:
+          type: string
+          minLength: 1
+          description: Target version to restore
+          example: "1.0.0"
+        reason:
+          type: string
+          description: Optional rollback reason
+          example: Reverting due to formatting issues in v1.1.0
+
+    # ────────────────────────────────
+    # Category
+    # ────────────────────────────────
+    TemplateCategory:
+      type: object
+      required: [id, code, name_ar, name_en, is_active]
+      properties:
+        id:
+          type: integer
+          example: 1
+        code:
+          type: string
+          description: Unique category code
+          example: ETHICS_LETTERS
+        name_ar:
+          type: string
+          example: خطابات أخلاقيات البحث
+        name_en:
+          type: string
+          example: Research Ethics Letters
+        description:
+          type: string
+          nullable: true
+          example: Templates for ethics committee correspondence
+        is_active:
+          type: boolean
+          example: true

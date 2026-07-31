@@ -50,4 +50,128 @@ paths:
         '200':
           description: Status updated
 
+  '/core/applications/{id}/history':
+    get:
+      tags: [Applications]
+      summary: Get workflow transition history
+      description: Returns the full workflow transition history for an application.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Workflow transition history
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/successResponse'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/core/applications/{id}/sla':
+    get:
+      tags: [Applications]
+      summary: Get SLA status
+      description: Returns the current SLA status for an application based on its workflow state.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: SLA status for the application
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/successResponse'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/core/applications/{id}/withdraw':
+    post:
+      tags: [Applications]
+      summary: Withdraw application
+      description: Withdraw a submitted application. Only the researcher who submitted the application can withdraw it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  maxLength: 2000
+                  description: Optional withdrawal reason
+      responses:
+        '200':
+          description: Application withdrawn
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/successResponse'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/core/applications/{id}/appeal':
+    post:
+      tags: [Applications]
+      summary: Appeal rejection
+      description: Submit an appeal against a rejected application. Requires a justification comment.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comment]
+              properties:
+                comment:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                  description: Appeal justification (required)
+      responses:
+        '200':
+          description: Appeal submitted
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/successResponse'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
+  '/core/applications/{id}/renewal':
+    post:
+      tags: [Applications]
+      summary: Initiate annual renewal
+      description: Initiate an annual renewal for an approved application. Restricted to ETHICS_ADMIN and SUPER_ADMIN roles.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Annual renewal initiated
+          content:
+            application/json:
+              schema:
+                $ref: '../components.yaml#/components/schemas/successResponse'
+        '404':
+          $ref: '../components.yaml#/components/responses/NotFound'
+
 

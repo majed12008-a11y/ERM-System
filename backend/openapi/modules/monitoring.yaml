@@ -3,7 +3,7 @@ paths:
     get:
       tags: [Health]
       summary: Health check
-      description: Public endpoint. Returns DB connectivity status.
+      description: Public endpoint. Returns DB connectivity status and system diagnostics.
       security: []
       responses:
         '200':
@@ -18,12 +18,31 @@ paths:
                       data:
                         type: object
                         properties:
+                          service:
+                            type: string
+                            example: ethics-erm-api
+                          version:
+                            type: string
+                            example: 1.0.0
                           status:
                             type: string
                             example: healthy
+                          requestId:
+                            type: string
+                          uptime:
+                            type: number
                           timestamp:
                             type: string
                             format: date-time
+                          checks:
+                            type: object
+                            properties:
+                              database:
+                                type: string
+                                example: healthy
+                              smtp:
+                                type: string
+                                example: configured
         '503':
           description: Service unhealthy
 

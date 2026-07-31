@@ -76,7 +76,8 @@ export async function query(text: string, params?: any[]): Promise<QueryResult> 
   const requestId = getRequestId();
   const client = await pool.connect();
   try {
-    await client.query(`SELECT set_config('app.user_id', $1, false)`, [String(userId)]);
+    const safeUserId = (typeof userId === 'number' && Number.isFinite(userId)) ? userId : 0;
+    await client.query(`SELECT set_config('app.user_id', $1, false)`, [String(safeUserId)]);
     await client.query(`SELECT set_config('app.source_ip', $1, false)`, [sourceIp]);
     const result = await client.query(text, params);
     return result;
@@ -108,7 +109,8 @@ export async function withTransaction<T>(
   const requestId = getRequestId();
   try {
     await client.query('BEGIN');
-    await client.query(`SELECT set_config('app.user_id', $1, true)`, [String(userId)]);
+    const safeUserId = (typeof userId === 'number' && Number.isFinite(userId)) ? userId : 0;
+    await client.query(`SELECT set_config('app.user_id', $1, true)`, [String(safeUserId)]);
     await client.query(`SELECT set_config('app.source_ip', $1, true)`, [sourceIp]);
     const result = await fn(client);
     await client.query('COMMIT');

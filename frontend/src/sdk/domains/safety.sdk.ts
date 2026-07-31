@@ -43,11 +43,11 @@ export const safety = {
   },
 
   getIncidents() {
-    return api.get<SuccessResponse<RiskIncident[]>>('/safety/incidents')
+    return api.get<SuccessResponse<RiskIncident[]>>('/safety/risk-incidents')
   },
 
   reportIncident(data: { incident_code: string; risk_id: number; incident_date: string; description: string; severity: string }) {
-    return api.post<SuccessResponse<RiskIncident>>('/safety/incidents', data)
+    return api.post<SuccessResponse<RiskIncident>>('/safety/risk-incidents', data)
   },
 
   getCorrectiveActions() {

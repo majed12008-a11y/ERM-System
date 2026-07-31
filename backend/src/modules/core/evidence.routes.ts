@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { uploadEvidenceSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { EvidenceService } from '../../services/evidence.service';
 import { DocumentRepository } from '../../repositories/document.repository';
@@ -34,7 +36,7 @@ const upload = multer({
   },
 });
 
-router.post('/', authenticate, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', authenticate, upload.single('file'), validate(uploadEvidenceSchema), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       res.status(400).json(errorResponse('File is required'));

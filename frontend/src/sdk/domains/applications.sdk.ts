@@ -32,4 +32,24 @@ export const applications = {
     return api.put<SuccessResponse<Application>>(`/core/applications/${id}`, data)
   },
 
+  withdraw(id: number, data?: { comment?: string }) {
+    return api.post<SuccessResponse<Application>>(`/core/applications/${id}/withdraw`, data || {})
+  },
+
+  appeal(id: number, data: { comment: string }) {
+    return api.post<SuccessResponse<Application>>(`/core/applications/${id}/appeal`, data)
+  },
+
+  renew(id: number) {
+    return api.post<SuccessResponse<Application>>(`/core/applications/${id}/renewal`)
+  },
+
+  getSla(id: number) {
+    return api.get<SuccessResponse<{ within_sla: boolean; overdue_by?: number }>>(`/core/applications/${id}/sla`)
+  },
+
+  getHistory(id: number) {
+    return api.get<SuccessResponse<any[]>>(`/core/applications/${id}/history`)
+  },
+
 }

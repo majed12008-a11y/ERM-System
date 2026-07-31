@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createEthicsRiskAssessmentSchema, addRiskItemSchema, updateRiskItemSchema } from '../../middleware/schemas';
+import { createEthicsRiskAssessmentSchema, addRiskItemSchema, updateRiskItemSchema, updateEthicsRiskAssessmentSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { EthicsRiskRepository } from '../../repositories/ethics-risk.repository';
 
@@ -37,7 +37,7 @@ router.post('/', authenticate, authorize('ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'REV
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
-router.put('/:id', authenticate, authorize('ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'SUPER_ADMIN'), async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorize('ETHICS_ADMIN', 'COMMITTEE_CHAIR', 'SUPER_ADMIN'), validate(updateEthicsRiskAssessmentSchema), async (req: Request, res: Response) => {
   try {
     const assessment = await repo.updateAssessment(parseInt(String(req.params.id)), req.body);
     if (!assessment) return res.status(404).json(errorResponse('Assessment not found'));
