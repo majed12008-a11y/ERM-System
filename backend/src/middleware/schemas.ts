@@ -355,3 +355,27 @@ export const createDocumentTemplateSchema = z.object({
 });
 
 export const updateDocumentTemplateSchema = createDocumentTemplateSchema.partial();
+
+export const createFormInstanceSchema = z.object({
+  form_code: z.string().min(1).max(100),
+  entity_type: z.string().min(1).max(100),
+  entity_id: z.coerce.number().int().positive(),
+});
+
+export const saveFormInstanceSchema = z.object({
+  responses: z.record(z.string(), z.unknown()),
+});
+
+export const generateFormDocumentSchema = z.object({
+  language: z.enum(['ar', 'en']).optional().default('ar'),
+  templateCode: z.string().min(1).max(100).optional(),
+  committeeNameAr: z.string().max(500).optional(),
+  committeeNameEn: z.string().max(500).optional(),
+  institutionNameAr: z.string().max(500).optional(),
+  institutionNameEn: z.string().max(500).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
+  signatories: z.array(z.object({
+    name: z.string().min(1).max(500),
+    role: z.string().min(1).max(500),
+  })).optional(),
+});

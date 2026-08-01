@@ -35,6 +35,7 @@ import integrationRoutes from './modules/integration';
 import systemRoutes from './modules/system';
 import referenceRoutes from './modules/reference';
 import publicRoutes from './modules/public';
+import formsRoutes from './modules/forms';
 
 import path from 'path';
 process.on('uncaughtException', (err) => {
@@ -110,6 +111,7 @@ app.use('/api/v1/integration', integrationRoutes);
 app.use('/api/v1/system', systemRoutes);
 app.use('/api/v1/reference', referenceRoutes);
 app.use('/api/v1/public', publicRoutes);
+app.use('/api/v1/forms', formsRoutes);
 
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customCss: '.swagger-ui .topbar { display: none }' }));
 app.get('/api/v1/docs.json', (req, res) => res.json(swaggerSpec));
