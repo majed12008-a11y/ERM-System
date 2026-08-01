@@ -7,7 +7,7 @@ import { cn } from '../../lib/utils'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Switch } from '../ui/switch'
-import {
+import type {
   FormField,
   FormFieldOption,
   FormSchema,
@@ -16,8 +16,8 @@ import {
 
 interface SchemaFormProps {
   schema: FormSchema
-  responses: Record<string, any>
-  onChange: (name: string, value: any) => void
+  responses: Record<string, unknown>
+  onChange: (name: string, value: unknown) => void
   disabled?: boolean
 }
 
@@ -25,16 +25,16 @@ function getLabel(label: { ar: string; en?: string }, lang: string): string {
   return lang === 'ar' ? label.ar : (label.en || label.ar)
 }
 
-function isFieldVisible(field: FormField, responses: Record<string, any>): boolean {
+function isFieldVisible(field: FormField, responses: Record<string, unknown>): boolean {
   if (!field.conditional) return true
   return responses[field.conditional.field] === field.conditional.equals
 }
 
-function isEmpty(value: any): boolean {
+function isEmpty(value: unknown): boolean {
   return value === undefined || value === null || value === ''
 }
 
-function validateField(field: FormField, value: any): string | null {
+function validateField(field: FormField, value: unknown): string | null {
   if (field.required && isEmpty(value)) return 'required'
   if (isEmpty(value)) return null
   switch (field.type) {
@@ -72,7 +72,7 @@ function FieldErrors({ errors, field }: { errors: string[]; field: FormField }) 
 
 function OptionField({ field, value, onChange, disabled, lang }: {
   field: FormField
-  value: any
+  value: unknown
   onChange: (v: string) => void
   disabled?: boolean
   lang: string
@@ -103,12 +103,11 @@ function OptionField({ field, value, onChange, disabled, lang }: {
   )
 }
 
-function ScaleField({ field, value, onChange, disabled, lang }: {
+function ScaleField({ field, value, onChange, disabled }: {
   field: FormField
-  value: any
+  value: unknown
   onChange: (v: number) => void
   disabled?: boolean
-  lang: string
 }) {
   const min = field.min ?? 1
   const max = field.max ?? 5
@@ -140,11 +139,12 @@ function ScaleField({ field, value, onChange, disabled, lang }: {
   )
 }
 
-function FieldInput({ field, value, onChange, disabled }: {
+function FieldInput({ field, value, onChange, disabled, id }: {
   field: FormField
-  value: any
-  onChange: (v: any) => void
+  value: unknown
+  onChange: (v: unknown) => void
   disabled?: boolean
+  id?: string
 }) {
   const { i18n } = useTranslation()
   const lang = i18n.language?.startsWith('ar') ? 'ar' : 'en'
@@ -153,8 +153,10 @@ function FieldInput({ field, value, onChange, disabled }: {
     case 'textarea':
       return (
         <Textarea
+          id={id}
+          name={id}
           rows={field.rows || 4}
-          value={value ?? ''}
+          value={String(value ?? '')}
           disabled={disabled}
           maxLength={field.maxLength}
           onChange={(e) => onChange(e.target.value)}
@@ -164,8 +166,10 @@ function FieldInput({ field, value, onChange, disabled }: {
     case 'number':
       return (
         <Input
+          id={id}
+          name={id}
           type="number"
-          value={value ?? ''}
+          value={String(value ?? '')}
           disabled={disabled}
           min={field.min}
           max={field.max}
@@ -179,8 +183,10 @@ function FieldInput({ field, value, onChange, disabled }: {
     case 'date':
       return (
         <Input
+          id={id}
+          name={id}
           type="date"
-          value={value ?? ''}
+          value={String(value ?? '')}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value || undefined)}
           className="text-sm w-full md:w-64"
@@ -190,6 +196,7 @@ function FieldInput({ field, value, onChange, disabled }: {
       return (
         <div className="flex items-center gap-3">
           <Switch
+            id={id}
             checked={Boolean(value)}
             disabled={disabled}
             onCheckedChange={(checked) => onChange(checked)}
@@ -198,12 +205,14 @@ function FieldInput({ field, value, onChange, disabled }: {
         </div>
       )
     case 'scale':
-      return <ScaleField field={field} value={value} onChange={onChange} disabled={disabled} lang={lang} />
+      return <ScaleField field={field} value={value} onChange={onChange} disabled={disabled} />
     case 'select': {
       const options = field.options || []
       return (
         <select
-          value={value ?? ''}
+          id={id}
+          name={id}
+          value={String(value ?? '')}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value || undefined)}
           className="flex h-9 w-full md:w-72 items-center rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -221,7 +230,9 @@ function FieldInput({ field, value, onChange, disabled }: {
     default:
       return (
         <Input
-          value={value ?? ''}
+          id={id}
+          name={id}
+          value={String(value ?? '')}
           disabled={disabled}
           maxLength={field.maxLength}
           onChange={(e) => onChange(e.target.value || undefined)}
@@ -233,11 +244,11 @@ function FieldInput({ field, value, onChange, disabled }: {
 
 function SectionRenderer({ section, responses, onChange, disabled }: {
   section: FormSection
-  responses: Record<string, any>
-  onChange: (name: string, value: any) => void
+  responses: Record<string, unknown>
+  onChange: (name: string, value: unknown) => void
   disabled?: boolean
 }) {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const lang = i18n.language?.startsWith('ar') ? 'ar' : 'en'
 
   return (
@@ -251,11 +262,11 @@ function SectionRenderer({ section, responses, onChange, disabled }: {
         const error = validateField(field, value)
         return (
           <div key={field.name} className="space-y-1.5">
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor={field.name} className="block text-sm font-medium text-slate-700">
               {getLabel(field.label, lang)}
               {field.required && <span className="text-red-500 ms-1">*</span>}
             </label>
-            <FieldInput field={field} value={value} onChange={(v) => onChange(field.name, v)} disabled={disabled} />
+            <FieldInput field={field} value={value} onChange={(v) => onChange(field.name, v)} disabled={disabled} id={field.name} />
             {error && <FieldErrors errors={[error]} field={field} />}
           </div>
         )

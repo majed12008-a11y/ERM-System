@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { FileText, Plus, ClipboardList } from 'lucide-react'
 import api from '../../api/client'
 import { createFormInstance, listFormDefinitions } from '../../api/forms'
-import { FormDefinition } from '../../components/forms/types'
+import type { FormDefinition } from '../../components/forms/types'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
@@ -38,7 +38,7 @@ export default function FormLibraryPage() {
 
   const { data: applications } = useQuery({
     queryKey: ['applications-for-forms'],
-    queryFn: () => api.get('/applications').then((r) => r.data.data || []),
+    queryFn: () => api.get('/core/applications').then((r) => r.data.data || []),
     enabled: !!fillTarget,
   })
 
@@ -141,7 +141,7 @@ export default function FormLibraryPage() {
                   className="flex h-9 w-full items-center rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="">{t('formLibrary.selectApplication')}</option>
-                  {(applications || []).map((app: any) => (
+                  {(applications || []).map((app: { id: number; application_number?: string; project_title?: string; title?: string }) => (
                     <option key={app.id} value={String(app.id)}>
                       {app.application_number || `#${app.id}`} — {app.project_title || app.title || ''}
                     </option>

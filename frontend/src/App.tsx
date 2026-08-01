@@ -49,6 +49,8 @@ const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'))
 const MessagesPage = lazy(() => import('./pages/Messages/MessagesPage'))
 const AdminDashboard = lazy(() => import('./pages/Admin/AdminDashboard'))
 const ReviewFormsPage = lazy(() => import('./pages/ReviewForms/ReviewFormsPage'))
+const FormLibraryPage = lazy(() => import('./pages/Forms/FormLibraryPage'))
+const FormFillPage = lazy(() => import('./pages/Forms/FormFillPage'))
 const ESignaturesPage = lazy(() => import('./pages/ESignatures/ESignaturesPage'))
 const ConsentTemplates = lazy(() => import('./pages/Admin/ConsentTemplates'))
 const ConsentTemplateVersions = lazy(() => import('./pages/Admin/ConsentTemplateVersions'))
@@ -145,6 +147,8 @@ export default function App() {
                 <Route path="/admin/consent-templates/:id/versions" element={<ConsentTemplateVersions />} />
                 <Route path="/admin/document-templates" element={<DocumentTemplates />} />
                 <Route path="/review-forms" element={<ReviewFormsPage />} />
+                <Route path="/forms" element={<FormLibraryPage />} />
+                <Route path="/forms/fill/:instanceId" element={<FormFillPage />} />
                 <Route path="/e-signatures" element={<ESignaturesPage />} />
                 <Route path="/admin/accreditation/cycles" element={<AccreditationCycles />} />
                 <Route path="/admin/accreditation/cycles/:id" element={<AccreditationCycleDetail />} />

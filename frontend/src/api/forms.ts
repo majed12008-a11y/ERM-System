@@ -3,7 +3,7 @@
  * توليد وتنزيل المستندات الرسمية.
  */
 import api from './client'
-import { FormDefinition, FormInstance, GeneratedDocument } from '../components/forms/types'
+import type { FormDefinition, FormInstance, GeneratedDocument } from '../components/forms/types'
 
 export async function listFormDefinitions(): Promise<FormDefinition[]> {
   const res = await api.get('/forms')
@@ -39,12 +39,12 @@ export async function listInstanceDocuments(entityType: string, entityId: number
   return res.data.data || []
 }
 
-export async function saveFormDraft(id: number, responses: Record<string, any>): Promise<FormInstance> {
+export async function saveFormDraft(id: number, responses: Record<string, unknown>): Promise<FormInstance> {
   const res = await api.put(`/forms/instances/${id}`, { responses })
   return res.data.data
 }
 
-export async function submitForm(id: number, responses: Record<string, any>): Promise<FormInstance> {
+export async function submitForm(id: number, responses: Record<string, unknown>): Promise<FormInstance> {
   const res = await api.post(`/forms/instances/${id}/submit`, { responses })
   return res.data.data
 }
@@ -53,14 +53,14 @@ export async function generateFormDocument(id: number, opts: {
   language?: string
   templateCode?: string
   signatories?: { name: string; role: string }[]
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 }): Promise<GeneratedDocument> {
   const res = await api.post(`/forms/instances/${id}/generate`, opts)
   return res.data.data
 }
 
 export function formDocumentDownloadUrl(documentId: number): string {
-  return `/api/v1/forms/documents/${documentId}/download`
+  return `/forms/documents/${documentId}/download`
 }
 
 export async function downloadFormDocument(documentId: number, fileName?: string): Promise<void> {

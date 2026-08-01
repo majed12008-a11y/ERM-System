@@ -62,7 +62,7 @@ export interface FormInstance {
   entity_type: string
   entity_id: number
   status: FormInstanceStatus
-  responses: Record<string, any>
+  responses: Record<string, unknown>
   total_score: number | null
   recommendation: string | null
   submitted_at: string | null

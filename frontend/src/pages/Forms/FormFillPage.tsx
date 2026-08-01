@@ -10,20 +10,21 @@ import { toast } from 'sonner'
 import {
   FileText, Save, Send, Download, FileCheck2, ArrowRight, Loader2,
 } from 'lucide-react'
-import api from '../../api/client'
 import {
   getFormInstance, saveFormDraft, submitForm, generateFormDocument,
   downloadFormDocument,
 } from '../../api/forms'
 import SchemaForm from '../../components/forms/SchemaForm'
-import {
-  FormInstance, FormSchema, GeneratedDocument,
+import type {
+  FormDefinition, FormInstance, FormSchema, GeneratedDocument,
 } from '../../components/forms/types'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { PageSkeleton } from '../../components/LoadingSkeleton'
 import { AxiosError } from 'axios'
+
+type InstanceData = { instance: FormInstance; definition: FormDefinition }
 
 const STATUS_VARIANTS: Record<string, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
   DRAFT: 'secondary',
@@ -34,8 +35,8 @@ const STATUS_VARIANTS: Record<string, 'default' | 'success' | 'warning' | 'destr
 }
 
 export default function FormFillPage() {
-  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { instanceId } = useParams<{ instanceId: string }>()
   const id = Number(instanceId)
 
@@ -45,26 +46,41 @@ export default function FormFillPage() {
     enabled: !!id,
   })
 
-  const instance = data?.instance as FormInstance | undefined
-  const definition = data?.definition as any
+  if (isLoading || !data) return <PageSkeleton />
 
-  const [responses, setResponses] = useState<Record<string, any>>({})
+  return (
+    <FormFillBody
+      key={data.instance.id}
+      data={data}
+      navigate={navigate}
+      queryClient={queryClient}
+    />
+  )
+}
+
+function FormFillBody({ data, navigate, queryClient }: {
+  data: InstanceData
+  navigate: ReturnType<typeof useNavigate>
+  queryClient: ReturnType<typeof useQueryClient>
+}) {
+  const { t } = useTranslation()
+  const instance = data.instance
+  const definition = data.definition
+
+  const [responses, setResponses] = useState<Record<string, unknown>>(() => instance.responses || {})
   const [generated, setGenerated] = useState<GeneratedDocument[]>([])
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    if (instance) {
-      setResponses(instance.responses || {})
-    }
-  }, [instance?.id])
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+  }, [])
 
   const editable = instance && ['DRAFT', 'RETURNED'].includes(instance.status)
-
-  const schema = useMemo(() => definition?.form_schema as FormSchema | undefined, [definition])
+  const schema = definition?.form_schema as FormSchema | undefined
 
   const saveDraft = useMutation({
-    mutationFn: (resp: Record<string, any>) => saveFormDraft(id, resp),
+    mutationFn: (resp: Record<string, unknown>) => saveFormDraft(instance.id, resp),
     onSuccess: () => setSaveState('saved'),
     onError: (err: AxiosError<{ error?: string }>) => {
       setSaveState('idle')
@@ -72,7 +88,7 @@ export default function FormFillPage() {
     },
   })
 
-  function handleChange(name: string, value: any) {
+  function handleChange(name: string, value: unknown) {
     setResponses((prev) => {
       const next = { ...prev, [name]: value }
       if (editable) {
@@ -86,25 +102,23 @@ export default function FormFillPage() {
     })
   }
 
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-  }, [])
-
   const submit = useMutation({
-    mutationFn: (resp: Record<string, any>) => submitForm(id, resp),
+    mutationFn: (resp: Record<string, unknown>) => submitForm(instance.id, resp),
     onSuccess: (updated) => {
       toast.success(t('formFill.submitted'))
-      queryInvalidate(updated)
+      queryClient.setQueryData(['form-instance', instance.id], { instance: updated, definition })
+      queryClient.invalidateQueries({ queryKey: ['form-instance', instance.id] })
+      window.setTimeout(() => window.location.reload(), 800)
     },
     onError: (err: AxiosError<{ error?: string; validationErrors?: string[] }>) => {
-      const v = err.response?.data as any
+      const v = err.response?.data as { validationErrors?: string[]; error?: string } | undefined
       const msg = v?.validationErrors?.join('; ') || v?.error || t('formFill.submitFailed')
       toast.error(msg)
     },
   })
 
   const generate = useMutation({
-    mutationFn: (language: string) => generateFormDocument(id, { language }),
+    mutationFn: (language: string) => generateFormDocument(instance.id, { language }),
     onSuccess: (doc) => {
       toast.success(t('formFill.generated'))
       setGenerated((prev) => {
@@ -117,13 +131,6 @@ export default function FormFillPage() {
       toast.error(err.response?.data?.error || t('formFill.generateFailed')),
   })
 
-  function queryInvalidate(updated: FormInstance) {
-    api
-    if (updated) {
-      setTimeout(() => window.location.reload(), 500)
-    }
-  }
-
   const liveScore = useMemo(() => {
     if (!schema?.computed?.total_score) return null
     const fields = schema.computed.total_score.fields
@@ -131,8 +138,6 @@ export default function FormFillPage() {
     if (values.length !== fields.length || values.length === 0) return null
     return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
   }, [schema, responses])
-
-  if (isLoading || !instance) return <PageSkeleton />
 
   return (
     <div className="space-y-5 max-w-4xl">

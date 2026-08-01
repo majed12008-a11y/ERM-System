@@ -111,6 +111,7 @@ export default function RootLayout() {
         { to: '/saved-searches', labelKey: 'nav.savedSearches', icon: Search },
         { to: '/registry', labelKey: 'nav.registry', icon: BookMarked },
         { to: '/documents', labelKey: 'nav.documents', icon: FileUp },
+        { to: '/forms', labelKey: 'nav.formLibrary', icon: ClipboardList },
         { to: '/reports', labelKey: 'nav.reports', icon: BarChart3 },
       ],
     },
