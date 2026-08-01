@@ -4,6 +4,8 @@
  * وتوليد المستندات الرسمية من استجابات النماذج.
  */
 import { Router, Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs/promises';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import {
@@ -101,6 +103,23 @@ router.post('/instances/:id/generate', authenticate, validate(generateFormDocume
     const result = await service.generateDocument(parseInt(String(req.params.id)), req.body, (req as any).user);
     res.status(201).json(successResponse(result, 'Official document generated'));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
+});
+
+router.get('/documents/:id/download', authenticate, async (req: Request, res: Response) => {
+  try {
+    const info = await service.getDocumentDownload(parseInt(String(req.params.id)));
+    if (!info) {
+      return res.status(404).json(errorResponse('Document not found'));
+    }
+    const fullPath = path.resolve(info.storagePath);
+    await fs.access(fullPath);
+    res.download(fullPath, info.fileName);
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      return res.status(404).json(errorResponse('PDF file not found on disk'));
+    }
+    res.status(err.status || 500).json(errorResponse(err.message));
+  }
 });
 
 export default router;

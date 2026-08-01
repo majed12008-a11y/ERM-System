@@ -44,6 +44,14 @@ export class DocumentRenderRepository extends AuditableRepository {
     return result.rows[0] || null;
   }
 
+  async findDocumentById(id: number): Promise<any | null> {
+    const result = await this.query(
+      `SELECT * FROM documents.documents WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
   async findDocumentTypeId(typeCode: string): Promise<number | null> {
     const result = await this.query(
       `SELECT id FROM documents.document_types WHERE type_code = $1 LIMIT 1`,

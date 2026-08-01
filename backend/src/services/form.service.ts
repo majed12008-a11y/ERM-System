@@ -10,6 +10,7 @@ import { AuthUser } from '../shared/types';
 import { FormDefinitionRepository } from '../repositories/form-definition.repository';
 import { FormInstanceRepository, FormInstanceStatus } from '../repositories/form-instance.repository';
 import { DocumentRenderService } from './document-render.service';
+import { DocumentRenderRepository } from '../repositories/document-render.repository';
 import { logger } from '../config/logger';
 
 interface FieldDef {
@@ -54,6 +55,7 @@ export class FormService {
     private definitionRepo = new FormDefinitionRepository(),
     private instanceRepo = new FormInstanceRepository(),
     private renderService = new DocumentRenderService(),
+    private renderRepo = new DocumentRenderRepository(),
   ) {}
 
   // ── Definitions ────────────────────────────────────────────
@@ -208,6 +210,12 @@ export class FormService {
       'Form document generated'
     );
     return { ...result, instanceId: id, formCode: definition.form_code };
+  }
+
+  async getDocumentDownload(documentId: number): Promise<{ storagePath: string; fileName: string } | null> {
+    const doc = await this.renderRepo.findDocumentById(documentId);
+    if (!doc || !doc.storage_path) return null;
+    return { storagePath: doc.storage_path, fileName: doc.file_name };
   }
 
   // ── Validation ─────────────────────────────────────────────
