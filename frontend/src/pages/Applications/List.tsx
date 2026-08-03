@@ -2,11 +2,10 @@
  * صفحة عرض طلبات البحث: جدول مزود بالترقيم والبحث والتصفية
  * حسب الحالة والنوع والتاريخ.
  */
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { applications } from '../../sdk/domains/applications.sdk'
+import api from '../../api/client'
 import DataTable from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Plus, Pencil, Send } from 'lucide-react'
@@ -16,10 +15,9 @@ export default function ApplicationList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const canCreate = usePermission('application.create')
-  const [statusFilter, setStatusFilter] = useState('')
   const { data, isLoading } = useQuery({
-    queryKey: ['applications', statusFilter],
-    queryFn: () => applications.list(statusFilter ? { status: statusFilter } : undefined).then((r) => r.data.data),
+    queryKey: ['applications'],
+    queryFn: () => api.get('/core/applications').then((r) => r.data.data),
   })
 
   return (
@@ -32,24 +30,6 @@ export default function ApplicationList() {
             <Plus className="w-4 h-4" /> {t('applications.new')}
           </button>
         )}
-      </div>
-
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm text-slate-500">{t('common.status')}:</span>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="p-1.5 border rounded text-sm bg-card"
-        >
-          <option value="">{t('common.all')}</option>
-          <option value="DRAFT">{t('status.DRAFT')}</option>
-          <option value="SUBMITTED">{t('status.SUBMITTED')}</option>
-          <option value="INITIAL_REVIEW">{t('applications.initialReview')}</option>
-          <option value="APPROVED">{t('status.APPROVED')}</option>
-          <option value="REJECTED">{t('status.REJECTED')}</option>
-          <option value="RETURNED">{t('applications.editDraft')}</option>
-          <option value="WITHDRAWN">{t('status.WITHDRAWN')}</option>
-        </select>
       </div>
 
         <DataTable
