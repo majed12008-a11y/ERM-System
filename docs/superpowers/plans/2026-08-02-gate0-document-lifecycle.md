@@ -871,7 +871,7 @@ git commit -m "feat(documents): configurable lifecycle engine with transitions A
   - `DocumentRenderRepository.signSlot(documentId, signerId, signatureType, signatureHash): Promise<any | null>` (PENDING → SIGNED)
   - Route `POST /api/v1/documents/:id/signature-slots` (admin/owner), `POST /api/v1/documents/:id/sign` (signer).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
@@ -910,12 +910,12 @@ describe('Multi-signature', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && npx vitest run src/test/document-signature.test.ts`
 Expected: FAIL — `listSignatureTypes` not a function.
 
-- [ ] **Step 3: Implement repository methods**
+- [x] **Step 3: Implement repository methods**
 
 Add to `DocumentRenderRepository`:
 
@@ -961,12 +961,12 @@ async signSlot(documentId: number, signerId: number, signatureType: string, sign
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `cd backend && npx vitest run src/test/document-signature.test.ts`
 Expected: PASS (local DB required).
 
-- [ ] **Step 5: Rewrite `FormService.signDocument` to the slot model**
+- [x] **Step 5: Rewrite `FormService.signDocument` to the slot model**
 
 Replace the body of `signDocument` in `backend/src/services/form.service.ts` with:
 
@@ -1000,7 +1000,7 @@ async signDocument(documentId: number, user: AuthUser, signatureType: string) {
 }
 ```
 
-- [ ] **Step 6: Update legacy `DocumentService.sign` to create a slot + sign**
+- [x] **Step 6: Update legacy `DocumentService.sign` to create a slot + sign**
 
 Replace `sign` in `backend/src/services/document.service.ts` with:
 
@@ -1022,7 +1022,7 @@ async sign(documentId: number, user: AuthUser, signatureType: string = 'ELECTRON
 
 (No change needed if the legacy `addSignature` default remains; the legacy route passes `signature_type` from body — keep as-is.)
 
-- [ ] **Step 7: Consolidate routes — documents module owns signing**
+- [x] **Step 7: Consolidate routes — documents module owns signing**
 
 In `backend/src/modules/documents/documents.routes.ts`, replace the existing `POST /:id/sign` handler and `GET /:id/signatures` with slot-aware versions, and add a slot-creation route:
 
@@ -1105,11 +1105,11 @@ export const signGeneratedDocumentV2Schema = z.object({
 });
 ```
 
-- [ ] **Step 8: Remove duplicate sign/lifecycle routes from the forms module**
+- [x] **Step 8: Remove duplicate sign/lifecycle routes from the forms module**
 
 In `backend/src/modules/forms/forms.routes.ts`, delete the `POST /documents/:id/sign` and `POST /documents/:id/lifecycle` blocks (lines ~139–151) and their now-unused imports (`signGeneratedDocumentSchema`, `setDocumentLifecycleSchema`).
 
-- [ ] **Step 9: Wire the forms sign route to the documents module path**
+- [x] **Step 9: Wire the forms sign route to the documents module path**
 
 Frontend is updated in Task 9; the backend documents module now serves `POST /api/v1/documents/:id/sign` using `signGeneratedDocumentV2Schema`. Add this handler to `documents.routes.ts`:
 
@@ -1126,12 +1126,14 @@ router.post('/:id/sign', authenticate, validate(signGeneratedDocumentV2Schema), 
 
 Where `formSignService` is an instance of `FormService` imported into the documents module. This keeps one canonical signing path for generated documents.
 
-- [ ] **Step 10: Verify lint + tests**
+> **Deviation (verified against integration-v2 `E-Signatures` contract):** `POST /api/v1/documents/:id/sign` is wired to `DocumentService.sign` (signs an existing own `PENDING` slot, else auto-creates a slot for the current user; RLS blocks non-owner self-assignment), because the integration test expects an owner/admin self-sign to succeed without a pre-assigned slot. `FormService.signDocument` remains the strict slot-only path used by generated-document flows (400 when no pending slot exists). Additionally `signSlot` omits the plan's `signatureType` argument — the `verification_metadata.signature_type` is taken from the slot's own column to keep the signature type authoritative.
+
+- [x] **Step 10: Verify lint + tests**
 
 Run: `cd backend && npm run lint && npx vitest run src/test/document-signature.test.ts`
 Expected: tsc clean, tests PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add backend/src/repositories/document-render.repository.ts backend/src/repositories/document.repository.ts backend/src/services/form.service.ts backend/src/services/document.service.ts backend/src/modules/documents/documents.routes.ts backend/src/modules/forms/forms.routes.ts backend/src/middleware/schemas.ts backend/src/test/document-signature.test.ts
