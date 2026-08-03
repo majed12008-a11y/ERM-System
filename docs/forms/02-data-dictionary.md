@@ -1,7 +1,8 @@
-# ERM-System Forms Library — Data Dictionary & Field Specifications (v1)
+# ERM-System Forms Library — Data Dictionary & Field Specifications (v2)
 
-> Version 1.0 · 2026-08-01
-> Defines every data element used by the v1 Forms Library. Covers the shared entity dictionary, the form definition schema, and field-level specifications for the flagship forms.
+> Version 2.0 · 2026-08-02
+> Defines every data element used by the v2 Forms Library (~50 forms). Covers the shared entity dictionary, the form definition schema, and field-level specifications.
+> **v2 reconciliation (2026-08-02):** §1.2/§1.3 DDL verified byte-for-byte against the live `forms` schema (columns match exactly). `forms.form_instances.status` CHECK = `DRAFT/SUBMITTED/RETURNED/APPROVED/VOID` (verified). §1.5 `documents.templates` extensions verified (language/document_category/is_default/schema_metadata present). §1.6 `document_versions` now actively written by the engine. §2 meta-schema renderer-support note: only `text/textarea/number/date/boolean/select/radio/scale` currently render — `email/tel/file/checkbox/placeholder/default/multiline` are **target** additions (see `08-ui-specs.md`).
 
 ---
 

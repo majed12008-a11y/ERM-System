@@ -1,7 +1,8 @@
-# ERM-System Forms Library — JSON Schemas (v1)
+# ERM-System Forms Library — JSON Schemas (v2)
 
-> Version 1.0 · 2026-08-01
-> JSON Schema (draft 2020-12) for each v1 form, stored in `forms.form_definitions.form_schema`. The renderer interprets these; the backend validates submissions against them. Below are the full schemas for the flagship forms actually seeded in the first delivery.
+> Version 2.0 · 2026-08-02
+> JSON Schema (draft 2020-12) for each v2 form, stored in `forms.form_definitions.form_schema`. The renderer interprets these; the backend validates submissions against them.
+> **v2 reconciliation (2026-08-02):** 8 forms are seeded in the live DB (all `schema_version 1.0.0`, renderer `schema-form`): `ADMIN_SCREENING`, `SCI_REVIEW_PRIMARY`, `ETH_REVIEW`, `ANNUAL_PROGRESS`, `SAE_REPORT`, `SITE_MONITORING`, `STUDY_CLOSURE`, `COMM_MINUTES`. Full schemas for the four flagship forms are reproduced below (verified against seed `55-forms-library.sql`). Field types available to the renderer: `text/textarea/number/date/boolean/select/radio/scale`; `email/tel/file/checkbox` and `placeholder/default/help/multiline/step/readOnly/hidden` are **target** additions (see `08-ui-specs.md`). `computed.total_score` is UI-supported (live score) but **not yet server-materialized** — target.
 
 ---
 

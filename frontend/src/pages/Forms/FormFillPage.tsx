@@ -8,15 +8,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
-  FileText, Save, Send, Download, FileCheck2, ArrowRight, Loader2,
+  FileText, Save, Send, FileCheck2, ArrowRight, Loader2,
 } from 'lucide-react'
 import {
   getFormInstance, saveFormDraft, submitForm, generateFormDocument,
-  downloadFormDocument,
 } from '../../api/forms'
 import SchemaForm from '../../components/forms/SchemaForm'
+import DocumentPanel from '../../components/forms/DocumentPanel'
 import type {
-  FormDefinition, FormInstance, FormSchema, GeneratedDocument,
+  FormDefinition, FormInstance, FormSchema,
 } from '../../components/forms/types'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -68,7 +68,6 @@ function FormFillBody({ data, navigate, queryClient }: {
   const definition = data.definition
 
   const [responses, setResponses] = useState<Record<string, unknown>>(() => instance.responses || {})
-  const [generated, setGenerated] = useState<GeneratedDocument[]>([])
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -106,9 +105,10 @@ function FormFillBody({ data, navigate, queryClient }: {
     mutationFn: (resp: Record<string, unknown>) => submitForm(instance.id, resp),
     onSuccess: (updated) => {
       toast.success(t('formFill.submitted'))
-      queryClient.setQueryData(['form-instance', instance.id], { instance: updated, definition })
-      queryClient.invalidateQueries({ queryKey: ['form-instance', instance.id] })
-      window.setTimeout(() => window.location.reload(), 800)
+      queryClient.setQueryData<InstanceData>(['form-instance', Number(instance.id)], (old) =>
+        old ? { instance: updated, definition: old.definition } : old
+      )
+      queryClient.invalidateQueries({ queryKey: ['form-instance', Number(instance.id)] })
     },
     onError: (err: AxiosError<{ error?: string; validationErrors?: string[] }>) => {
       const v = err.response?.data as { validationErrors?: string[]; error?: string } | undefined
@@ -119,13 +119,10 @@ function FormFillBody({ data, navigate, queryClient }: {
 
   const generate = useMutation({
     mutationFn: (language: string) => generateFormDocument(instance.id, { language }),
-    onSuccess: (doc) => {
+    onSuccess: () => {
       toast.success(t('formFill.generated'))
-      setGenerated((prev) => {
-        const next = prev.filter((d) => !(d.template === doc.template && d.language === doc.language))
-        next.push(doc)
-        return next
-      })
+      queryClient.invalidateQueries({ queryKey: ['form-documents', Number(instance.id)] })
+      queryClient.invalidateQueries({ queryKey: ['form-instance', Number(instance.id)] })
     },
     onError: (err: AxiosError<{ error?: string }>) =>
       toast.error(err.response?.data?.error || t('formFill.generateFailed')),
@@ -215,51 +212,11 @@ function FormFillBody({ data, navigate, queryClient }: {
       )}
 
       {instance.status !== 'DRAFT' && instance.status !== 'VOID' && (
-        <Card>
-          <CardContent className="p-5 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-base font-semibold text-slate-800">{t('formFill.officialDocuments')}</h2>
-              <div className="flex items-center gap-2">
-                {(['ar', 'en'] as const).map((lang) => (
-                  <Button
-                    key={lang}
-                    size="sm"
-                    variant="outline"
-                    disabled={generate.isPending}
-                    onClick={() => generate.mutate(lang)}
-                  >
-                    <FileCheck2 className="w-3.5 h-3.5 ms-1" />
-                    {lang === 'ar' ? t('formFill.generateAr') : t('formFill.generateEn')}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            {generated.length > 0 ? (
-              <div className="space-y-2">
-                {generated.map((doc) => (
-                  <div key={`${doc.template}-${doc.language}`} className="flex items-center justify-between rounded-md border p-3 text-sm">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-slate-400" />
-                      <div>
-                        <p className="font-medium">{doc.documentNumber}</p>
-                        <p className="text-xs text-slate-400">{doc.fileName} • {doc.language} • v{doc.version}</p>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => downloadFormDocument(doc.documentId, doc.fileName)}
-                    >
-                      <Download className="w-3.5 h-3.5 ms-1" /> {t('common.download')}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">{t('formFill.noDocuments')}</p>
-            )}
-          </CardContent>
-        </Card>
+        <DocumentPanel
+          instanceId={Number(instance.id)}
+          canGenerate={true}
+          onGenerate={(language) => generate.mutate(language)}
+        />
       )}
 
       <div className="text-center">

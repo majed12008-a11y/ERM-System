@@ -1,7 +1,8 @@
-# ERM-System Forms Library — Business Rules & Workflow Mapping (v1)
+# ERM-System Forms Library — Business Rules & Workflow Mapping (v2)
 
-> Version 1.0 · 2026-08-01
+> Version 2.0 · 2026-08-02
 > Defines the business rules enforced by each form and the mapping of forms to workflow states/transitions, roles, and notifications.
+> **v2 reconciliation (2026-08-02):** §2 state machine verified against `workflow.workflow_states`/`workflow_transitions` (14 states, 32 transitions incl. multi-source `WITHDRAW`). Added BR-010 (multi-signature gate), BR-011 (checksum verification), BR-012 (watermark rendering), BR-013 (document lifecycle status gate) per the five mandatory features. Documents `status` CHECK now `OFFICIAL/REVOKED/VOID/SUPERSEDED` — **target** expansion to `DRAFT/PENDING_SIGNATURE/APPROVED/ISSUED/SUPERSEDED/REVOKED/VOID/EXPIRED/ARCHIVED`.
 
 ---
 
@@ -18,6 +19,10 @@
 | BR-007 | Audit: all form + document mutations write `audit.audit_logs` via trigger; `documents.document_audit` records generation actions. | Triggers + engine |
 | BR-008 | Bilingual rule: mandatory documents must render in the language of the recipient; templates may supply `ar` and `en` variants. | Engine `language` parameter |
 | BR-009 | RLS is the sole access control; new tables get policies (see `05-database-mapping.md`). | Seed SQL |
+| BR-010 | Official documents may carry **multiple** electronic signatures (Reviewer/Secretary/Chair/Institutional Representative); signing allowed only in the ISSUED (or configured) lifecycle gate; `(document_id, signer_id, signature_type)` unique. | Signing service + DB unique index |
+| BR-011 | **Checksum verification:** `POST /public/checksum` recomputes SHA-256 of an uploaded PDF and compares to `documents.checksum_sha256` → `VALID / INVALID / MODIFIED`. | Public route + repo |
+| BR-012 | **Watermarks** are applied at render time (never stored in canonical bytes): DRAFT/COPY/VOID/SUPERSEDED/REVOKED/EXPIRED per status+version; OFFICIAL default version renders none. | Engine wrapper |
+| BR-013 | **Document lifecycle:** only `DRAFT→PENDING_SIGNATURE→APPROVED→ISSUED` forward + `ISSUED→SUPERSEDED/REVOKED/VOID` + `ISSUED→EXPIRED→ARCHIVED`; terminal states immutable (RLS `FOR DELETE USING (false)` + `trg_documents_immutable`). | Engine + DB CHECK/trigger |
 
 ---
 

@@ -3,7 +3,14 @@
  * توليد وتنزيل المستندات الرسمية.
  */
 import api from './client'
-import type { FormDefinition, FormInstance, GeneratedDocument } from '../components/forms/types'
+import type {
+  FormDefinition,
+  FormInstance,
+  GeneratedDocument,
+  GeneratedDocumentRecord,
+  DocumentDetail,
+  DocumentSignature,
+} from '../components/forms/types'
 
 export async function listFormDefinitions(): Promise<FormDefinition[]> {
   const res = await api.get('/forms')
@@ -71,4 +78,31 @@ export async function downloadFormDocument(documentId: number, fileName?: string
   a.download = fileName || `form-document-${documentId}.pdf`
   a.click()
   window.URL.revokeObjectURL(url)
+}
+
+export async function listGeneratedDocuments(instanceId: number): Promise<GeneratedDocumentRecord[]> {
+  const res = await api.get(`/forms/instances/${instanceId}/documents`)
+  return res.data.data || []
+}
+
+export async function getGeneratedDocumentDetail(documentId: number): Promise<DocumentDetail> {
+  const res = await api.get(`/forms/documents/${documentId}`)
+  return res.data.data
+}
+
+export async function signGeneratedDocument(
+  documentId: number,
+  signatureType: string = 'APPROVER',
+): Promise<DocumentSignature> {
+  const res = await api.post(`/forms/documents/${documentId}/sign`, { signature_type: signatureType })
+  return res.data.data
+}
+
+export async function setDocumentLifecycle(
+  documentId: number,
+  status: 'REVOKED' | 'VOID',
+  reason: string,
+): Promise<{ ok: boolean; documentId: number; status: string }> {
+  const res = await api.post(`/forms/documents/${documentId}/lifecycle`, { status, reason })
+  return res.data.data
 }

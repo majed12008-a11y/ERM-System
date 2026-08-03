@@ -379,6 +379,16 @@ export const generateFormDocumentSchema = z.object({
     role: z.string().min(1).max(500),
   })).optional(),
 });
+
+export const signGeneratedDocumentSchema = z.object({
+  signature_type: z.enum(['APPROVER', 'CHAIR', 'SECRETARY']).optional().default('APPROVER'),
+});
+
+export const setDocumentLifecycleSchema = z.object({
+  status: z.enum(['REVOKED', 'VOID']),
+  reason: z.string().min(1).max(1000),
+});
+
 export const transitionDocumentSchema = z.object({
   action_code: z.string().min(1).max(50),
   reason: z.string().max(1000).optional(),

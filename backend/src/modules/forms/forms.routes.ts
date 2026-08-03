@@ -12,6 +12,8 @@ import {
   createFormInstanceSchema,
   saveFormInstanceSchema,
   generateFormDocumentSchema,
+  signGeneratedDocumentSchema,
+  setDocumentLifecycleSchema,
 } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
@@ -120,6 +122,32 @@ router.get('/documents/:id/download', authenticate, async (req: Request, res: Re
     }
     res.status(err.status || 500).json(errorResponse(err.message));
   }
+});
+
+router.get('/instances/:id/documents', authenticate, async (req: Request, res: Response) => {
+  try {
+    res.json(successResponse(await service.listDocuments(parseInt(String(req.params.id)), (req as any).user)));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
+});
+
+router.get('/documents/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    res.json(successResponse(await service.getDocumentDetail(parseInt(String(req.params.id)), (req as any).user)));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
+});
+
+router.post('/documents/:id/sign', authenticate, validate(signGeneratedDocumentSchema), async (req: Request, res: Response) => {
+  try {
+    const result = await service.signDocument(parseInt(String(req.params.id)), (req as any).user, req.body.signature_type);
+    res.json(successResponse(result, 'Document signed'));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
+});
+
+router.post('/documents/:id/lifecycle', authenticate, validate(setDocumentLifecycleSchema), async (req: Request, res: Response) => {
+  try {
+    const result = await service.setDocumentLifecycle(parseInt(String(req.params.id)), req.body.status, req.body.reason, (req as any).user);
+    res.json(successResponse(result, 'Document status updated'));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
 export default router;

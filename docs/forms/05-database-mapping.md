@@ -1,7 +1,8 @@
-# ERM-System Forms Library — Database Mapping (v1)
+# ERM-System Forms Library — Database Mapping (v2)
 
-> Version 1.0 · 2026-08-01
-> DDL and RLS mapping for the new Forms Library schema, plus extensions to existing documents tables. Applied as `backend/seed/55-forms-library.sql`.
+> Version 2.0 · 2026-08-02
+> DDL and RLS mapping for the Forms Library schema, plus extensions to existing documents tables. Applied as `backend/seed/55-forms-library.sql` (+ `57-document-infrastructure.sql`).
+> **v2 reconciliation (2026-08-02):** §1 DDL verified live (all columns match; `forms.form_instances.status` CHECK present; RLS policies `fd_*`/`fi_*` present). §2 template extensions present (language/document_category/is_default/schema_metadata + `uq_templates_default`). §3 `documents.document_numbering` present (7 categories seeded, advisory-lock allocation). §4 tables now actively written by the engine. `system.fn_is_admin()` confirmed to exist. **Target additions:** `document_signatures` unique `(document_id, signer_id, signature_type)` for multi-signature; documents `status` CHECK expanded for the new lifecycle; `documents.document_retention_rules` activation (deferred).
 
 ---
 

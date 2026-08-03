@@ -79,13 +79,89 @@ export interface FormInstance {
 export interface GeneratedDocument {
   documentId: number
   documentNumber: string
-  template: string
-  language: string
-  size: number
-  version: number
+  versionNo: number
+  templateId: number
   storagePath: string
   fileName: string
-  sha256: string
+  checksumSha256: string
+  language: string
   instanceId: number
   formCode: string
+}
+
+export type DocumentLifecycleStatus = 'OFFICIAL' | 'REVOKED' | 'VOID' | 'SUPERSEDED'
+
+export interface GeneratedDocumentRecord {
+  id: number
+  document_type_id: number
+  entity_type: string
+  entity_id: number
+  document_title: string
+  file_name: string
+  mime_type: string
+  file_size_bytes: number
+  storage_path: string
+  checksum_sha256: string
+  uploaded_by: number
+  uploaded_at: string
+  document_number: string
+  document_uuid: string
+  status: DocumentLifecycleStatus
+  is_immutable: boolean
+  current_version_no: number
+  template_code: string | null
+  template_version: number | null
+  language: string | null
+  supersedes_version_no: number | null
+  superseded_by_document_id: number | null
+  revoked_at: string | null
+  revoked_by: number | null
+  revocation_reason: string | null
+  type_name_ar?: string | null
+  version_count: number
+  signature_count: number
+  audit_count: number
+}
+
+export interface DocumentVersion {
+  id: number
+  document_id: number
+  version_no: number
+  file_name: string
+  storage_path: string
+  checksum_sha256: string
+  uploaded_by: number
+  version_notes: string | null
+  document_uuid: string | null
+  template_code: string | null
+  template_version: number | null
+  language: string | null
+  supersedes_version_id: number | null
+}
+
+export interface DocumentAuditEntry {
+  id: number
+  document_id: number
+  action_type: string
+  action_by: number | null
+  action_timestamp: string
+  details: Record<string, unknown> | null
+  actor_name?: string | null
+}
+
+export interface DocumentSignature {
+  id: number
+  document_id: number
+  signer_id: number
+  signature_type: string
+  signature_hash: string
+  signed_at: string
+  signer_name?: string | null
+}
+
+export interface DocumentDetail {
+  document: GeneratedDocumentRecord
+  versions: DocumentVersion[]
+  audit: DocumentAuditEntry[]
+  signatures: DocumentSignature[]
 }

@@ -12,6 +12,7 @@ import { FormInstanceRepository, FormInstanceStatus } from '../repositories/form
 import { DocumentRenderService } from './document-render.service';
 import { DocumentRenderRepository } from '../repositories/document-render.repository';
 import { logger } from '../config/logger';
+import crypto from 'crypto';
 
 interface FieldDef {
   name: string;
@@ -216,6 +217,70 @@ export class FormService {
     const doc = await this.renderRepo.findDocumentById(documentId);
     if (!doc || !doc.storage_path) return null;
     return { storagePath: doc.storage_path, fileName: doc.file_name };
+  }
+
+  // ── Document panel (versions, signatures, audit, lifecycle) ─
+  async listDocuments(instanceId: number, user: AuthUser) {
+    const { instance } = await this.getInstance(instanceId);
+    return this.renderRepo.findDocumentsByEntity('Form', instance.id);
+  }
+
+  async getDocumentDetail(documentId: number, user: AuthUser) {
+    const doc = await this.renderRepo.findDocumentById(documentId);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+
+    const [versions, audit, signatures] = await Promise.all([
+      this.renderRepo.getDocumentVersions(documentId),
+      this.renderRepo.getDocumentAudit(documentId),
+      this.renderRepo.getDocumentSignatures(documentId),
+    ]);
+
+    return { document: doc, versions, audit, signatures };
+  }
+
+  async signDocument(documentId: number, user: AuthUser, signatureType: string = 'APPROVER') {
+    const doc = await this.renderRepo.findDocumentById(documentId);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+    if (doc.status === 'VOID' || doc.status === 'REVOKED') {
+      throw Object.assign(new Error(`Document is ${doc.status} and cannot be signed`), { status: 400 });
+    }
+
+    const signatureHash = crypto.createHash('sha256')
+      .update(`${doc.document_uuid}:${user.id}:${doc.checksum_sha256}`)
+      .digest('hex');
+
+    const existing = await this.renderRepo.getDocumentSignatures(documentId);
+    if (existing.some((s) => s.signer_id === user.id)) {
+      throw Object.assign(new Error('User has already signed this document'), { status: 400 });
+    }
+
+    const signature = await this.renderRepo.addSignature(documentId, user.id, signatureType, signatureHash);
+    await this.renderRepo.logAudit(documentId, 'SIGNED', user.id, {
+      signature_id: signature.id,
+      signature_type: signatureType,
+    });
+
+    logger.info({ documentId, userId: user.id, signatureType }, 'Document signed');
+    return signature;
+  }
+
+  async setDocumentLifecycle(documentId: number, status: 'REVOKED' | 'VOID', reason: string, user: AuthUser) {
+    const doc = await this.renderRepo.findDocumentById(documentId);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+    if (doc.status !== 'OFFICIAL') {
+      throw Object.assign(new Error(`Only OFFICIAL documents can be ${status.toLowerCase()}`), { status: 400 });
+    }
+
+    const result = await this.renderRepo.setDocumentStatus(documentId, status, reason, user.id);
+    if (!result.ok) throw Object.assign(new Error('Document status could not be changed'), { status: 400 });
+
+    await this.renderRepo.logAudit(documentId, status === 'REVOKED' ? 'REVOKED' : 'VOIDED', user.id, {
+      reason,
+      actor: user.username,
+    });
+
+    logger.info({ documentId, status, userId: user.id }, 'Document lifecycle changed');
+    return { ok: true, documentId, status };
   }
 
   // ── Validation ─────────────────────────────────────────────

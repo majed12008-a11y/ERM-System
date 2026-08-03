@@ -1,7 +1,8 @@
-# ERM-System Forms Library — PDF Specification & Template Variables (v1)
+# ERM-System Forms Library — PDF Specification & Template Variables (v2)
 
-> Version 1.0 · 2026-08-01
+> Version 2.0 · 2026-08-02
 > The authoritative specification for all official printed documents produced by the backend Document Engine. Every official PDF must comply with this spec.
+> **v2 reconciliation (2026-08-02):** §2 anatomy implemented in the engine wrapper (header/number/QR/version/date/signatures/seal/footer) — verified E2E. **Added §7 Watermarking** (DRAFT/COPY/VOID/SUPERSEDED/REVOKED/EXPIRED, render-time only) and **updated §6** with the checksum verification API. Fonts must still be bundled in Docker (outstanding).
 
 ---
 
@@ -135,6 +136,21 @@ Every document template receives a **standard context** merged with document-spe
 ## 6. Immutability & Verification
 
 1. **Checksum:** `sha256(pdfBytes)` stored in `documents.documents.checksum_sha256` + `document_versions.checksum_sha256`.
-2. **Verification endpoint:** `GET /api/v1/public/verify/:uuid` returns document metadata + status + checksum (public, rate-limited). QR links here.
-3. **Tamper evidence:** the engine can embed a signed attribute (serial+uuid+checksum+HMAC with the same secret used by certificates) in the footer — see `07-migration-roadmap.md` for the hardening step.
-4. **No regeneration of same reference:** if regeneration is requested, a new version/instance is created; the original PDF file is never overwritten.
+2. **Verification endpoint:** `GET /api/v1/public/verify/:reference` returns document metadata + status (rate-limited). QR links here.
+3. **Checksum verification API:** `POST /api/v1/public/checksum` (multipart PDF) recomputes SHA-256 server-side → `VALID` (matches), `MODIFIED` (bytes differ from stored), `INVALID` (no match/no doc). Public, rate-limited.
+4. **Tamper evidence:** the engine can embed a signed attribute (serial+uuid+checksum+HMAC) in the footer — see `07-migration-roadmap.md` for the hardening step.
+5. **No regeneration of same reference:** if regeneration is requested, a new version/instance is created; the original PDF file is never overwritten.
+
+## 7. Watermarking
+
+| State | Watermark text (AR/EN) | When |
+|---|---|---|
+| OFFICIAL + default version | none | normal issue |
+| DRAFT | مسودة / DRAFT | generated in DRAFT state |
+| REVOKED | ملغاة / REVOKED | lifecycle REVOKED |
+| VOID | لاغية / VOID | lifecycle VOID |
+| SUPERSEDED | مستبدلة / SUPERSEDED | superseded by newer version |
+| EXPIRED | منتهية / EXPIRED | date-driven expiry |
+| OFFICIAL + older version | نسخة / COPY | reprint of non-current version |
+
+Rendered as a diagonal `.watermark` div (`position:fixed`, `opacity:0.12`, `font-size:120px`) injected by the engine at render time only — never baked into stored bytes, preserving the canonical OFFICIAL checksum.

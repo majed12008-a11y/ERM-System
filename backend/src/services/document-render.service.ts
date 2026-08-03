@@ -77,7 +77,11 @@ export class DocumentRenderService {
     }
 
     const allocated = await this.numberingRepo.allocate(req.category);
-    const versionNo = 1;
+
+    const previous = await this.renderRepo.findLatestVersionByEntity(
+      req.entityType, req.entityId, req.templateCode, template.language
+    );
+    const versionNo = previous ? previous.current_version_no + 1 : 1;
 
     const issueDateAr = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
     const issueDateEn = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -139,6 +143,14 @@ export class DocumentRenderService {
       uploaded_by: req.issuedBy.id,
       file_size_bytes: pdfBytes.length,
       checksum_sha256: checksumSha256,
+      document_number: allocated.number,
+      document_uuid: crypto.randomUUID(),
+      current_version_no: versionNo,
+      template_code: template.template_code,
+      template_version: template.version_no,
+      language: template.language,
+      supersedes_version_no: previous ? previous.current_version_no : null,
+      superseded_by_document_id: null,
     });
 
     await this.renderRepo.createVersion({
@@ -149,7 +161,22 @@ export class DocumentRenderService {
       checksum_sha256: checksumSha256,
       uploaded_by: req.issuedBy.id,
       version_notes: req.versionNotes || `Generated from template ${template.template_code} (${template.language})`,
+      document_uuid: crypto.randomUUID(),
+      template_code: template.template_code,
+      template_version: template.version_no,
+      language: template.language,
+      supersedes_version_id: previous ? previous.version_id : null,
     });
+
+    if (previous) {
+      await this.renderRepo.markSuperseded(previous.id, documentId);
+      await this.renderRepo.logAudit(previous.id, 'SUPERSEDED', req.issuedBy.id, {
+        superseded_by_document_id: documentId,
+        superseded_by_number: allocated.number,
+        new_version_no: versionNo,
+        reason: req.versionNotes || 'Superseded by a new version of the document',
+      });
+    }
 
     await this.renderRepo.createGenerated({
       template_id: template.id,
@@ -171,11 +198,13 @@ export class DocumentRenderService {
       document_number: allocated.number,
       template_code: template.template_code,
       language: template.language,
+      version_no: versionNo,
+      supersedes_version_no: previous ? previous.current_version_no : null,
       sha256: checksumSha256,
     });
 
     logger.info(
-      { documentId, number: allocated.number, template: template.template_code, language: template.language, size: pdfBytes.length },
+      { documentId, number: allocated.number, template: template.template_code, language: template.language, size: pdfBytes.length, versionNo },
       'Official document generated'
     );
 
