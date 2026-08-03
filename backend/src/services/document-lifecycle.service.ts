@@ -1,27 +1,50 @@
 /*
  * خدمة دورة حياة المستندات: واجهة الحالات/الانتقالات القابلة للتكوين.
  *
- * قابلية التوسيع: سجل معالجات أحداث (handlers) يُربط بمعرفات الأحداث
- * (action codes) أو يلتقط الكل ('*'). تُستدعى المعالجات بعد نجاح
- * الانتقال فقط، وتتلقى سياقاً غنياً (from/to codes, is_terminal, actor,
- * reason). يمكن إرفاق إشعارات، توليد مستندات، إنشاء مهام، تحديثات وصول،
- * أو تكاملات مستقبلاً دون تعديل محرك الانتقال نفسه. فشل أي معالج لا
- * يفشل الانتقال (الجانب الآثري بعد الالتزام بالمعاملة).
+ * قابلية التوسيع ونقلية النقل (transport-independence):
+ *   - سجل معالجات أحداث يُربط بمعرفات الأحداث (action codes) أو يلتقط
+ *     الكل ('*'). تُستدعى المعالجات بعد نجاح الانتقال فقط.
+ *   - المعالجات دوال async نقية تستقبل سياقاً كاملاً قابل للتسلسل
+ *     (JSON-serializable): document، من/إلى الحالات، action، actor،
+ *     timestamp، reason، details، correlationId، requestId.
+ *   - لا يرتبط التوزيع الحالي بأي ناقل (queue/HTTP/DB). عند الترحيل
+ *     المستقبلي إلى طوابير غير متزامنة يكفي استبدال dispatchEvents بمعرّف
+ *     يُسلسل السياق ويرسله للطابور دون إعادة تصميم المحرك أو توقيعات
+ *     المعالجات.
+ *   - فشل أي معالج لا يفشل الانتقال (الجانب الآثري بعد الالتزام بالمعاملة).
+ *
+ * لا يحتوي المحرك على أي قواعد انتقال مكتوبة برمجياً: كل الانتقالات
+ * المسموحة تُشتق حصرياً من جدول document_lifecycle_transitions عبر
+ * الدالة documents.fn_document_transition.
  */
-import { DocumentLifecycleRepository, LifecycleTransitionResult } from '../repositories/document-lifecycle.repository';
+import { DocumentLifecycleRepository, LifecycleDocumentSummary, LifecycleTransitionResult } from '../repositories/document-lifecycle.repository';
 import { AuthUser } from '../shared/types';
+import { getRequestId } from '../middleware/context';
 import { logger } from '../config/logger';
+
+export interface LifecycleEventActor {
+  id: number;
+  username: string;
+}
 
 export interface LifecycleEventContext {
   documentId: number;
+  document: LifecycleDocumentSummary | null;
   actionCode: string;
   fromCode: string | null;
   toCode: string | null;
   isTerminal: boolean;
+  timestamp: string | null;
   reason: string | null;
-  actorId: number;
-  newStatus: string | null;
-  documentNumber: string | null;
+  details: unknown;
+  actor: LifecycleEventActor;
+  correlationId: string | null;
+  requestId: string | null;
+}
+
+export interface LifecycleTransitionOptions {
+  correlationId?: string;
+  requestId?: string;
 }
 
 export type LifecycleEventHandler = (ctx: LifecycleEventContext) => void | Promise<void>;
@@ -54,32 +77,42 @@ export class DocumentLifecycleService {
     actionCode: string,
     reason: string | undefined,
     user: AuthUser,
-    details?: unknown
+    details?: unknown,
+    opts?: LifecycleTransitionOptions
   ) {
+    const requestId = opts?.requestId ?? getRequestId();
+    const correlationId = opts?.correlationId ?? requestId;
+
     const result = await this.repo.applyTransition(documentId, actionCode, user.id, reason, details);
     if (!result.ok) {
       throw Object.assign(new Error(result.message || 'Transition not allowed'), { status: 400 });
     }
-    await this.dispatchEvents(documentId, result, user.id, reason);
+    await this.dispatchEvents(documentId, result, user, reason ?? null, details, correlationId, requestId);
     return result;
   }
 
   private async dispatchEvents(
     documentId: number,
     result: LifecycleTransitionResult,
-    actorId: number,
-    reason?: string | null
+    user: AuthUser,
+    reason: string | null,
+    details: unknown,
+    correlationId: string,
+    requestId: string
   ): Promise<void> {
     const ctx: LifecycleEventContext = {
       documentId,
+      document: result.document,
       actionCode: result.action_code,
       fromCode: result.from_code,
       toCode: result.to_code,
       isTerminal: result.is_terminal,
-      reason: reason ?? null,
-      actorId,
-      newStatus: result.new_status,
-      documentNumber: result.document_number,
+      timestamp: result.timestamp,
+      reason,
+      details: details ?? null,
+      actor: { id: user.id, username: user.username },
+      correlationId,
+      requestId,
     };
 
     const handlers = [

@@ -97,10 +97,50 @@ export class DocumentRepository extends AuditableRepository {
        FROM documents.document_signatures ds
        LEFT JOIN security.users u ON ds.signer_id = u.id
        WHERE ds.document_id = $1
-       ORDER BY ds.signed_at`,
+       ORDER BY ds.signature_order ASC, ds.id ASC`,
       [documentId]
     );
     return result.rows;
+  }
+
+  async addSignatureSlot(
+    documentId: number,
+    data: { signer_id: number; signature_type: string; signature_order: number; signer_title?: string; is_required: boolean }
+  ): Promise<any> {
+    const meta = this.createMeta();
+    const result = await this.query(
+      `INSERT INTO documents.document_signatures
+        (document_id, signer_id, signature_type, signature_order, signature_status, signer_title, is_required, created_by, created_at)
+       VALUES ($1, $2, $3, $4, 'PENDING', $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        documentId, data.signer_id, data.signature_type, data.signature_order,
+        data.signer_title || null, data.is_required, meta.created_by, meta.created_at,
+      ]
+    );
+    return result.rows[0];
+  }
+
+  async signSlot(documentId: number, signerId: number, signatureHash: string): Promise<any | null> {
+    const result = await this.query(
+      `UPDATE documents.document_signatures
+          SET signature_status = 'SIGNED',
+              signature_hash = $3,
+              signed_at = now(),
+              verification_metadata = jsonb_build_object('signed_by', $2, 'signature_type', signature_type)
+        WHERE document_id = $1 AND signer_id = $2 AND signature_status = 'PENDING'
+        RETURNING *`,
+      [documentId, signerId, signatureHash]
+    );
+    return result.rows[0] || null;
+  }
+
+  async logAudit(documentId: number, actionType: string, actionBy: number, details?: any): Promise<void> {
+    await this.query(
+      `INSERT INTO documents.document_audit (document_id, action_type, action_by, details)
+       VALUES ($1, $2, $3, $4)`,
+      [documentId, actionType, actionBy, details ? JSON.stringify(details) : null]
+    );
   }
 
   async addSignature(documentId: number, signerId: number, signatureHash: string): Promise<any> {
@@ -114,7 +154,11 @@ export class DocumentRepository extends AuditableRepository {
 
   async findSignature(documentId: number, signerId: number): Promise<any | null> {
     const result = await this.query(
-      `SELECT id FROM documents.document_signatures WHERE document_id = $1 AND signer_id = $2`,
+      `SELECT *
+         FROM documents.document_signatures
+        WHERE document_id = $1 AND signer_id = $2
+        ORDER BY (signature_status = 'PENDING') DESC, id DESC
+        LIMIT 1`,
       [documentId, signerId]
     );
     return result.rows[0] || null;

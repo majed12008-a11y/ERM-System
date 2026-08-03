@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { signDocumentSchema, transitionDocumentSchema } from '../../middleware/schemas';
+import { signDocumentSchema, transitionDocumentSchema, createSignatureSlotSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { DocumentService } from '../../services/document.service';
@@ -78,8 +78,19 @@ router.delete('/:id', authenticate, async (req: Request, res: Response) => {
 
 router.post('/:id/sign', authenticate, validate(signDocumentSchema), async (req: Request, res: Response) => {
   try {
-    const signature = await service.sign(parseInt(String(req.params.id)), (req as any).user);
+    const signature = await service.sign(
+      parseInt(String(req.params.id)), (req as any).user, req.body.signature_type
+    );
     res.status(201).json(successResponse(signature, 'Document signed'));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
+});
+
+router.post('/:id/signature-slots', authenticate, validate(createSignatureSlotSchema), async (req: Request, res: Response) => {
+  try {
+    const signature = await service.addSignatureSlot(
+      parseInt(String(req.params.id)), req.body.signatory, (req as any).user
+    );
+    res.status(201).json(successResponse(signature, 'Signature slot created'));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
@@ -114,7 +125,8 @@ router.post('/:id/transition', authenticate, validate(transitionDocumentSchema),
       String(req.body.action_code),
       req.body.reason,
       (req as any).user,
-      req.body.details
+      req.body.details,
+      { correlationId: (req.headers['x-correlation-id'] as string) || undefined }
     );
     res.json(successResponse(result, 'Document transitioned'));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }

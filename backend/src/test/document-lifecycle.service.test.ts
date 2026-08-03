@@ -21,6 +21,15 @@ const okResult = {
   from_code: 'APPROVED',
   to_code: 'ISSUED',
   is_terminal: false,
+  document: {
+    id: 10,
+    document_number: 'DOC-001',
+    document_uuid: 'uuid-1',
+    document_title: 'Test doc',
+    status: 'ISSUED',
+    lifecycle_state_id: 5,
+  },
+  timestamp: '2026-08-03T10:00:00.000Z',
 };
 
 describe('DocumentLifecycleService', () => {
@@ -91,9 +100,42 @@ describe('DocumentLifecycleService', () => {
     expect(ctx.fromCode).toBe('APPROVED');
     expect(ctx.toCode).toBe('ISSUED');
     expect(ctx.isTerminal).toBe(false);
-    expect(ctx.actorId).toBe(user.id);
+    expect(ctx.actor.id).toBe(user.id);
+    expect(ctx.actor.username).toBe('admin');
     expect(ctx.reason).toBe('go');
-    expect(ctx.documentNumber).toBe('DOC-001');
+    expect(ctx.documentNumber).toBeUndefined();
+    expect(ctx.document.document_number).toBe('DOC-001');
+  });
+
+  it('hands handlers a complete serializable transition context', async () => {
+    mockRepo.applyTransition.mockResolvedValue(okResult);
+    const h = vi.fn();
+    service.onAny(h);
+
+    await service.transition(
+      10, 'ISSUE', 'go', user, { channel: 'notify' },
+      { correlationId: 'corr-123', requestId: 'req-456' }
+    );
+
+    const ctx = h.mock.calls[0][0];
+    expect(ctx.document).toEqual(okResult.document);
+    expect(ctx.timestamp).toBe('2026-08-03T10:00:00.000Z');
+    expect(ctx.details).toEqual({ channel: 'notify' });
+    expect(ctx.actor).toEqual({ id: user.id, username: user.username });
+    expect(ctx.correlationId).toBe('corr-123');
+    expect(ctx.requestId).toBe('req-456');
+  });
+
+  it('defaults correlationId to requestId when not supplied', async () => {
+    mockRepo.applyTransition.mockResolvedValue(okResult);
+    const h = vi.fn();
+    service.onAny(h);
+
+    await service.transition(10, 'ISSUE', 'go', user, undefined, { requestId: 'req-abc' });
+
+    const ctx = h.mock.calls[0][0];
+    expect(ctx.requestId).toBe('req-abc');
+    expect(ctx.correlationId).toBe('req-abc');
   });
 
   it('does not dispatch handlers when the transition is rejected', async () => {

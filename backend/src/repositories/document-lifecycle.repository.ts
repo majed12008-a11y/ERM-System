@@ -30,6 +30,15 @@ export interface LifecycleTransition {
   to_code: string;
 }
 
+export interface LifecycleDocumentSummary {
+  id: number;
+  document_number: string | null;
+  document_uuid: string | null;
+  document_title: string | null;
+  status: string | null;
+  lifecycle_state_id: number | null;
+}
+
 export interface LifecycleTransitionResult {
   ok: boolean;
   message: string;
@@ -39,6 +48,8 @@ export interface LifecycleTransitionResult {
   from_code: string | null;
   to_code: string | null;
   is_terminal: boolean;
+  document: LifecycleDocumentSummary | null;
+  timestamp: string | null;
 }
 
 export class DocumentLifecycleRepository extends AuditableRepository {
@@ -100,6 +111,8 @@ export class DocumentLifecycleRepository extends AuditableRepository {
           from_code: fromRes.rows[0]?.from_code ?? null,
           to_code: null,
           is_terminal: false,
+          document: null,
+          timestamp: null,
         };
       }
 
@@ -108,6 +121,22 @@ export class DocumentLifecycleRepository extends AuditableRepository {
          FROM documents.documents d
          JOIN documents.document_lifecycle_states ls ON ls.id = d.lifecycle_state_id
          WHERE d.id = $1`,
+        [documentId],
+        client
+      );
+
+      const docRes = await this.query(
+        `SELECT id, document_number, document_uuid, document_title, status, lifecycle_state_id
+         FROM documents.documents
+         WHERE id = $1`,
+        [documentId],
+        client
+      );
+
+      const auditRes = await this.query(
+        `SELECT action_timestamp FROM documents.document_audit
+         WHERE document_id = $1
+         ORDER BY id DESC LIMIT 1`,
         [documentId],
         client
       );
@@ -121,6 +150,8 @@ export class DocumentLifecycleRepository extends AuditableRepository {
         from_code: fromRes.rows[0]?.from_code ?? null,
         to_code: toRes.rows[0]?.to_code ?? null,
         is_terminal: toRes.rows[0]?.is_terminal ?? false,
+        document: docRes.rows[0] ?? null,
+        timestamp: auditRes.rows[0]?.action_timestamp?.toISOString?.() ?? null,
       };
     });
   }

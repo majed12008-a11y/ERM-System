@@ -61,17 +61,66 @@ export class DocumentService {
     });
   }
 
-  async sign(documentId: number, user: AuthUser): Promise<any> {
+  async sign(documentId: number, user: AuthUser, signatureType: string = 'ELECTRONIC'): Promise<any> {
     const doc = await this.repo.findById(documentId);
     if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
 
     const existing = await this.repo.findSignature(documentId, user.id);
-    if (existing) throw Object.assign(new Error('Already signed'), { status: 400 });
+    if (existing && existing.signature_status === 'SIGNED') {
+      throw Object.assign(new Error('Already signed'), { status: 400 });
+    }
 
-    const raw = `${user.id}-${documentId}-${Date.now()}`;
+    let slot = existing && existing.signature_status === 'PENDING'
+      ? existing
+      : await this.repo.addSignatureSlot(documentId, {
+          signer_id: user.id,
+          signature_type: signatureType,
+          signature_order: 1,
+          is_required: true,
+        });
+    if (!slot) {
+      throw Object.assign(new Error('Not authorized to sign this document'), { status: 403 });
+    }
+
+    const raw = `${user.id}-${documentId}-${slot.id}-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(raw).digest('hex');
 
-    return this.repo.addSignature(documentId, user.id, hash);
+    const signed = await this.repo.signSlot(documentId, user.id, hash);
+    if (!signed) throw Object.assign(new Error('No pending signature slot for this user'), { status: 400 });
+
+    await this.repo.logAudit(documentId, 'SIGNED', user.id, {
+      signature_id: signed.id,
+      signature_type: signed.signature_type,
+    });
+    return signed;
+  }
+
+  async addSignatureSlot(
+    documentId: number,
+    signatory: { signer_id: number; signature_type: string; signature_order?: number; signer_title?: string; is_required?: boolean },
+    user: AuthUser
+  ): Promise<any> {
+    const doc = await this.repo.findById(documentId);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+
+    const isAdmin = user.roles?.some((r: string) => ['SUPER_ADMIN', 'ETHICS_ADMIN', 'ADMIN', 'SYS_ADMIN'].includes(r));
+    if (doc.uploaded_by !== user.id && !isAdmin) {
+      throw Object.assign(new Error('Only the document owner or an admin can add signature slots'), { status: 403 });
+    }
+
+    const result = await this.repo.addSignatureSlot(documentId, {
+      signer_id: signatory.signer_id,
+      signature_type: signatory.signature_type,
+      signature_order: signatory.signature_order ?? 1,
+      signer_title: signatory.signer_title,
+      is_required: signatory.is_required ?? true,
+    });
+
+    await this.repo.logAudit(documentId, 'SIGNATURE_SLOT_ADDED', user.id, {
+      signature_id: result.id,
+      signature_type: signatory.signature_type,
+    });
+    return result;
   }
 
   async softDelete(id: number): Promise<void> {

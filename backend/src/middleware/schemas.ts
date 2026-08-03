@@ -394,3 +394,17 @@ export const transitionDocumentSchema = z.object({
   reason: z.string().max(1000).optional(),
   details: z.record(z.string(), z.unknown()).optional(),
 });
+
+export const createSignatureSlotSchema = z.object({
+  signatory: z.object({
+    signer_id: z.coerce.number().int().positive(),
+    signature_type: z.string().min(1).max(50),
+    signature_order: z.coerce.number().int().positive().optional(),
+    signer_title: z.string().max(500).optional(),
+    is_required: z.boolean().optional().default(true),
+  }),
+});
+
+export const signGeneratedDocumentV2Schema = z.object({
+  signature_type: z.string().min(1).max(50).optional(),
+});

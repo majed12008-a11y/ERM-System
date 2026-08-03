@@ -241,7 +241,7 @@ export class FormService {
   async signDocument(documentId: number, user: AuthUser, signatureType: string = 'APPROVER') {
     const doc = await this.renderRepo.findDocumentById(documentId);
     if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
-    if (doc.status === 'VOID' || doc.status === 'REVOKED') {
+    if (['VOID', 'REVOKED', 'SUPERSEDED', 'EXPIRED', 'ARCHIVED'].includes(doc.status)) {
       throw Object.assign(new Error(`Document is ${doc.status} and cannot be signed`), { status: 400 });
     }
 
@@ -249,12 +249,14 @@ export class FormService {
       .update(`${doc.document_uuid}:${user.id}:${doc.checksum_sha256}`)
       .digest('hex');
 
-    const existing = await this.renderRepo.getDocumentSignatures(documentId);
-    if (existing.some((s) => s.signer_id === user.id)) {
-      throw Object.assign(new Error('User has already signed this document'), { status: 400 });
+    const signature = await this.renderRepo.signSlot(documentId, user.id, signatureHash);
+    if (!signature) {
+      throw Object.assign(
+        new Error('No pending signature slot for this user on this document'),
+        { status: 400 }
+      );
     }
 
-    const signature = await this.renderRepo.addSignature(documentId, user.id, signatureType, signatureHash);
     await this.renderRepo.logAudit(documentId, 'SIGNED', user.id, {
       signature_id: signature.id,
       signature_type: signatureType,
