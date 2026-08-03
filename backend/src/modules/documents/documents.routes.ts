@@ -3,15 +3,18 @@ import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { signDocumentSchema, transitionDocumentSchema, createSignatureSlotSchema } from '../../middleware/schemas';
+import { signDocumentSchema, transitionDocumentSchema, createSignatureSlotSchema, checksumVerifySchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
+import { env } from '../../config/env';
 import { DocumentService } from '../../services/document.service';
 import { DocumentLifecycleService } from '../../services/document-lifecycle.service';
+import { ChecksumService } from '../../services/checksum.service';
 
 const router = Router();
 const service = new DocumentService();
 const lifecycleService = new DocumentLifecycleService();
+const checksumService = new ChecksumService();
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'];
 
@@ -61,6 +64,34 @@ router.get('/classifications', authenticate, async (req: Request, res: Response)
   try {
     res.json(successResponse(await service.getClassifications()));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+const checksumUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files are accepted for checksum verification'));
+  },
+});
+
+router.get('/checksum/config', authenticate, async (_req: Request, res: Response) => {
+  try {
+    res.json(successResponse({ algorithm: env.CHECKSUM_ALGORITHM }));
+  } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+router.post('/checksum', authenticate, checksumUpload.single('file'), async (req: Request, res: Response) => {
+  try {
+    const parsed = checksumVerifySchema.parse({ reference: req.body.reference });
+    if (!req.file) throw Object.assign(new Error('file is required'), { status: 400 });
+    const ip = req.ip || req.socket.remoteAddress || null;
+    const result = await checksumService.verify(parsed.reference, req.file.buffer, ip);
+    res.json(successResponse(result));
+  } catch (err: any) {
+    if (err.name === 'ZodError') return res.status(400).json(errorResponse('reference is required'));
+    res.status(err.status || 500).json(errorResponse(err.message));
+  }
 });
 
 router.get('/entity/:entityType/:entityId', authenticate, async (req: Request, res: Response) => {

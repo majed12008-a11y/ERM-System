@@ -26,7 +26,7 @@ router.get('/verify/:reference', verifyLimiter, async (req: Request, res: Respon
       return res.status(404).json(errorResponse('Document not found'));
     }
 
-    const result = data.status === 'OFFICIAL' ? 'VALID' : (data.status || 'ERROR');
+    const result = ['ISSUED', 'APPROVED'].includes(data.status) ? 'VALID' : (data.status || 'ERROR');
     await repo.logVerification(reference, ip, result, data);
     res.json(successResponse(data));
   } catch (err: any) {

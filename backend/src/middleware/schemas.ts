@@ -408,3 +408,7 @@ export const createSignatureSlotSchema = z.object({
 export const signGeneratedDocumentV2Schema = z.object({
   signature_type: z.string().min(1).max(50).optional(),
 });
+
+export const checksumVerifySchema = z.object({
+  reference: z.string().min(1).max(100),
+});

@@ -1158,7 +1158,7 @@ git commit -m "feat(documents): slot-based multi-signature workflow"
   - `class ChecksumService` with `verify(reference: string, fileBuffer: Buffer, ip: string | null): Promise<{ result: 'VALID'|'INVALID'|'MODIFIED'|'UNKNOWN'; algorithm: string; checksum_sha256?: string; status?: string }>`.
   - Routes: `POST /api/v1/documents/checksum` (multipart `file` + `reference`), `GET /api/v1/documents/checksum/config`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
@@ -1198,12 +1198,12 @@ describe('ChecksumService', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && npx vitest run src/test/checksum.service.test.ts`
 Expected: FAIL — env.CHECKSUM_ALGORITHM undefined.
 
-- [ ] **Step 3: Add env config**
+- [x] **Step 3: Add env config**
 
 Modify `backend/src/config/env.ts` — add after `RATE_LIMIT_VERIFY_MAX`:
 
@@ -1211,7 +1211,7 @@ Modify `backend/src/config/env.ts` — add after `RATE_LIMIT_VERIFY_MAX`:
   CHECKSUM_ALGORITHM: z.enum(['sha256', 'sha384', 'sha512']).default('sha256'),
 ```
 
-- [ ] **Step 4: Write the service**
+- [x] **Step 4: Write the service**
 
 ```typescript
 /*
@@ -1263,12 +1263,12 @@ export class ChecksumService {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd backend && npx vitest run src/test/checksum.service.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Add the checksum routes**
+- [x] **Step 6: Add the checksum routes**
 
 Modify `backend/src/modules/documents/documents.routes.ts`:
 
@@ -1307,7 +1307,7 @@ router.post('/checksum', authenticate, checksumUpload.single('file'), async (req
 });
 ```
 
-- [ ] **Step 7: Add the schema**
+- [x] **Step 7: Add the schema**
 
 In `backend/src/middleware/schemas.ts`:
 
@@ -1317,7 +1317,7 @@ export const checksumVerifySchema = z.object({
 });
 ```
 
-- [ ] **Step 8: Fix public verification status mapping**
+- [x] **Step 8: Fix public verification status mapping**
 
 In `backend/src/modules/public/documents.routes.ts`, replace:
 
@@ -1331,12 +1331,14 @@ with:
     const result = ['ISSUED', 'APPROVED'].includes(data.status) ? 'VALID' : (data.status || 'ERROR');
 ```
 
-- [ ] **Step 9: Verify lint + tests**
+- [x] **Step 9: Verify lint + tests**
 
 Run: `cd backend && npm run lint && npx vitest run src/test/checksum.service.test.ts`
 Expected: tsc clean, tests PASS.
 
-- [ ] **Step 10: Commit**
+> **Deviation (test quality):** the plan's `checksum.service.test.ts` scenarios were kept but rewritten to inject a mocked `DocumentRenderRepository`, making VALID/MODIFIED/INVALID/UNKNOWN deterministic without a seeded DB; the route uses a static `import { env }` instead of a dynamic `await import`. Verified end-to-end over HTTP (VALID/MODIFIED/UNKNOWN/400-no-file) and the `document_verification_log` records the correct results.
+
+- [x] **Step 10: Commit**
 
 ```bash
 git add backend/src/config/env.ts backend/src/services/checksum.service.ts backend/src/modules/documents/documents.routes.ts backend/src/modules/public/documents.routes.ts backend/src/middleware/schemas.ts backend/src/test/checksum.service.test.ts

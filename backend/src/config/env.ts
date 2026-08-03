@@ -40,6 +40,7 @@ const envSchema = z.object({
   RATE_LIMIT_RESET_PASSWORD_MAX: z.coerce.number().default(5),
   RATE_LIMIT_RESEND_VERIFICATION_MAX: z.coerce.number().default(5),
   RATE_LIMIT_VERIFY_MAX: z.coerce.number().default(10),
+  CHECKSUM_ALGORITHM: z.enum(['sha256', 'sha384', 'sha512']).default('sha256'),
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z.coerce.boolean().default(false),
