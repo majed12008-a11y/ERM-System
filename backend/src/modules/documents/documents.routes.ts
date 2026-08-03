@@ -3,13 +3,15 @@ import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { signDocumentSchema } from '../../middleware/schemas';
+import { signDocumentSchema, transitionDocumentSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { DocumentService } from '../../services/document.service';
+import { DocumentLifecycleService } from '../../services/document-lifecycle.service';
 
 const router = Router();
 const service = new DocumentService();
+const lifecycleService = new DocumentLifecycleService();
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'];
 
@@ -91,6 +93,31 @@ router.get('/pending-signatures', authenticate, async (req: Request, res: Respon
   try {
     res.json(successResponse(await service.getPendingSignatures((req as any).user)));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+router.get('/lifecycle/states', authenticate, async (_req: Request, res: Response) => {
+  try {
+    res.json(successResponse(await lifecycleService.listStates()));
+  } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+router.get('/lifecycle/transitions', authenticate, async (_req: Request, res: Response) => {
+  try {
+    res.json(successResponse(await lifecycleService.listTransitions()));
+  } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+router.post('/:id/transition', authenticate, validate(transitionDocumentSchema), async (req: Request, res: Response) => {
+  try {
+    const result = await lifecycleService.transition(
+      parseInt(String(req.params.id)),
+      String(req.body.action_code),
+      req.body.reason,
+      (req as any).user,
+      req.body.details
+    );
+    res.json(successResponse(result, 'Document transitioned'));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
 export default router;

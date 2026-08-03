@@ -379,3 +379,8 @@ export const generateFormDocumentSchema = z.object({
     role: z.string().min(1).max(500),
   })).optional(),
 });
+export const transitionDocumentSchema = z.object({
+  action_code: z.string().min(1).max(50),
+  reason: z.string().max(1000).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+});
