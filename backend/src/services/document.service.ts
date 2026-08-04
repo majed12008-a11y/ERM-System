@@ -28,8 +28,25 @@ export class DocumentService {
 
   async getTypes() { return this.repo.getTypes(); }
   async getClassifications() { return this.repo.getClassifications(); }
+  async listRetentionRules(): Promise<any[]> {
+    return this.repo.listRetentionRules();
+  }
   async getByEntity(entityType: string, entityId: number) {
     return this.repo.findByEntity(entityType, entityId);
+  }
+
+  async updateMetadata(documentId: number, data: any, user: AuthUser): Promise<any> {
+    const doc = await this.repo.findById(documentId);
+    if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
+
+    const isAdmin = user.roles?.some((r: string) => ['SUPER_ADMIN', 'ETHICS_ADMIN', 'ADMIN', 'SYS_ADMIN'].includes(r));
+    if (doc.uploaded_by !== user.id && !isAdmin) {
+      throw Object.assign(new Error('Only the document owner or an admin can update metadata'), { status: 403 });
+    }
+
+    const updated = await this.repo.updateMetadata(documentId, data, user.id);
+    await this.repo.logAudit(documentId, 'METADATA_UPDATED', user.id, { fields: Object.keys(data) });
+    return updated;
   }
   async getSignatures(documentId: number) { return this.repo.getSignatures(documentId); }
   async getPendingSignatures(user: AuthUser) { return this.repo.getPendingSignatures(user.id); }

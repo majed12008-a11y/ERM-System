@@ -1850,7 +1850,14 @@ git commit -m "fix(documents): real checksum in footer, browser reuse, entity-le
   - `DocumentLifecycleService.checkExpiry(documentId, user)` → transitions to `EXPIRED` via `EXPIRE` action when `expires_at < now()`.
   - Routes `GET /api/v1/documents/retention-rules`, `PATCH /api/v1/documents/:id/metadata`.
 
-- [ ] **Step 1: Write the failing tests**
+**Implementation Deviation (Task 8 — metadata + lazy expiry):**
+- **Test adaptation**: the plan's test read the latest doc via `repo.query(...)`, but `AuditableRepository.query` is `protected` — the test uses the public `findAll({ page: 1, limit: 1 })` instead. A third test was added for `checkExpiry` on an unknown document (returns `{ expired: false }`).
+- **Admin check**: the plan's service guard used `user.role?.includes('ADMIN')`; `AuthUser` exposes `roles: string[]`, so the existing file convention (`user.roles?.some(...)` against `SUPER_ADMIN|ETHICS_ADMIN|ADMIN|SYS_ADMIN`) is used.
+- **`checkExpiry`**: added as a service method using `DocumentRenderRepository.findDocumentById` (dedicated `renderRepo` field) and calls `repo.applyTransition('EXPIRE')` directly (no event dispatch, matching the plan).
+- **Test-suite stability**: the suite's DB-bound tests were flaking under parallel vitest workers with the default 5s timeout (pool contention timeouts on `document-metadata`/`render.service`). Raised `testTimeout` to 30000 in `vitest.config.ts` — verified stable at the documented baseline (9 failed / 527 passed / 42 skipped, the 9 + 2 failed suites being pre-existing).
+- **Live-verified**: `GET /documents/retention-rules` returns `[]` (table has **no seed data** — no seed step exists in the plan); `PATCH /documents/:id/metadata` sets tags/metadata/confidentiality/expires_at with `METADATA_UPDATED` audit; setting a past `expires_at` on an ISSUED doc and reading it via `GET /forms/documents/:id` transitions it to EXPIRED (`EXPIRE` audit, reason "Automatic expiry", from ISSUED to EXPIRED).
+
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
@@ -1879,12 +1886,12 @@ describe('Document metadata', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && npx vitest run src/test/document-metadata.test.ts`
 Expected: FAIL — methods not found.
 
-- [ ] **Step 3: Implement repository methods**
+- [x] **Step 3: Implement repository methods**
 
 In `backend/src/repositories/document.repository.ts`:
 
@@ -1937,7 +1944,7 @@ async listRetentionRules(): Promise<any[]> {
 }
 ```
 
-- [ ] **Step 4: Implement service methods**
+- [x] **Step 4: Implement service methods**
 
 In `backend/src/services/document.service.ts`:
 
@@ -1958,7 +1965,7 @@ async listRetentionRules(): Promise<any[]> {
 }
 ```
 
-- [ ] **Step 5: Add routes**
+- [x] **Step 5: Add routes**
 
 In `backend/src/modules/documents/documents.routes.ts`:
 
@@ -1992,7 +1999,7 @@ export const updateDocumentMetadataSchema = z.object({
 });
 ```
 
-- [ ] **Step 6: Add lazy expiry evaluation**
+- [x] **Step 6: Add lazy expiry evaluation**
 
 In `backend/src/services/document-lifecycle.service.ts`:
 
@@ -2021,12 +2028,12 @@ In `backend/src/modules/forms/forms.routes.ts`, in the `GET /documents/:id` hand
 
 (replacing `res.json(successResponse(await service.getDocumentDetail(...)))` with the two-call version). Import `DocumentLifecycleService` in `forms.routes.ts`.
 
-- [ ] **Step 7: Verify lint + tests**
+- [x] **Step 7: Verify lint + tests**
 
 Run: `cd backend && npm run lint && npm test`
 Expected: tsc clean, all tests pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/src/repositories/document.repository.ts backend/src/services/document.service.ts backend/src/services/document-lifecycle.service.ts backend/src/modules/documents/documents.routes.ts backend/src/modules/forms/forms.routes.ts backend/src/middleware/schemas.ts backend/src/test/document-metadata.test.ts

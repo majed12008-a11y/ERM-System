@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { signDocumentSchema, transitionDocumentSchema, createSignatureSlotSchema, checksumVerifySchema, watermarkPreviewSchema } from '../../middleware/schemas';
+import { signDocumentSchema, transitionDocumentSchema, createSignatureSlotSchema, checksumVerifySchema, watermarkPreviewSchema, updateDocumentMetadataSchema } from '../../middleware/schemas';
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { env } from '../../config/env';
@@ -66,6 +66,19 @@ router.get('/classifications', authenticate, async (req: Request, res: Response)
   try {
     res.json(successResponse(await service.getClassifications()));
   } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+router.get('/retention-rules', authenticate, async (_req: Request, res: Response) => {
+  try {
+    res.json(successResponse(await service.listRetentionRules()));
+  } catch (err: any) { res.status(500).json(errorResponse(err.message)); }
+});
+
+router.patch('/:id/metadata', authenticate, validate(updateDocumentMetadataSchema), async (req: Request, res: Response) => {
+  try {
+    const updated = await service.updateMetadata(parseInt(String(req.params.id)), req.body, (req as any).user);
+    res.json(successResponse(updated, 'Metadata updated'));
+  } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 
 router.get('/watermarks', authenticate, async (_req: Request, res: Response) => {

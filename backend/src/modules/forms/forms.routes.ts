@@ -16,9 +16,11 @@ import {
 import { successResponse, errorResponse } from '../../shared/utils';
 import { parsePagination } from '../../shared/pagination';
 import { FormService } from '../../services/form.service';
+import { DocumentLifecycleService } from '../../services/document-lifecycle.service';
 
 const router = Router();
 const service = new FormService();
+const lifecycleService = new DocumentLifecycleService();
 
 // ── Definitions ──────────────────────────────────────────────
 router.get('/', authenticate, async (_req: Request, res: Response) => {
@@ -130,7 +132,9 @@ router.get('/instances/:id/documents', authenticate, async (req: Request, res: R
 
 router.get('/documents/:id', authenticate, async (req: Request, res: Response) => {
   try {
-    res.json(successResponse(await service.getDocumentDetail(parseInt(String(req.params.id)), (req as any).user)));
+    const docId = parseInt(String(req.params.id));
+    await lifecycleService.checkExpiry(docId, (req as any).user);
+    res.json(successResponse(await service.getDocumentDetail(docId, (req as any).user)));
   } catch (err: any) { res.status(err.status || 500).json(errorResponse(err.message)); }
 });
 

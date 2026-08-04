@@ -91,6 +91,57 @@ export class DocumentRepository extends AuditableRepository {
     return result.rows;
   }
 
+  async updateMetadata(
+    documentId: number,
+    data: {
+      classification_id?: number | null;
+      confidentiality_level?: string;
+      retention_rule_id?: number | null;
+      expires_at?: string | Date | null;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
+    },
+    actorId: number
+  ): Promise<any> {
+    const meta = this.updateMeta();
+    const result = await this.query(
+      `UPDATE documents.documents
+          SET classification_id = COALESCE($2, classification_id),
+              confidentiality_level = COALESCE($3, confidentiality_level),
+              retention_rule_id = COALESCE($4, retention_rule_id),
+              expires_at = COALESCE($5, expires_at),
+              tags = COALESCE($6, tags),
+              metadata = metadata || COALESCE($7::jsonb, '{}'::jsonb),
+              updated_by = $8,
+              updated_at = $9
+        WHERE id = $1
+        RETURNING *`,
+      [
+        documentId,
+        data.classification_id ?? null,
+        data.confidentiality_level ?? null,
+        data.retention_rule_id ?? null,
+        data.expires_at ?? null,
+        data.tags ?? null,
+        data.metadata ? JSON.stringify(data.metadata) : null,
+        meta.updated_by ?? actorId,
+        meta.updated_at,
+      ]
+    );
+    return result.rows[0] || null;
+  }
+
+  async listRetentionRules(): Promise<any[]> {
+    const result = await this.query(
+      `SELECT r.*, dt.type_code, dt.type_name_ar
+       FROM documents.document_retention_rules r
+       LEFT JOIN documents.document_types dt ON dt.id = r.document_type_id
+       WHERE r.is_active = TRUE
+       ORDER BY dt.type_name_ar`
+    );
+    return result.rows;
+  }
+
   async getSignatures(documentId: number): Promise<any[]> {
     const result = await this.query(
       `SELECT ds.*, u.username as signer_name, u.username as display_name

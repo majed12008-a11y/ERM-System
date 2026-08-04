@@ -18,6 +18,7 @@
  * الدالة documents.fn_document_transition.
  */
 import { DocumentLifecycleRepository, LifecycleDocumentSummary, LifecycleTransitionResult } from '../repositories/document-lifecycle.repository';
+import { DocumentRenderRepository } from '../repositories/document-render.repository';
 import { AuthUser } from '../shared/types';
 import { getRequestId } from '../middleware/context';
 import { logger } from '../config/logger';
@@ -51,6 +52,7 @@ export type LifecycleEventHandler = (ctx: LifecycleEventContext) => void | Promi
 
 export class DocumentLifecycleService {
   private readonly handlers = new Map<string, LifecycleEventHandler[]>();
+  private readonly renderRepo = new DocumentRenderRepository();
 
   constructor(private repo = new DocumentLifecycleRepository()) {}
 
@@ -70,6 +72,20 @@ export class DocumentLifecycleService {
 
   listTransitions() {
     return this.repo.listTransitions();
+  }
+
+  /**
+   * فحص انتهاء الصلاحية الكسول (lazy expiry): يُنفَّذ عند قراءة المستند.
+   * إذا كانت الحالة ISSUED وانقضى expires_at تُطبَّق رحلة EXPIRE تلقائياً.
+   */
+  async checkExpiry(documentId: number, user: AuthUser): Promise<{ expired: boolean; status?: string }> {
+    const doc = await this.renderRepo.findDocumentById(documentId);
+    if (!doc) return { expired: false };
+    if (doc.status === 'ISSUED' && doc.expires_at && new Date(doc.expires_at) < new Date()) {
+      const result = await this.repo.applyTransition(documentId, 'EXPIRE', user.id, 'Automatic expiry');
+      if (result.ok) return { expired: true, status: 'EXPIRED' };
+    }
+    return { expired: false, status: doc.status };
   }
 
   async transition(

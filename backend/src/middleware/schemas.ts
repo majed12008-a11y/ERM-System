@@ -421,3 +421,12 @@ export const watermarkPreviewSchema = z.object({
   code: z.string().min(1).max(50),
   language: z.enum(['ar', 'en']).optional().default('ar'),
 });
+
+export const updateDocumentMetadataSchema = z.object({
+  classification_id: z.coerce.number().int().positive().nullable().optional(),
+  confidentiality_level: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional(),
+  retention_rule_id: z.coerce.number().int().positive().nullable().optional(),
+  expires_at: z.string().datetime().nullable().optional(),
+  tags: z.array(z.string().max(100)).max(50).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
