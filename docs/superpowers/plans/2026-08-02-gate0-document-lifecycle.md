@@ -2017,7 +2017,7 @@ git commit -m "feat(documents): metadata, classification, confidentiality, reten
 
 ### Task 9: Frontend — API client, DocumentPanel, VerifyPage
 
-**Files:**
+**Files (original plan):**
 - Create: `frontend/src/api/documents.ts`
 - Modify: `frontend/src/api/forms.ts` (remove legacy sign/lifecycle, point to new module)
 - Modify: `frontend/src/components/forms/DocumentPanel.tsx` (multi-signature slots UI, lifecycle action bar, metadata panel)
@@ -2025,9 +2025,23 @@ git commit -m "feat(documents): metadata, classification, confidentiality, reten
 - Modify: `frontend/src/pages/Verify/VerifyPage.tsx` (state display + checksum compare)
 - Test: `frontend/src/api/documents.test.ts`
 
-**Interfaces:**
+**Interfaces (original plan):**
 - Consumes: backend routes from Tasks 3–8.
 - Produces: exported functions `listDocumentLifecycleStates`, `listDocumentLifecycleTransitions`, `transitionDocument`, `listSignatureTypes`, `createSignatureSlot`, `signDocument`, `verifyDocumentChecksum`, `listWatermarks`, `updateDocumentMetadata`, `listRetentionRules`.
+
+**Implementation Deviation (user roadmap Task 6 — Verification Platform):**
+The user roadmap Task 6 (Verification Platform) superseded the frontend-only VerifyPage approach anticipated here. Instead of an `api/documents.ts` client + DocumentPanel-based verify flow, a **generic backend verification platform** was built and a generic public portal consumed it. The completed work for this task:
+- Create: `backend/src/services/verification/` — `types.ts` (v1.0 `VerificationResult` DTO), `resolver.ts`, `provider.ts`, `engine.ts`, `registry.ts`, `providers/document-provider.ts`, `providers/certificate-provider.ts`, `index.ts`.
+- Create: `backend/src/modules/public/verification.routes.ts` — `GET /api/v1/public/verification/verify/:reference` (auto-resolving); legacy `documents.routes.ts` + `certificate.routes.ts` refitted as thin engine delegates (URLs + 404 semantics preserved).
+- Modify: `backend/src/repositories/document-render.repository.ts` (added `findDocumentByReference`).
+- Test: `backend/src/test/verification.engine.test.ts`, `verification.document-provider.test.ts`, `verification.certificate-provider.test.ts` (19/19 passing).
+- Create: `frontend/src/sdk/public/verification.sdk.ts` (`verifyReference.check`); `frontend/src/sdk/index.ts` re-exports updated.
+- Modify: `frontend/src/pages/Verify/VerifyPage.tsx` — rewritten as a generic public portal (section-driven: identity/lifecycle/integrity/signatures/history/metadata; statuses `VALID|MODIFIED|INVALID|UNKNOWN|REVOKED|SUPERSEDED|EXPIRED`; reads `?ref=`/`?serial=`) .
+- Modify: `frontend/src/locales/en.json`, `ar.json` (generic verify key block; legacy `verify.sdk.ts`/`document-verify.sdk.ts` deleted).
+- Create: `docs/architecture/verification-platform.md`.
+- Delivered in commit `454d05d`.
+
+NOT delivered in this task (belong to earlier roadmap tasks / deferred — left unchecked to avoid claiming undelivered work): the `api/documents.ts` client + its tests (Steps 1–3), the `GET /signature-types` route (Step 4, repo method exists but no route), the `api/forms.ts` refactor (Step 6), the `types.ts` extension (Step 7), and the DocumentPanel multi-signature-slot/lifecycle-action-bar/metadata UI (Step 8).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2276,23 +2290,24 @@ In `frontend/src/components/forms/DocumentPanel.tsx`:
 
 Update the `GET /documents/:id` response shape in `DocumentPanel` to include `lifecycle` transitions fetched separately.
 
-- [ ] **Step 9: Update `VerifyPage.tsx`**
+- [x] **Step 9: Update `VerifyPage.tsx` (delivered via generic verification platform)**
 
-In `frontend/src/pages/Verify/VerifyPage.tsx`:
-- After the reference lookup, display the lifecycle state via `name_ar` (map `status` code → label) and show `SUPERSEDED` → `superseded_by_number` link.
-- Add a file-input + "Verify integrity" button that calls `verifyDocumentChecksum(reference, file)` and shows `VALID` (green), `INVALID` (red), `MODIFIED` (red), `UNKNOWN` (amber) with the algorithm used.
+DELIVERED (in `frontend/src/pages/Verify/VerifyPage.tsx`, rewritten as a generic public portal):
+- Lifecycle state display via `name_ar` (status code → label) — delivered (`verify.section.lifecycle` section).
+- `SUPERSEDED` → `superseded_by_number` link that re-runs verification on the superseding document — delivered (history + links sections).
+- Integrity section showing server-side checksum verification result, algorithm, and stored checksum — delivered (`verify.section.integrity`; checksum computed by the verification engine over the stored file and compared to the stored hash).
+
+NOT delivered: the interactive file-input + "Verify integrity" upload button comparing a user-supplied file via `verifyDocumentChecksum`. That authenticated flow remains available via `POST /api/v1/documents/checksum`; the public portal verifies the stored artifact instead.
 
 - [ ] **Step 10: Verify frontend build + lint**
 
 Run: `cd frontend && npm run lint && npm run build`
 Expected: eslint clean, build succeeds.
+Status: changed files lint clean (0 errors) and compile with 0 tsc errors, but the repo-wide frontend build is blocked by **pre-existing** failures at HEAD in unrelated files (`Accreditation/CyclesList.tsx`, `Applications/Detail.tsx`) and repo-wide eslint reports 253 pre-existing errors. Not marked complete because the objective as written (clean build/lint) is not met repo-wide.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
-```bash
-git add frontend/src/api/documents.ts frontend/src/api/forms.ts frontend/src/components/forms/DocumentPanel.tsx frontend/src/components/forms/types.ts frontend/src/pages/Verify/VerifyPage.tsx frontend/src/api/documents.test.ts backend/src/modules/documents/documents.routes.ts backend/src/services/document.service.ts backend/src/repositories/document.repository.ts
-git commit -m "feat(documents): frontend lifecycle, multi-signature, checksum, metadata UI"
-```
+Delivered as `454d05d` — `feat(verification): generic verification platform with documents + certificates providers` (24 files, +1840/−249): platform service layer, public verification route + legacy delegates, repository helper, 3 test files (19/19 passing), frontend portal + SDK + i18n, architecture doc.
 
 ---
 
