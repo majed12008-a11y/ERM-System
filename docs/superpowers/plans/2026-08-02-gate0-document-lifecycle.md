@@ -1624,7 +1624,16 @@ git commit -m "feat(documents): configurable watermark engine"
 - Consumes: `WatermarkService` (Task 6), `DocumentRenderRepository`.
 - Produces: `DocumentInsert` gains `status: string`; `createDocument(data, client?)` returns id; `withEntityLock<T>(entityType, entityId, fn)`; render outputs real file-hash in footer (A-01 fixed); generated docs default to `PENDING_SIGNATURE`.
 
-- [ ] **Step 1: Write the failing tests**
+**Implementation Deviation (Task 7 — render service fixes):**
+Delivered as planned with four implementation notes:
+- **`$13` reuse fails on PostgreSQL 18**: the plan's `createDocument` used `$13` for `status` in the column list AND `code = $13` in the lifecycle-state subquery, which Postgres rejects with `inconsistent types deduced for parameter $13` (reproduced in isolation). Fixed by passing a dedicated `$22` parameter (`data.status`) for the subquery. `markSuperseded` sets `lifecycle_state_id` the same way.
+- **FormService unchanged**: the status (`PENDING_SIGNATURE`) is set inside `DocumentRenderService.render()`, so `form.service.ts` needed no code change (it already threads `watermark`).
+- **Two-pass checksum nuance**: the stored `checksum_sha256` is computed over the FINAL pass-2 bytes, so it always matches the file on disk (tamper detection intact — verified in smoke). The footer prints the truncated pass-1 hash of the document content; it is mathematically impossible for the printed prefix to equal the stored hash because the PDF content includes the stamp itself, so the stored hash is the authoritative integrity anchor.
+- **Filename + lock ordering**: the PDF is rendered to a temp file first; the authoritative `version_no` is computed inside `withEntityLock`, then the temp file is renamed to `{safeCode}_{number}_v{versionNo}.pdf` after commit (keeps the filename format and guarantees the filename matches the DB version). Temp file is cleaned up on any error path.
+- **Test adaptation**: `AuditableRepository.query` is `protected`, so the plan's Step 1 assertions run inside `withEntityLock` (also exercises the lock).
+- **Verified live**: generated docs are `PENDING_SIGNATURE` with `lifecycle_state_id` resolved (id 3); stored checksum == hash of on-disk PDF; footer shows a real PDF-content hash (not the old document-number hash); re-generation after `ISSUE` produces `v2` and supersedes the issued doc (1088 → SUPERSEDED by 1090, audit + lifecycle state updated). Two concurrent generates while a doc is `PENDING_SIGNATURE` each produce `v1` — the version lineage only includes `ISSUED`/`SUPERSEDED` per the plan's Step 3.2 filter.
+
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
@@ -1655,12 +1664,12 @@ describe('Render service repository', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && npx vitest run src/test/render.service.test.ts`
 Expected: FAIL — `withEntityLock` not a function (and/or legacy 'OFFICIAL' rows exist).
 
-- [ ] **Step 3: Repository updates**
+- [x] **Step 3: Repository updates**
 
 In `backend/src/repositories/document-render.repository.ts`:
 
@@ -1731,7 +1740,7 @@ async withEntityLock<T>(entityType: string, entityId: number, fn: (client: PoolC
 }
 ```
 
-- [ ] **Step 4: Update `FormService.generateDocument` to the new flow**
+- [x] **Step 4: Update `FormService.generateDocument` to the new flow**
 
 In `backend/src/services/form.service.ts`, change the `render` call to request `PENDING_SIGNATURE` status. Modify `DocumentRenderService.render()` — the render service sets `status` on `createDocument`:
 
@@ -1758,7 +1767,7 @@ const documentId = await this.renderRepo.withEntityLock(req.entityType, req.enti
 
 Note: the earlier `const previous = ...` at the top of `render()` (line 81) must be removed; numbering + PDF writing stay as-is. The version lookup moves inside the lock. This eliminates the A-06 race.
 
-- [ ] **Step 5: Two-pass render with real checksum (A-01)**
+- [x] **Step 5: Two-pass render with real checksum (A-01)**
 
 In `backend/src/services/document-render.service.ts`, restructure `renderPdf` to accept a reusable browser, and perform two passes so the footer shows the real file hash:
 
@@ -1810,12 +1819,12 @@ Update `renderPdf` to accept the browser:
   }
 ```
 
-- [ ] **Step 6: Run all backend tests**
+- [x] **Step 6: Run all backend tests**
 
 Run: `cd backend && npm run lint && npm test`
 Expected: tsc clean, all tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/src/services/document-render.service.ts backend/src/repositories/document-render.repository.ts backend/src/services/form.service.ts backend/src/test/render.service.test.ts

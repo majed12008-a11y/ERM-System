@@ -6,6 +6,7 @@
  * (الإصدارات، السحب، الإبطال) وقراءة سجل التدقيق.
  */
 import { AuditableRepository } from './auditable.repository';
+import { PoolClient } from 'pg';
 
 export interface TemplateRow {
   id: number;
@@ -33,6 +34,7 @@ export interface DocumentInsert {
   checksum_sha256: string;
   document_number: string;
   document_uuid: string;
+  status: string;
   current_version_no: number;
   template_code: string;
   template_version: number;
@@ -101,7 +103,7 @@ export class DocumentRenderRepository extends AuditableRepository {
        JOIN documents.document_versions v ON v.document_id = d.id
        WHERE d.entity_type = $1 AND d.entity_id = $2
          AND d.template_code = $3 AND d.language = $4
-         AND d.status IN ('OFFICIAL', 'SUPERSEDED')
+         AND d.status IN ('ISSUED', 'SUPERSEDED')
        ORDER BY d.current_version_no DESC
        LIMIT 1`,
       [entityType, entityId, templateCode, language]
@@ -109,7 +111,7 @@ export class DocumentRenderRepository extends AuditableRepository {
     return result.rows[0] || null;
   }
 
-  async createDocument(data: DocumentInsert): Promise<number> {
+  async createDocument(data: DocumentInsert, client?: PoolClient): Promise<number> {
     const meta = this.createMeta();
     const result = await this.query(
       `INSERT INTO documents.documents
@@ -118,22 +120,24 @@ export class DocumentRenderRepository extends AuditableRepository {
          document_number, document_uuid, status, is_immutable, current_version_no,
          template_code, template_version, language,
          supersedes_version_no, superseded_by_document_id,
-         is_active, created_by, created_at)
+         lifecycle_state_id, is_active, created_by, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-               $11, $12, 'OFFICIAL', true, $13,
-               $14, $15, $16,
-               $17, $18,
-               true, $19, $20)
+               $11, $12, $13, TRUE, $14,
+               $15, $16, $17,
+               $18, $19,
+               (SELECT id FROM documents.document_lifecycle_states WHERE code = $22),
+               TRUE, $20, $21)
        RETURNING id`,
       [
         data.document_type_id, data.entity_type, data.entity_id,
         data.document_title, data.file_name, data.mime_type,
         data.file_size_bytes, data.storage_path, data.checksum_sha256, data.uploaded_by,
-        data.document_number, data.document_uuid, data.current_version_no,
+        data.document_number, data.document_uuid, data.status, data.current_version_no,
         data.template_code, data.template_version, data.language,
         data.supersedes_version_no ?? null, data.superseded_by_document_id ?? null,
-        meta.created_by, meta.created_at,
-      ]
+        meta.created_by, meta.created_at, data.status,
+      ],
+      client
     );
     return result.rows[0].id;
   }
@@ -151,7 +155,7 @@ export class DocumentRenderRepository extends AuditableRepository {
     template_version?: number;
     language?: string;
     supersedes_version_id?: number | null;
-  }): Promise<void> {
+  }, client?: PoolClient): Promise<void> {
     const meta = this.createMeta();
     await this.query(
       `INSERT INTO documents.document_versions
@@ -166,7 +170,8 @@ export class DocumentRenderRepository extends AuditableRepository {
         data.template_version || null, data.language || null,
         data.supersedes_version_id ?? null,
         meta.created_by, meta.created_at,
-      ]
+      ],
+      client
     );
   }
 
@@ -177,7 +182,7 @@ export class DocumentRenderRepository extends AuditableRepository {
     generated_document_id: number;
     generated_by: number;
     generation_parameters: any;
-  }): Promise<void> {
+  }, client?: PoolClient): Promise<void> {
     const meta = this.createMeta();
     await this.query(
       `INSERT INTO documents.generated_documents
@@ -187,15 +192,17 @@ export class DocumentRenderRepository extends AuditableRepository {
         data.template_id, data.entity_type, data.entity_id,
         data.generated_document_id, data.generated_by,
         JSON.stringify(data.generation_parameters), meta.created_by, meta.created_at,
-      ]
+      ],
+      client
     );
   }
 
-  async logAudit(documentId: number, actionType: string, actionBy: number, details?: any): Promise<void> {
+  async logAudit(documentId: number, actionType: string, actionBy: number, details?: any, client?: PoolClient): Promise<void> {
     await this.query(
       `INSERT INTO documents.document_audit (document_id, action_type, action_by, details)
        VALUES ($1, $2, $3, $4)`,
-      [documentId, actionType, actionBy, details ? JSON.stringify(details) : null]
+      [documentId, actionType, actionBy, details ? JSON.stringify(details) : null],
+      client
     );
   }
 
@@ -300,13 +307,31 @@ export class DocumentRenderRepository extends AuditableRepository {
     return { ok: result.rows.length > 0 };
   }
 
-  async markSuperseded(oldDocumentId: number, newDocumentId: number): Promise<void> {
+  async markSuperseded(oldDocumentId: number, newDocumentId: number, client?: PoolClient): Promise<void> {
     await this.query(
       `UPDATE documents.documents
-       SET status = 'SUPERSEDED', superseded_by_document_id = $1
+       SET status = 'SUPERSEDED',
+           superseded_by_document_id = $1,
+           lifecycle_state_id = (SELECT id FROM documents.document_lifecycle_states WHERE code = 'SUPERSEDED')
        WHERE id = $2`,
-      [newDocumentId, oldDocumentId]
+      [newDocumentId, oldDocumentId],
+      client
     );
+  }
+
+  /**
+   * قفل استشاري على مستوى الكيان ضمن معاملة: يمنع التوليد المتزامن لنفس
+   * الكيان/القالب من التنافس على رقم الإصدار أو كسر سلسلة الاستبدال (A-06).
+   */
+  async withEntityLock<T>(
+    entityType: string,
+    entityId: number,
+    fn: (client: PoolClient) => Promise<T>
+  ): Promise<T> {
+    return this.withTransaction(async (client) => {
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`docgen_${entityType}_${entityId}`]);
+      return fn(client);
+    });
   }
 
   async logVerification(reference: string, ip: string | null, result: string, details?: any): Promise<void> {

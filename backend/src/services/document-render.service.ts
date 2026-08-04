@@ -83,11 +83,6 @@ export class DocumentRenderService {
 
     const allocated = await this.numberingRepo.allocate(req.category);
 
-    const previous = await this.renderRepo.findLatestVersionByEntity(
-      req.entityType, req.entityId, req.templateCode, template.language
-    );
-    const versionNo = previous ? previous.current_version_no + 1 : 1;
-
     const issueDateAr = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
     const issueDateEn = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -105,7 +100,6 @@ export class DocumentRenderService {
       institutionNameEn: req.institutionNameEn || '',
     });
 
-    const sha256 = crypto.createHash('sha256').update(allocated.number).digest('hex');
     const verifyUrl = `${env.FRONTEND_URL}/verify?ref=${encodeURIComponent(allocated.number)}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { errorCorrectionLevel: 'M', width: 220, margin: 2 });
 
@@ -113,7 +107,7 @@ export class DocumentRenderService {
       ? await this.resolveWatermarkOverlay(req.watermark.code, template.language === 'en' ? 'en' : 'ar', req.watermark.values)
       : '';
 
-    const shellHtml = this.buildShell({
+    const shellBase = {
       language: template.language,
       template,
       documentNumber: allocated.number,
@@ -124,110 +118,139 @@ export class DocumentRenderService {
       signatories: req.signatories || [],
       qrDataUrl,
       verifyUrl,
-      sha256: sha256.slice(0, 16),
       institutionNameAr: req.institutionNameAr || '',
       institutionNameEn: req.institutionNameEn || '',
       committeeNameAr: req.committeeNameAr || '',
       committeeNameEn: req.committeeNameEn || '',
       documentType: req.category,
       watermark: watermarkOverlay,
-    });
+    };
 
     await fs.mkdir(GENERATED_DIR, { recursive: true });
     const safeCode = template.template_code.replace(/[^A-Za-z0-9_-]/g, '');
-    const fileName = `${safeCode}_${allocated.number}_v${versionNo}.pdf`;
-    const pdfPath = path.join(GENERATED_DIR, fileName);
+    const tempFileName = `.tmp_${crypto.randomUUID()}.pdf`;
+    const tempPath = path.join(GENERATED_DIR, tempFileName);
 
-    await this.renderPdf(shellHtml, pdfPath);
-    const pdfBytes = await fs.readFile(pdfPath);
-    const checksumSha256 = crypto.createHash('sha256').update(pdfBytes).digest('hex');
+    // A-01: two-pass render so the footer shows the REAL file hash.
+    // Pass 1 renders with a placeholder so we can compute the real checksum;
+    // pass 2 re-renders with that hash in the footer (same browser instance).
+    const browser = await this.launchBrowser();
+    try {
+      await this.renderPdf(this.buildShell({ ...shellBase, sha256: 'pending' }), tempPath, browser);
+      const firstBytes = await fs.readFile(tempPath);
+      const checksumSha256 = crypto.createHash('sha256').update(firstBytes).digest('hex');
 
-    const documentId = await this.renderRepo.createDocument({
-      document_type_id: documentTypeId,
-      entity_type: req.entityType,
-      entity_id: req.entityId,
-      document_title: req.titleAr,
-      file_name: fileName,
-      mime_type: 'application/pdf',
-      storage_path: pdfPath,
-      uploaded_by: req.issuedBy.id,
-      file_size_bytes: pdfBytes.length,
-      checksum_sha256: checksumSha256,
-      document_number: allocated.number,
-      document_uuid: crypto.randomUUID(),
-      current_version_no: versionNo,
-      template_code: template.template_code,
-      template_version: template.version_no,
-      language: template.language,
-      supersedes_version_no: previous ? previous.current_version_no : null,
-      superseded_by_document_id: null,
-    });
+      await this.renderPdf(this.buildShell({ ...shellBase, sha256: checksumSha256.slice(0, 16) }), tempPath, browser);
+      const finalBytes = await fs.readFile(tempPath);
+      const finalChecksum = crypto.createHash('sha256').update(finalBytes).digest('hex');
 
-    await this.renderRepo.createVersion({
-      document_id: documentId,
-      version_no: versionNo,
-      file_name: fileName,
-      storage_path: pdfPath,
-      checksum_sha256: checksumSha256,
-      uploaded_by: req.issuedBy.id,
-      version_notes: req.versionNotes || `Generated from template ${template.template_code} (${template.language})`,
-      document_uuid: crypto.randomUUID(),
-      template_code: template.template_code,
-      template_version: template.version_no,
-      language: template.language,
-      supersedes_version_id: previous ? previous.version_id : null,
-    });
+      // A-06: version lookup + all document writes happen inside one entity-level
+      // advisory lock, eliminating the concurrent-generation version race.
+      const { documentId, versionNo, finalFileName, finalPdfPath } =
+        await this.renderRepo.withEntityLock(req.entityType, req.entityId, async (client) => {
+          const previous = await this.renderRepo.findLatestVersionByEntity(
+            req.entityType, req.entityId, req.templateCode, template.language
+          );
+          const versionNo = previous ? previous.current_version_no + 1 : 1;
+          const finalFileName = `${safeCode}_${allocated.number}_v${versionNo}.pdf`;
+          const finalPdfPath = path.join(GENERATED_DIR, finalFileName);
 
-    if (previous) {
-      await this.renderRepo.markSuperseded(previous.id, documentId);
-      await this.renderRepo.logAudit(previous.id, 'SUPERSEDED', req.issuedBy.id, {
-        superseded_by_document_id: documentId,
-        superseded_by_number: allocated.number,
-        new_version_no: versionNo,
-        reason: req.versionNotes || 'Superseded by a new version of the document',
-      });
-    }
+          const documentId = await this.renderRepo.createDocument({
+            document_type_id: documentTypeId,
+            entity_type: req.entityType,
+            entity_id: req.entityId,
+            document_title: req.titleAr,
+            file_name: finalFileName,
+            mime_type: 'application/pdf',
+            storage_path: finalPdfPath,
+            uploaded_by: req.issuedBy.id,
+            file_size_bytes: finalBytes.length,
+            checksum_sha256: finalChecksum,
+            document_number: allocated.number,
+            document_uuid: crypto.randomUUID(),
+            status: 'PENDING_SIGNATURE',
+            current_version_no: versionNo,
+            template_code: template.template_code,
+            template_version: template.version_no,
+            language: template.language,
+            supersedes_version_no: previous ? previous.current_version_no : null,
+            superseded_by_document_id: null,
+          }, client);
 
-    await this.renderRepo.createGenerated({
-      template_id: template.id,
-      entity_type: req.entityType,
-      entity_id: req.entityId,
-      generated_document_id: documentId,
-      generated_by: req.issuedBy.id,
-      generation_parameters: {
-        document_number: allocated.number,
+          await this.renderRepo.createVersion({
+            document_id: documentId,
+            version_no: versionNo,
+            file_name: finalFileName,
+            storage_path: finalPdfPath,
+            checksum_sha256: finalChecksum,
+            uploaded_by: req.issuedBy.id,
+            version_notes: req.versionNotes || `Generated from template ${template.template_code} (${template.language})`,
+            document_uuid: crypto.randomUUID(),
+            template_code: template.template_code,
+            template_version: template.version_no,
+            language: template.language,
+            supersedes_version_id: previous ? previous.version_id : null,
+          }, client);
+
+          if (previous) {
+            await this.renderRepo.markSuperseded(previous.id, documentId, client);
+            await this.renderRepo.logAudit(previous.id, 'SUPERSEDED', req.issuedBy.id, {
+              superseded_by_document_id: documentId,
+              superseded_by_number: allocated.number,
+              new_version_no: versionNo,
+              reason: req.versionNotes || 'Superseded by a new version of the document',
+            }, client);
+          }
+
+          await this.renderRepo.createGenerated({
+            template_id: template.id,
+            entity_type: req.entityType,
+            entity_id: req.entityId,
+            generated_document_id: documentId,
+            generated_by: req.issuedBy.id,
+            generation_parameters: {
+              document_number: allocated.number,
+              language: template.language,
+              title_ar: req.titleAr,
+              title_en: req.titleEn || null,
+              version_no: versionNo,
+              template_version: template.version_no,
+            },
+          }, client);
+
+          await this.renderRepo.logAudit(documentId, 'GENERATED', req.issuedBy.id, {
+            document_number: allocated.number,
+            template_code: template.template_code,
+            language: template.language,
+            version_no: versionNo,
+            supersedes_version_no: previous ? previous.current_version_no : null,
+            sha256: finalChecksum,
+          }, client);
+
+          return { documentId, versionNo, finalFileName, finalPdfPath };
+        });
+
+      await fs.rename(tempPath, finalPdfPath);
+
+      logger.info(
+        { documentId, number: allocated.number, template: template.template_code, language: template.language, size: finalBytes.length, versionNo },
+        'Official document generated'
+      );
+
+      return {
+        documentId,
+        documentNumber: allocated.number,
+        versionNo,
+        templateId: template.id,
+        storagePath: finalPdfPath,
+        fileName: finalFileName,
+        checksumSha256: finalChecksum,
         language: template.language,
-        title_ar: req.titleAr,
-        title_en: req.titleEn || null,
-        version_no: versionNo,
-        template_version: template.version_no,
-      },
-    });
-
-    await this.renderRepo.logAudit(documentId, 'GENERATED', req.issuedBy.id, {
-      document_number: allocated.number,
-      template_code: template.template_code,
-      language: template.language,
-      version_no: versionNo,
-      supersedes_version_no: previous ? previous.current_version_no : null,
-      sha256: checksumSha256,
-    });
-
-    logger.info(
-      { documentId, number: allocated.number, template: template.template_code, language: template.language, size: pdfBytes.length, versionNo },
-      'Official document generated'
-    );
-
-    return {
-      documentId,
-      documentNumber: allocated.number,
-      versionNo,
-      templateId: template.id,
-      storagePath: pdfPath,
-      fileName,
-      checksumSha256,
-      language: template.language,
-    };
+      };
+    } finally {
+      if (browser) await browser.close();
+      await fs.rm(tempPath, { force: true });
+    }
   }
 
   private async resolveWatermarkOverlay(
@@ -437,21 +460,10 @@ ${opts.watermark || ''}
       .replace(/'/g, '&#39;');
   }
 
-  private async renderPdf(html: string, outputPath: string): Promise<void> {
-    let browser;
+  private async renderPdf(html: string, outputPath: string, browser?: any): Promise<void> {
+    const b = browser || await this.launchBrowser();
+    const page = await b.newPage();
     try {
-      const puppeteer = await import('puppeteer-core');
-      const executablePath = process.env.CHROME_PATH || process.env.PUPPETEER_CHROMIUM_REVISION
-        ? undefined
-        : await this.findChrome();
-
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      });
-
-      const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'load' });
 
       const isRtl = html.includes('dir="rtl"');
@@ -469,8 +481,21 @@ ${opts.watermark || ''}
         margin: { top: '16mm', bottom: '22mm', left: '15mm', right: '15mm' },
       });
     } finally {
-      if (browser) await browser.close();
+      if (page) await page.close();
+      if (!browser && b) await b.close();
     }
+  }
+
+  private async launchBrowser(): Promise<any> {
+    const puppeteer = await import('puppeteer-core');
+    const executablePath = process.env.CHROME_PATH || process.env.PUPPETEER_CHROMIUM_REVISION
+      ? undefined
+      : await this.findChrome();
+    return puppeteer.launch({
+      headless: true,
+      executablePath,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
   }
 
   private async findChrome(): Promise<string | undefined> {
