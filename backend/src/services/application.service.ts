@@ -60,6 +60,8 @@ export class ApplicationService {
     target_committee_id: number;
     save_as_draft?: boolean;
   }, user: AuthUser): Promise<ApplicationRow> {
+    const saveAsDraft = data.save_as_draft !== false;
+
     const app = await withTransaction(async (client) => {
       const applicationNumber = await this.repo.generateApplicationNumber(client);
 
@@ -71,10 +73,34 @@ export class ApplicationService {
         target_committee_id: data.target_committee_id,
       }, client);
 
-      return newApp;
+      if (saveAsDraft) return newApp;
+
+      await this.workflow.initWorkflow('APP_REVIEW_V1', 'Application', newApp.id, client);
+      const result = await this.workflow.executeTransition('Application', newApp.id, 'SUBMIT', user, undefined, client);
+
+      const submitted = await this.repo.updateStatus(newApp.id, result.to_state, client);
+      if (!submitted) {
+        const err = new Error('Failed to submit application') as any;
+        err.status = 400;
+        throw err;
+      }
+
+      return submitted;
     });
 
     broadcastDashboardEvent('dashboard-stats', {});
+
+    if (!saveAsDraft) {
+      const notifService = new NotificationService();
+      await notifService.send({
+        userId: user.id,
+        notificationType: 'APPLICATION_SUBMITTED',
+        subject: `Application #${app.id} Submitted`,
+        messageBody: 'Your application has been submitted for review.',
+        sourceEntityType: 'Application',
+        sourceEntityId: app.id,
+      });
+    }
 
     return app;
   }

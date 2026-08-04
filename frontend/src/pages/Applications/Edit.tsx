@@ -80,7 +80,7 @@ export default function ApplicationEdit() {
   })
 
   const submitMutation = useMutation({
-    mutationFn: () => api.post(`/core/applications/${id}/submit`, {}),
+    mutationFn: () => api.patch(`/core/applications/${id}/status`, { transition_code: 'SUBMIT' }),
     onSuccess: () => {
       toast.success(t('applications.created'))
       queryClient.invalidateQueries({ queryKey: ['applications'] })
