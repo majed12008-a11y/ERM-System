@@ -53,7 +53,7 @@ if (-not $ConnString) {
 
 function RunPsql([string]$Sql, [switch]$NoPassword) {
   if ($DryRun) { Write-Host "[DRY-RUN] Would execute: $Sql" -ForegroundColor DarkYellow; return @{ ExitCode = 0; Stdout = ''; Stderr = '' } }
-  $cmd = "psql $PsqlArgs -At -c `"$Sql`" 2>&1"
+  $cmd = "psql $PsqlArgs -At -v ON_ERROR_STOP=1 -c `"$Sql`" 2>&1"
   $result = Invoke-Expression $cmd
   $exitCode = $LASTEXITCODE
   return @{ ExitCode = $exitCode; Stdout = $result; Stderr = '' }
@@ -61,7 +61,7 @@ function RunPsql([string]$Sql, [switch]$NoPassword) {
 
 function RunPsqlFile([string]$FilePath) {
   if ($DryRun) { Write-Host "[DRY-RUN] Would execute file: $FilePath" -ForegroundColor DarkYellow; return @{ ExitCode = 0 } }
-  $cmd = "psql $PsqlArgs -f `"$FilePath`" 2>&1"
+  $cmd = "psql $PsqlArgs -v ON_ERROR_STOP=1 -f `"$FilePath`" 2>&1"
   $result = Invoke-Expression $cmd
   $exitCode = $LASTEXITCODE
   return @{ ExitCode = $exitCode; Stdout = $result }

@@ -239,6 +239,19 @@ ALTER TABLE documents.documents
   ADD CONSTRAINT chk_documents_confidentiality
   CHECK (confidentiality_level IN ('PUBLIC','INTERNAL','CONFIDENTIAL','RESTRICTED'));
 
+-- Default for legacy inserts (e.g. seed 54-yemen-documents.sql) that omit
+-- lifecycle_state_id. Required so that re-applying the seed suite after the
+-- column already exists as NOT NULL does not fail on re-runs; the backfill
+-- UPDATEs below then normalize real values from the status column.
+DO $$
+DECLARE v_issue_state_id BIGINT;
+BEGIN
+    SELECT id INTO v_issue_state_id FROM documents.document_lifecycle_states WHERE code = 'ISSUED';
+    IF v_issue_state_id IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE documents.documents ALTER COLUMN lifecycle_state_id SET DEFAULT %s', v_issue_state_id);
+    END IF;
+END $$;
+
 -- ── 7. status column: free-form state code (engine-driven) ────
 ALTER TABLE documents.documents DROP CONSTRAINT IF EXISTS chk_documents_status;
 ALTER TABLE documents.documents ALTER COLUMN status TYPE VARCHAR(50);

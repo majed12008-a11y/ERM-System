@@ -2500,6 +2500,30 @@ git commit -m "docs(documents): gate0 quality-gate deliverables"
 
 ---
 
+## Follow-up Roadmap
+
+### Roadmap item: Make the full seed suite idempotent
+
+**Status:** deferred (out of scope for Gate 0).
+
+**Background:** the full seed suite (`backend/seed/*.sql`, 78 files) is **not** idempotent. A `-Force` replay via `apply-seeds.ps1` fails 17 seeds and rolls back their dependents:
+
+- Ordering dependencies: seed 06 needs institution KSU seeded by seed 10.
+- Idempotency bugs in seeds 12 / 31 / 45.
+- `documents.lifecycle_state_id` is `NOT NULL` with no DEFAULT (added by `58-gate0-document-lifecycle.sql`) → legacy inserts fail on re-run.
+- Cross-seed cascades 07→09→17→18→28→29→51→52→54→63.
+
+**Decision (2026-08-04):** do **not** repair the legacy chain in place. Gate 0 adopts the **baseline-restore workflow**: `scripts/reset-dev-db.ps1` restores the verified `backend/backups/gate0-baseline-2026-08-04.dump`, then `apply-seeds.ps1` (no `-Force`) applies only seeds added since the baseline. This makes Gate 0 deterministic and reproducible without replaying history.
+
+**Future work (when the suite is next touched):**
+
+1. Make every seed self-contained and re-runnable: guard all INSERTs with `WHERE NOT EXISTS` or `ON CONFLICT DO NOTHING` (document_types, institutions, reference data).
+2. Remove cross-seed ordering dependencies (seed self-contained FK data or backfill in a later explicit migration).
+3. Give `documents.lifecycle_state_id` a real DEFAULT (currently a `DO $$` block in seed 58 sets it to ISSUED=5 for legacy inserts).
+4. Validate with `.\scripts\apply-seeds.ps1 -Force` twice in a row on a fresh DB; both runs must exit 0 with identical final state.
+
+---
+
 ## Self-review checklist
 
 - **Spec coverage:** checksum endpoint (Task 5), verification portal (Task 5 + Task 9), watermark engine (Task 6), lifecycle engine (Task 3 + migration 58), multi-signature (Task 4), retention/classification/confidentiality/categories/tags/metadata (Task 8 + migration 58), OCR/seal/TSA future (metadata JSONB + `certificate_metadata`/`verification_metadata` reserved), DB review (Task 2 + Task 10 §10), quality-gate deliverables (Task 10).

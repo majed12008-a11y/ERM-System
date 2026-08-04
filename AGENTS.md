@@ -56,6 +56,10 @@ Seeds in `backend/seed/` are applied in numeric order (00 through 33+) and are *
 for f in backend/seed/*.sql; do psql -U postgres -d ethics_db -f "$f"; done
 ```
 
+**Seed re-run limitation (known):** the full seed suite (78 files) is **not** idempotent — a `-Force` replay fails on 17 seeds (ordering deps, e.g. seed 06 needs institution KSU from seed 10; idempotency bugs in 12/31/45; `NOT NULL` column `documents.lifecycle_state_id` without default, see `58-gate0-document-lifecycle.sql`; and cross-seed cascades 07→09→17→18→28→29→51→52→54→63). `apply-seeds.ps1` now runs psql with `-v ON_ERROR_STOP=1` so failures fail loudly instead of silently exiting 0. Do **not** repair the legacy chain in place — use the baseline-restore workflow and see the follow-up roadmap item in `docs/superpowers/plans/2026-08-02-gate0-document-lifecycle.md`.
+
+**Baseline-restore workflow (recommended, deterministic):** `scripts/reset-dev-db.ps1` restores the verified Gate-0 baseline dump `backend/backups/gate0-baseline-2026-08-04.dump` (via `scripts/backup.ps1 -Action Restore`), then runs `apply-seeds.ps1` **without** `-Force` (all 78 seeds are registered as `success` in `ops.seed_tracker` with SHA-256 checksums, so only new seeds apply), then cleans generated PDFs. Replays nothing historical — Gate 0 state is reproducible.
+
 ## Development commands
 
 ```bash

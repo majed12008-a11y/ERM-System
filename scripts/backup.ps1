@@ -81,7 +81,7 @@ switch ($Action) {
     }
 
     $preName = "pre_restore_$(Get-Timestamp).dump"
-    $prePath = Join-Path -LiteralPath $BackupDir -ChildPath $preName
+    $prePath = Join-Path -Path $BackupDir -ChildPath $preName
     Write-Output "Creating pre-restore backup: $preName ..."
     & $pgDump -h $DbHost -p $Port -U $Username -d $Database -Fc -f $prePath 2>&1
     if ($LASTEXITCODE -ne 0) {
