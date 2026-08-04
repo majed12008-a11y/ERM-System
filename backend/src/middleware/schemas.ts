@@ -378,6 +378,10 @@ export const generateFormDocumentSchema = z.object({
     name: z.string().min(1).max(500),
     role: z.string().min(1).max(500),
   })).optional(),
+  watermark: z.object({
+    code: z.string().min(1).max(50),
+    values: z.record(z.string(), z.string()).optional(),
+  }).optional(),
 });
 
 export const signGeneratedDocumentSchema = z.object({
@@ -411,4 +415,9 @@ export const signGeneratedDocumentV2Schema = z.object({
 
 export const checksumVerifySchema = z.object({
   reference: z.string().min(1).max(100),
+});
+
+export const watermarkPreviewSchema = z.object({
+  code: z.string().min(1).max(50),
+  language: z.enum(['ar', 'en']).optional().default('ar'),
 });

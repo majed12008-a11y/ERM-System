@@ -1364,7 +1364,18 @@ git commit -m "feat(documents): configurable checksum integrity API"
   - `WatermarkService.listConfigs()`, `overlayHtml(code, language): Promise<string|null>`, `overlayCss(code): Promise<string|null>`
   - `RenderRequest.watermark?: { code: string }`
 
-- [ ] **Step 1: Write the failing tests**
+**Implementation Deviation (user roadmap Task 7 — Watermark Engine):**
+Built as a reusable, configuration-driven, target-agnostic platform component instead of the single HTML/CSS `WatermarkService` anticipated here (the user roadmap Task 7 superseded the PDF-specific approach). The completed work for this task:
+- Create: `backend/src/services/watermark/` — `types.ts` (target-agnostic `WatermarkLayout`, config types), `repository.ts` (extends `AuditableRepository`, `SELECT *` tolerant of the added `type`/`condition` columns), `engine.ts` (`WatermarkEngine` + `WatermarkTypeRenderer` registration), `type-renderers.ts` (`TextWatermarkTypeRenderer`), `adapters.ts` (`HtmlWatermarkAdapter`), `registry.ts` (`createWatermarkEngine`, `createWatermarkAdapters`), `service.ts` (`WatermarkService` facade), `index.ts`. Engine produces a normalized layout; adapters convert per target (HTML implemented; pdf/image/print are future adapter registrations — no redesign).
+- Create DB migration `backend/seed/62-watermark-engine.sql`: adds `type VARCHAR(30) NOT NULL DEFAULT 'TEXT'` and `condition JSONB NULL` to `documents.document_watermark_config`; sets a declarative `REVOKED` conditional example (`{"all":[{"field":"status","op":"eq","value":"REVOKED"}]}`). Applied to local DB (7 active configs).
+- Modify: `backend/src/services/document-render.service.ts` — `RenderRequest.watermark?: { code: string; values?: Record<string, string> }`; engine+adapter injected via constructor; overlay resolved through `resolveWatermarkOverlay` (silently skipped on engine error) and injected into the single `shellHtml` build before `</body>`.
+- Modify: `backend/src/services/form.service.ts` — `generateDocument` threads `opts.watermark` through to the render request.
+- Modify: `backend/src/modules/documents/documents.routes.ts` — `GET /watermarks` (list configs) + `POST /:id/preview-watermark` (unknown code → 404 via `listConfigs`; condition-skip → `{html:'',css:''}`); `backend/src/middleware/schemas.ts` — `watermarkPreviewSchema` + `watermark` on the generate schema.
+- Test: `backend/src/test/watermark.engine.test.ts` (17), `watermark.html-adapter.test.ts` (5), `watermark.service.test.ts` (5) — 27/27 passing.
+- Verified: backend lint (tsc --noEmit) clean, full vitest run 521 passed / 9 failed (pre-existing baseline) / 42 skipped, build clean, live HTTP smoke (7 configs listed, DRAFT overlay renders, REVOKED condition-skip returns empty overlay, unknown code 404, EN localization works).
+- Create: `docs/architecture/watermark-engine.md` (rendering integration + extension model).
+
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
@@ -1399,12 +1410,12 @@ describe('WatermarkService', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && npx vitest run src/test/watermark.service.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write the repository**
+- [x] **Step 3: Write the repository**
 
 ```typescript
 /*
@@ -1502,12 +1513,12 @@ export class WatermarkService {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd backend && npx vitest run src/test/watermark.service.test.ts`
 Expected: PASS (local DB required).
 
-- [ ] **Step 6: Integrate into the render service**
+- [x] **Step 6: Integrate into the render service**
 
 In `backend/src/services/document-render.service.ts`:
 
@@ -1550,7 +1561,7 @@ Modify `buildShell` signature to accept optional `watermarkCss`/`watermarkHtml` 
 
 and change the closing `</body>` line from `</div>\n</body>` to `</div>\n  ${watermark}\n</body>`.
 
-- [ ] **Step 7: Add watermark routes**
+- [x] **Step 7: Add watermark routes**
 
 In `backend/src/modules/documents/documents.routes.ts`:
 
@@ -1586,12 +1597,12 @@ export const watermarkPreviewSchema = z.object({
 });
 ```
 
-- [ ] **Step 8: Verify lint + tests**
+- [x] **Step 8: Verify lint + tests**
 
 Run: `cd backend && npm run lint && npx vitest run src/test/watermark.service.test.ts`
 Expected: tsc clean, tests PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend/src/repositories/watermark.repository.ts backend/src/services/watermark.service.ts backend/src/services/document-render.service.ts backend/src/modules/documents/documents.routes.ts backend/src/middleware/schemas.ts backend/src/test/watermark.service.test.ts

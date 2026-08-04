@@ -161,6 +161,7 @@ export class FormService {
     institutionNameEn?: string;
     context?: Record<string, any>;
     signatories?: { name: string; role: string }[];
+    watermark?: { code: string; values?: Record<string, string> };
   }, user: AuthUser) {
     const { instance, definition } = await this.getInstance(id);
     if (instance.status === 'DRAFT') {
@@ -203,6 +204,7 @@ export class FormService {
       committeeNameEn: committee?.committeeNameEn || opts.committeeNameEn,
       institutionNameAr: committee?.institutionNameAr || opts.institutionNameAr,
       institutionNameEn: committee?.institutionNameEn || opts.institutionNameEn,
+      watermark: opts.watermark,
       versionNotes: `Generated from ${definition.form_code} v${definition.version_no} instance #${instance.id}`,
     });
 

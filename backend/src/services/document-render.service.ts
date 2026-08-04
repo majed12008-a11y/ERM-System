@@ -19,6 +19,8 @@ import { env } from '../config/env';
 import { AuthUser } from '../shared/types';
 import { DocumentNumberingRepository } from '../repositories/document-numbering.repository';
 import { DocumentRenderRepository, TemplateRow } from '../repositories/document-render.repository';
+import { createWatermarkAdapters, createWatermarkEngine } from './watermark';
+import type { WatermarkAdapter, WatermarkEngine } from './watermark';
 
 const GENERATED_DIR = path.resolve('uploads/generated-documents');
 
@@ -43,6 +45,7 @@ export interface RenderRequest {
   committeeNameAr?: string;
   committeeNameEn?: string;
   versionNotes?: string;
+  watermark?: { code: string; values?: Record<string, string> };
 }
 
 export interface RenderResult {
@@ -60,6 +63,8 @@ export class DocumentRenderService {
   constructor(
     private renderRepo = new DocumentRenderRepository(),
     private numberingRepo = new DocumentNumberingRepository(),
+    private watermarkEngine: WatermarkEngine = createWatermarkEngine(),
+    private watermarkAdapter: WatermarkAdapter = createWatermarkAdapters().get('html')!,
   ) {}
 
   async render(req: RenderRequest): Promise<RenderResult> {
@@ -104,6 +109,10 @@ export class DocumentRenderService {
     const verifyUrl = `${env.FRONTEND_URL}/verify?ref=${encodeURIComponent(allocated.number)}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { errorCorrectionLevel: 'M', width: 220, margin: 2 });
 
+    const watermarkOverlay = req.watermark
+      ? await this.resolveWatermarkOverlay(req.watermark.code, template.language === 'en' ? 'en' : 'ar', req.watermark.values)
+      : '';
+
     const shellHtml = this.buildShell({
       language: template.language,
       template,
@@ -121,6 +130,7 @@ export class DocumentRenderService {
       committeeNameAr: req.committeeNameAr || '',
       committeeNameEn: req.committeeNameEn || '',
       documentType: req.category,
+      watermark: watermarkOverlay,
     });
 
     await fs.mkdir(GENERATED_DIR, { recursive: true });
@@ -220,6 +230,26 @@ export class DocumentRenderService {
     };
   }
 
+  private async resolveWatermarkOverlay(
+    code: string,
+    language: 'ar' | 'en',
+    values?: Record<string, string>
+  ): Promise<string> {
+    try {
+      const layout = await this.watermarkEngine.render(code, {
+        language,
+        target: 'html',
+        values,
+      });
+      if (!layout) return '';
+      const overlay = this.watermarkAdapter.render(layout);
+      return `<style>${overlay.css}</style>\n${overlay.html}`;
+    } catch (err) {
+      logger.warn({ err, code }, 'Watermark overlay skipped due to engine error');
+      return '';
+    }
+  }
+
   private buildShell(opts: {
     language: string;
     template: TemplateRow;
@@ -237,6 +267,7 @@ export class DocumentRenderService {
     committeeNameAr: string;
     committeeNameEn: string;
     documentType: string;
+    watermark: string;
   }): string {
     const isAr = opts.language === 'ar';
     const dir = isAr ? 'rtl' : 'ltr';
@@ -392,6 +423,7 @@ export class DocumentRenderService {
   </div>
   <div class="confidentiality">${confidentiality}</div>
 </div>
+${opts.watermark || ''}
 </body>
 </html>`;
   }
