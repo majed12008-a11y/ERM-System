@@ -227,7 +227,81 @@ references → `404` with `VerificationNotFoundError` mapping.
 
 ---
 
-## 8. Extension guide
+## 8. Provider registration & resolver selection strategy
+
+### 8.1 Provider registration strategy
+
+Files: `engine.ts`, `registry.ts`.
+
+**Registration lifecycle**
+- The composition root (`registry.ts`) is the only place that knows concrete
+  providers. It constructs the engine with the initial arrays:
+  `new VerificationEngine([new ReferenceResolver()], [documentProvider, certificateProvider])`.
+- The engine is permanently open — `registerProvider(provider)` appends a provider
+  at any time. There is no sealed/locked phase; late registration is legal and
+  affects only subsequent lookups.
+- Registration is **not idempotent** and has **no identity check**: registering the
+  same instance twice inserts two entries.
+
+**Lookup order**
+- Lookup is strictly **array order = registration order**:
+  `this.providers.find((p) => p.canHandle(request))` (`engine.ts:59`). The first
+  provider whose `canHandle(request)` returns `true` is selected; the engine never
+  scans past it.
+- The engine does not sort, group, or de-duplicate. `artifactTypes` is advisory
+  metadata (used by `listArtifactTypes()` and tests) — **not** a lookup key.
+- Consequence: order in the composition root IS priority. `DocumentVerificationProvider`
+  is consulted before `CertificateVerificationProvider`.
+
+**Duplicate handling**
+- No de-duplication: no `id` uniqueness check, no artifact-type exclusivity check.
+- If two registered providers both `canHandle(request)` for the same request, the
+  **first wins** and the later one is permanently shadowed — its `verify()` is never
+  invoked (a silent dead provider).
+- `listArtifactTypes()` flat-maps every provider's `artifactTypes`, so a declared
+  type shared by two providers appears twice.
+- Rule (convention, not enforced in code): providers MUST keep `canHandle`
+  predicates mutually exclusive — normally by `artifactType` — otherwise
+  registration order silently decides which artifact is served.
+
+### 8.2 Resolver selection strategy
+
+Files: `engine.ts`, `resolver.ts`.
+
+**Priority**
+- Resolvers are consulted in **array order = registration order**
+  (`engine.resolve`, `engine.ts:40-47`). Registration is via the constructor array
+  or `registerResolver()`. Order is the only priority mechanism — there is no
+  score, weight, or configuration.
+- `ReferenceResolver.canResolve` returns `true` for **any non-empty trimmed
+  string**, making it a terminal catch-all: it claims every non-empty input. Any
+  resolver registered after it can never be consulted. A new resolver MUST be
+  registered **before** `ReferenceResolver` (or the catch-all predicate tightened)
+  to gain priority.
+- Legacy transport routes (`/documents/verify/:reference`,
+  `/certificates/verify/:serial`) bypass resolution entirely: they pass a
+  pre-built `VerificationRequest` with a pinned `artifactType`.
+
+**First-match policy**
+- First-match-wins: the engine calls `canResolve(input)` sequentially and uses the
+  first resolver returning `true`; that resolver's `resolve(input)` produces the
+  `VerificationRequest`. No aggregation, no fallback to a second resolver.
+- If no resolver matches (only possible for empty/whitespace input given the
+  catch-all), the engine throws `VerificationNotFoundError` → HTTP 404.
+
+**Conflict handling**
+- Inside the built-in resolver, classification is a single regex with mutually
+  exclusive branches — `^(CERT|ERC)-` → `approval-certificate`, otherwise →
+  `generated-document`. No branch can match the same input, so there is no
+  internal conflict.
+- Cross-resolver conflicts (two resolvers matching one input) resolve
+  deterministically by order: the earlier-registered resolver wins — the same
+  shadowing rule as providers. New resolvers SHOULD use narrow predicates (a
+  specific prefix/format) so precedence is unambiguous.
+
+---
+
+## 9. Extension guide
 
 ### Add a new artifact type (e.g. PKI certificate)
 
@@ -253,7 +327,7 @@ The DTO is additive — new optional fields are backward compatible.
 
 ---
 
-## 9. Contract-versioning strategy
+## 10. Contract-versioning strategy
 
 - `VerificationResult.schemaVersion` is a **semantic version** of the DTO.
 - Additive changes (new optional sections/fields) are **minor** — old consumers keep
@@ -267,7 +341,7 @@ The DTO is additive — new optional fields are backward compatible.
 
 ---
 
-## 10. Files
+## 11. Files
 
 | Path | Role |
 |------|------|
