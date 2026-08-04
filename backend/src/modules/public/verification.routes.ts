@@ -17,21 +17,18 @@ const verifyLimiter = rateLimit({
 });
 
 /**
- * Backward-compatible certificate verification URL. Routes through the shared
- * verification platform with the artifact type pinned to approval certificates.
+ * Public verification platform entry point (no auth). The raw reference is
+ * resolved and routed to the matching provider by the engine.
  */
-router.get('/verify/:serialNumber', verifyLimiter, async (req: Request, res: Response) => {
+router.get('/verify/:reference', verifyLimiter, async (req: Request, res: Response) => {
   try {
-    const serialNumber = String(req.params.serialNumber);
+    const reference = String(req.params.reference);
     const ip = req.ip || req.socket.remoteAddress || null;
-    const result = await engine.verify(
-      { artifactType: 'approval-certificate', reference: serialNumber, context: { ip } },
-      { ip }
-    );
+    const result = await engine.verify(reference, { ip });
     res.json(successResponse(result));
   } catch (err: any) {
     if (err instanceof VerificationNotFoundError) {
-      return res.status(404).json(errorResponse('Certificate not found'));
+      return res.status(404).json(errorResponse('Verification reference not found'));
     }
     res.status(err.status || 500).json(errorResponse(err.message));
   }

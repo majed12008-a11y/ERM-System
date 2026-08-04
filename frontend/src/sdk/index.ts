@@ -26,7 +26,19 @@ export { lookups } from './domains/lookups.sdk'
 export { workflow } from './domains/workflow.sdk'
 export { certificates } from './domains/certificates.sdk'
 export type { ApprovalCertificate, CertificateDocumentLink } from './domains/certificates.sdk'
-export type { CertificateVerificationData } from './public/verify.sdk'
+export { verifyReference } from './public/verification.sdk'
+export type {
+  VerificationResult,
+  VerificationStatus,
+  VerificationIdentity,
+  VerificationLifecycle,
+  VerificationIntegrity,
+  VerificationSignatures,
+  VerificationSignatureItem,
+  VerificationHistory,
+  VerificationHistoryItem,
+  VerificationLinks,
+} from './public/verification.sdk'
 
 import api from '../api/client'
 export { api }

@@ -317,6 +317,16 @@ export class DocumentRenderRepository extends AuditableRepository {
     );
   }
 
+  async findDocumentByReference(reference: string): Promise<any | null> {
+    const result = await this.query(
+      `SELECT * FROM documents.documents
+       WHERE document_number = $1 OR document_uuid::text = $1
+       LIMIT 1`,
+      [reference]
+    );
+    return result.rows[0] || null;
+  }
+
   async getVerificationData(reference: string): Promise<any | null> {
     const result = await this.query(
       `SELECT * FROM documents.fn_verify_generated_document($1)`,
