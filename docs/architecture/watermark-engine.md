@@ -160,3 +160,120 @@ code changes. RLS permits `SELECT` on the config table; no writes are exposed.
   never blocks document issuance.
 - RLS is never disabled; `WatermarkRepository` goes through
   `AuditableRepository` (sets `app.user_id` per request).
+
+---
+
+## 9. Watermark precedence strategy
+
+The current engine resolves **one config per call** (`engine.render(code, ctx)`);
+a single code is the only composition mode exposed today. The strategy below
+is the design contract for multi-watermark selection and composition. It is
+**additive** — it requires no change to renderers, adapters, config columns, or
+the DB. The engine already provides the two primitives it needs: per-config
+condition evaluation and a target-agnostic `WatermarkLayout`.
+
+### 9.1 Selection (which configs are candidates)
+
+- `RenderRequest.watermark` carries an **ordered list** of candidate codes
+  (`{ code, values? }` each). Today it is a single code; that is the list of
+  length one.
+- Each candidate goes through the **same pipeline**: condition evaluation →
+  type renderer → layout. Candidates whose `condition` fails, whose type is
+  unknown (no registered renderer and no TEXT fallback), or whose renderer
+  produces zero tiles are **skipped before priority is applied**.
+
+### 9.2 Priority (who wins)
+
+- **Order = priority**: the position in the requested list is the primary
+  priority (first = highest). This mirrors the verification-platform
+  precedence rule (registration order = priority, first match shadows later
+  providers).
+- **Optional tie-breaker (future, config-driven)**: a `priority INT` column on
+  `document_watermark_config` (lower number = higher priority, default e.g.
+  `100`) breaks ties, then requested list position, then config `id`. Adding
+  the column is an optional migration; selection is orchestration and needs no
+  engine change.
+
+### 9.3 Composition rules (how selected configs combine)
+
+Two modes, chosen **per request or per config** — never hardcoded:
+
+1. **`single` (default) — winner-take-all.** After skipping condition-failing
+   candidates, the highest-priority applicable config renders; all lower-
+   priority configs are shadowed. Prevents overlapping watermarks and preserves
+   legibility (e.g., a `REVOKED` doc shows only `REVOKED`, never `REVOKED` + `DRAFT`).
+2. **`layered` (opt-in) — cumulative.** Every matching config renders, subject
+   to the **slot conflict rule**: two configs targeting the same `position`
+   must not both draw — the higher-priority one wins that slot, the others draw
+   in their distinct slots (e.g., `CENTER` DRAFT + `TOP_LEFT` CONFIDENTIAL
+   compose; two `CENTER` configs do not).
+
+**Merging:** layered layouts combine at the orchestration layer by
+concatenating tiles into one `WatermarkLayout` — each tile already carries its
+own anchor/coordinates, so adapters render the merged layout unchanged.
+
+### 9.4 Edge rules (already enforced)
+
+- No applicable config → empty overlay (document renders without watermark).
+- Engine error → watermark skipped, warning logged; watermark selection never
+  affects the document record, checksum, or lifecycle.
+- Precedence is evaluated against the **document context** (`values`, e.g.
+  `{ status: 'REVOKED' }`), so the same request can resolve to different
+  watermarks for different documents.
+
+---
+
+## 10. Future renderer support
+
+### 10.1 Current boundary
+
+`WatermarkTypeRenderer` (engine, §3) is the registration point for **content
+kinds**, and `WatermarkAdapter` (§5) for **targets**. Today the tile model is
+text-only (`WatermarkTile.text`, §2) and one renderer (`TEXT`) plus one adapter
+(`html`) are registered. Adding a content kind or a target is always a
+**new registration, never an engine change** — that part of the design already
+holds.
+
+### 10.2 Content model (additive evolution)
+
+`WatermarkTile` gains a discriminated content union while geometry
+(`x`, `y`, `anchor`, `rotationDeg`, `opacity`) stays shared:
+
+```
+content: { kind: 'text',  text: string }
+       | { kind: 'svg',   svg: string }                     // inline markup
+       | { kind: 'image', src: string, widthMm?: number, heightMm?: number }
+```
+
+The TEXT renderer keeps emitting the text tile (backward compatible); the
+geometry stays adapter-relevant only.
+
+### 10.3 Planned renderers (register in `createWatermarkEngine()`)
+
+| Renderer | Kind | Produces |
+|----------|------|----------|
+| `TextWatermarkTypeRenderer` | `TEXT` (implemented) | localized text tiles |
+| `SvgWatermarkTypeRenderer` | `SVG` (future) | vector tiles from config `payload` (seals, patterns) |
+| `ImageWatermarkTypeRenderer` | `IMAGE` (future) | raster tiles from an asset reference / data URL, scaled in mm |
+| Custom domain renderers | any code (future) | e.g. QR/barcode, institutional seal, department stamp |
+
+Unknown/unregistered types already fall back to `TEXT` (§3), so an unregistered
+future renderer degrades gracefully instead of failing.
+
+### 10.4 Config & adapters
+
+- **Config:** an optional `payload JSONB` column (SVG markup, asset key, repeat
+  parameters) is a forward-compatible migration — the repository maps `SELECT *`
+  and is already tolerant of absent columns.
+- **Adapters:** each adapter switches on `content.kind`. `HtmlWatermarkAdapter`
+  renders inline SVG / `<img>` for the new kinds today; future `pdf` / `image` /
+  `print` adapters embed vector or raster content natively. No engine changes.
+
+### 10.5 Design-gate claim
+
+Both extensions (multi-watermark precedence §9 and non-text renderers §10) are
+supported by the current architecture with **additive changes only**: an
+orchestration method for selection/merging (§9) and new renderers + a content
+union + optional `payload` column (§10). No renderer, adapter, condition,
+config-semantics, or DB-backwards-compatibility change is required.
+
