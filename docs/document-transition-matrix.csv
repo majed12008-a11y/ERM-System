@@ -1,0 +1,29 @@
+Document,Classification,Disposition,DispositionReason,ReplacementOrTarget,Phase
+canonical-seed-specification.md,Partially Consistent,Replace,Name embeds the deprecated term canonical seed; content must become the Canonical Dataset product specification,canonical-dataset-specification.md (new); original archived,2
+installation-readiness.md,Partially Consistent,Rewrite,Path A recommended baseline-restore contradicts I3; reframe restoration vs construction; construction becomes the goal,Same document re-framed,2
+rc4-seed-final-assessment.md,Partially Consistent,Rewrite,Now-step recommending dump as source of truth contradicts P1; update recommendation while keeping the change-ledger conclusion,Same document re-framed,2
+RC4-ARCHITECTURE.md,Partially Consistent,Rewrite,Master plan predates ADR-002; informal ADR-01..08 reconciled; dataset posture re-based,Same document re-framed,3
+database-canonicalization-report.md,Partially Consistent,Rewrite,Defines live DB as cumulative seed application (contradicts I1) and uses stale 57-ACTIVE count (actual 79); re-baseline to current suite and ADR-002 framing,Same document re-framed,4
+production-cutover-checklist.md,Partially Consistent,Rewrite,Readiness gate on seed-status [OK] contradicts I2; gate on dataset-construction evidence instead,Same document re-framed,4
+deployment-hardening-contract.md,Partially Consistent,Rewrite,ROL-01 keeps seeds manual non-migration-controlled (contradicts I1); SEC-03 credential hygiene folded into dataset governance,Same document re-framed,4
+production-readiness-report.md,Partially Consistent,Rewrite,Assumes seed-based deployment; re-baseline under the new constitution,Same document re-framed,4
+phase5-priority3-observability-audit.md,Partially Consistent,Rewrite,Renumber informal ADR-001..007 into formal series via mapping table; decisions not overturned,Same document renumbered,3
+ENTERPRISE_ARCHITECTURE_BASELINE_ASSESSMENT.md,Partially Consistent,Rewrite,No-critical-blockers verdict contradicts ADR-002 four blockers; re-run assessment under ADR-002,Same document re-baselined as v2,3
+ENGINEERING_PRINCIPLES.md,Partially Consistent,Rewrite,AP-001/002 align with I11 but no dataset-governance principle and no ADR-002 reference; add dataset governance,Same document re-baselined,3
+ENGINEERING_MANIFEST.md,Partially Consistent,Rewrite,Predates ADR-002; no dataset governance; add ADR-002 linkage,Same document re-baselined,3
+ENGINEERING_PROGRAM_PLAN.md,Partially Consistent,Rewrite,Program assumes old baseline; re-baseline execution program,Same document re-baselined,3
+ENGINEERING_DOCUMENTATION_STANDARD.md,Partially Consistent,Rewrite,No ADR conventions defined; add ADR series conventions and terminology rules,Same document re-baselined,3
+ENGINEERING_SCAFFOLD_REPORT.md,Partially Consistent,Archive,Historical scaffold snapshot; not forward-operational; preserved verbatim for traceability,Archived (docs/architecture/archive/),2
+PROJECT_CHARTER.md,Partially Consistent,Rewrite,Predates ADR-002; add Canonical Dataset product concept,Same document re-baselined,3
+DOMAIN_MODEL.md,Partially Consistent,Rewrite,Terminology constitution must define aggregate/aggregate-root and dataset vocabulary ADR P3/P6/I5/I10 require,Same document amended,1
+AGENTS.md,Partially Consistent,Rewrite,Seed re-run limitation and baseline-restore workflow frame seeds as product (contradicts I1); reframe under ADR-002; keep Rule 11/12 and RLS constraints,Same document re-framed,3
+README.md,Partially Consistent,Rewrite,Skeleton with no Decisions/ADR section; add ADR index reference,Same document updated,0
+document-index.md,Partially Consistent,Rewrite,Empty; index the full baseline including ADR-002,Same document populated,0
+glossary.md,Partially Consistent,Rewrite,Empty; become the terminology registry with the final vocabulary,Same document populated,0
+adr-template.md,Partially Consistent,Rewrite,Empty; define the binding ADR template for the series,Same document populated,0
+2026-08-05-gate1-wave1-application-registration.md,Partially Consistent,Rewrite,Operates on Gate 0 approved baseline without ADR-002 caveat; add C2 caveat; feature work compatible,Same document with baseline caveat,4
+2026-08-02-gate0-document-lifecycle.md,Partially Consistent,Archive,Historical execution plan that produced seed 58; the Gate-0 state is now a historical record,Archived (docs/architecture/archive/),2
+2026-08-02-document-infrastructure.md,Partially Consistent,Archive,Historical execution plan; predates ADR-002,Archived (docs/architecture/archive/),2
+dataset-architecture.md,Conceptually Divergent,Merge,Divergent validation-dataset concept built on nonexistent seed commits 50-61; useful content (dataset objectives scope) merged into canonical-dataset-specification; seed-commit mechanism discarded,Content merged into canonical-dataset-specification.md; original archived,2
+seed-reconstruction-execution-architecture.md,Superseded,Archive,Construction pipeline for a change ledger contradicts I1; factual analysis preserved and citable; not to be implemented as designed,Archived (docs/architecture/archive/),2
+(all 36 Fully Consistent documents),Fully Consistent,Keep,Factual evidence or domain contracts not invalidated by ADR-002; immutable evidence baseline,None,None

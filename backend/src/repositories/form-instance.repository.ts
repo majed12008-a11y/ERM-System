@@ -4,6 +4,7 @@
  * وحالة دورة الحياة: DRAFT → SUBMITTED → (RETURNED | APPROVED | VOID).
  */
 import { AuditableRepository } from './auditable.repository';
+import { PoolClient } from 'pg';
 
 export type FormInstanceStatus = 'DRAFT' | 'SUBMITTED' | 'RETURNED' | 'APPROVED' | 'VOID';
 
@@ -105,14 +106,15 @@ export class FormInstanceRepository extends AuditableRepository {
     return result.rows[0] || null;
   }
 
-  async submit(id: number, data: { total_score?: number | null; recommendation?: string | null }): Promise<any> {
+  async submit(id: number, data: { total_score?: number | null; recommendation?: string | null }, client?: PoolClient): Promise<any> {
     const meta = this.updateMeta();
     const result = await this.query(
       `UPDATE forms.form_instances
        SET status = 'SUBMITTED', total_score = $1, recommendation = $2,
            submitted_by = $3, submitted_at = now(), updated_at = $4, updated_by = $5
        WHERE id = $6 AND status IN ('DRAFT','RETURNED') RETURNING *`,
-      [data.total_score ?? null, data.recommendation ?? null, meta.updated_by, meta.updated_at, meta.updated_by, id]
+      [data.total_score ?? null, data.recommendation ?? null, meta.updated_by, meta.updated_at, meta.updated_by, id],
+      client
     );
     return result.rows[0] || null;
   }

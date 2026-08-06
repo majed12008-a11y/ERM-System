@@ -1,0 +1,44 @@
+Element,Type,CurrentLevel,CurrentLevelName,RequiredLevel,RequiredLevelName,CurrentEvidence,Notes
+P1,Principle,0,Defined only,4,Continuously enforced,None,"No canonical-dataset-specification or construction product exists; suite/dump is de facto truth"
+P2,Principle,0,Defined only,4,Continuously enforced,None,No ownership registry or declaration format; shared-kernel exception uncheckable
+P3,Principle,0,Defined only,4,Continuously enforced,None,DOMAIN_MODEL not amended; traceability chain 5 broken
+P4,Principle,0,Defined only,4,Continuously enforced,None,No business dependency graph artifact
+P5,Principle,0,Defined only,4,Continuously enforced,None,Lifecycle stages and transition authority undefined
+P6,Principle,0,Defined only,4,Continuously enforced,None,Natural key sets not enumerated
+P7,Principle,0,Defined only,4,Continuously enforced,None,Provenance mechanism circular; no external anchor defined
+P8,Principle,0,Defined only,4,Continuously enforced,None,No behavior formalizations (reachability/ownership matrices) to assert
+P9,Principle,1,Reviewable,4,Continuously enforced,Dead-data inventory (canonical-spec section 6); canonical-population-matrix; backend-table-usage,Inventory documented; retirement unenforced; measurement window undefined
+I1,Invariant,0,Defined only,4,Continuously enforced,None,Forbidden-vocabulary rule exists but EC5 audit unexecuted; behavior form unenforced
+I2,Invariant,0,Defined only,4,Continuously enforced,None,EC6 defined but unexecuted; provenance-survives-restore circular
+I3,Invariant,0,Defined only,4,Continuously enforced,None,No construction product; no detection of restored state
+I4,Invariant,0,Defined only,4,Continuously enforced,None,No ownership verification; monitoring.*/templates.* unowned in accepted baseline
+I5,Invariant,0,Defined only,4,Continuously enforced,None,No authoritative model; traceability chain 5 broken
+I6,Invariant,0,Defined only,4,Continuously enforced,None,No graph artifact to check against
+I7,Invariant,0,Defined only,4,Continuously enforced,None,No lifecycle stage registry or enforcement
+I8,Invariant,1,Reviewable,4,Continuously enforced,Dead-data inventory (canonical-spec section 6),Inventory exists; retirement undefined
+I9,Invariant,0,Defined only,4,Continuously enforced,None,No behavior verification; integrity-only cannot be distinguished
+I10,Invariant,0,Defined only,4,Continuously enforced,None,Natural keys undefined
+I11,Invariant,3,Automatically verifiable,4,Continuously enforced,RLS policies (174+); app.user_id session context,DB enforces RLS but SECURITY DEFINER workaround is a documented bypass; no bypass detection
+G1,Governance,0,Defined only,4,Continuously enforced,None,Stated in transition plan T1; no document-classification gate
+G2,Governance,0,Defined only,3,Automatically verifiable,None,Reviewable in principle; no ADR hierarchy enforcement
+G3,Governance,0,Defined only,3,Automatically verifiable,None,5 of 6 traceability chains broken; EC8 unexecuted
+G4,Governance,0,Defined only,4,Continuously enforced,None,Terminology plan exists; EC5/EC2 unexecuted; no term gate
+G5,Governance,0,Defined only,3,Automatically verifiable,None,Ownership table exists in roadmap; no registry enforcement
+G6,Governance,0,Defined only,3,Automatically verifiable,None,Stated T6; no archive manifests yet
+G7,Governance,0,Defined only,3,Automatically verifiable,None,Stated T7; ordering unverified
+G8,Governance,0,Defined only,3,Automatically verifiable,None,Stated T8; no immutability check
+G9,Governance,0,Defined only,4,Continuously enforced,None,Freeze text only
+G10,Governance,0,Defined only,4,Continuously enforced,None,Freeze text only
+G11,Governance,0,Defined only,4,Continuously enforced,None,Freeze text only; EC5 unexecuted
+G12,Governance,0,Defined only,4,Continuously enforced,None,Freeze text only
+G13,Governance,0,Defined only,4,Continuously enforced,None,Phase 0 unexecuted; no ADR gate
+EC1,Exit criterion,0,Defined only,3,Automatically verifiable,ADR-001 file + approval status,Verification defined (file existence) not executed
+EC2,Exit criterion,0,Defined only,3,Automatically verifiable,Glossary/document-index/ADR-index,Verification defined (non-empty + term set) not executed
+EC3,Exit criterion,0,Defined only,3,Automatically verifiable,DOMAIN_MODEL,Verification defined (grep) not executed
+EC4,Exit criterion,0,Defined only,3,Automatically verifiable,Consistency matrix,Verification defined (re-audit) not executed
+EC5,Exit criterion,0,Defined only,3,Automatically verifiable,Active baseline documents,Verification defined (grep) not executed
+EC6,Exit criterion,0,Defined only,3,Automatically verifiable,Production cutover checklist,Verification defined (grep) not executed
+EC7,Exit criterion,0,Defined only,3,Automatically verifiable,Active baseline documents,Verification defined (citation grep) not executed
+EC8,Exit criterion,0,Defined only,3,Automatically verifiable,Traceability chains 1-6,Verification defined (audit) not executed
+EC9,Exit criterion,0,Defined only,3,Automatically verifiable,Enterprise baseline assessment v2,Verification defined (approval status) not executed
+EC10,Exit criterion,0,Defined only,3,Automatically verifiable,ADR index,Verification defined (mapping check) not executed

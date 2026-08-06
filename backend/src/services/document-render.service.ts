@@ -68,6 +68,7 @@ export class DocumentRenderService {
   ) {}
 
   async render(req: RenderRequest): Promise<RenderResult> {
+    logger.info({ step: 'render', stage: 'findActiveTemplate' }, 'DBG render stage');
     const template = await this.renderRepo.findActiveTemplate(req.templateCode, req.language);
     if (!template) {
       throw Object.assign(new Error(`Template ${req.templateCode} not found (active)`), { status: 404 });
@@ -82,9 +83,11 @@ export class DocumentRenderService {
     }
 
     const allocated = await this.numberingRepo.allocate(req.category);
+    logger.info({ step: 'render', stage: 'allocated', number: allocated.number }, 'DBG render stage');
 
     const issueDateAr = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
     const issueDateEn = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+    logger.info({ step: 'render', stage: 'issue-dates' }, 'DBG render stage');
 
     const bodyHtml = Handlebars.compile(template.template_content)({
       ...req.context,
@@ -99,9 +102,11 @@ export class DocumentRenderService {
       institutionNameAr: req.institutionNameAr || '',
       institutionNameEn: req.institutionNameEn || '',
     });
+    logger.info({ step: 'render', stage: 'body-compiled' }, 'DBG render stage');
 
     const verifyUrl = `${env.FRONTEND_URL}/verify?ref=${encodeURIComponent(allocated.number)}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { errorCorrectionLevel: 'M', width: 220, margin: 2 });
+    logger.info({ step: 'render', stage: 'qr-done' }, 'DBG render stage');
 
     const watermarkOverlay = req.watermark
       ? await this.resolveWatermarkOverlay(req.watermark.code, template.language === 'en' ? 'en' : 'ar', req.watermark.values)
@@ -126,17 +131,22 @@ export class DocumentRenderService {
       watermark: watermarkOverlay,
     };
 
+    logger.info({ step: 'render', stage: 'pre-mkdir', cwd: process.cwd(), dir: GENERATED_DIR }, 'DBG render stage');
     await fs.mkdir(GENERATED_DIR, { recursive: true });
+    logger.info({ step: 'render', stage: 'mkdir-done' }, 'DBG render stage');
     const safeCode = template.template_code.replace(/[^A-Za-z0-9_-]/g, '');
     const tempFileName = `.tmp_${crypto.randomUUID()}.pdf`;
     const tempPath = path.join(GENERATED_DIR, tempFileName);
+    logger.info({ step: 'render', stage: 'tmp-path-ready' }, 'DBG render stage');
 
     // A-01: two-pass render so the footer shows the REAL file hash.
     // Pass 1 renders with a placeholder so we can compute the real checksum;
     // pass 2 re-renders with that hash in the footer (same browser instance).
     const browser = await this.launchBrowser();
+    logger.info({ step: 'render', stage: 'browser-launched' }, 'DBG render stage');
     try {
       await this.renderPdf(this.buildShell({ ...shellBase, sha256: 'pending' }), tempPath, browser);
+      logger.info({ step: 'render', stage: 'pass1-done' }, 'DBG render stage');
       const firstBytes = await fs.readFile(tempPath);
       const checksumSha256 = crypto.createHash('sha256').update(firstBytes).digest('hex');
 
@@ -487,6 +497,7 @@ ${opts.watermark || ''}
   }
 
   private async launchBrowser(): Promise<any> {
+    logger.info({ step: 'render', stage: 'launchBrowser-start' }, 'DBG render stage');
     const puppeteer = await import('puppeteer-core');
     const executablePath = process.env.CHROME_PATH || process.env.PUPPETEER_CHROMIUM_REVISION
       ? undefined

@@ -1,0 +1,44 @@
+Element,Type,CurrentLevel,RequiredLevel,Gap,MissingCause,Risk,Rationale
+P1,Principle,0,4,4,Missing evidence; Missing enforcement,CRITICAL,No construction product exists; no check distinguishes dataset from history; suite/dump is de facto truth
+P2,Principle,0,4,4,Missing rule; Missing evidence,CRITICAL,Shared-kernel exception uncheckable; no ownership registry
+P3,Principle,0,4,4,Missing evidence; Missing verification,CRITICAL,No authoritative aggregate model; traceability chain 5 broken
+P4,Principle,0,4,4,Missing rule; Missing evidence,CRITICAL,Business dependency graph undefined; numeric order uncheckable
+P5,Principle,0,4,4,Missing rule; Missing governance,CRITICAL,Lifecycle stages and approval authority undefined
+P6,Principle,0,4,4,Missing evidence,CRITICAL,Natural key sets undefined
+P7,Principle,0,4,4,Missing rule; Missing evidence,CRITICAL,Provenance circular (C3); no external anchor
+P8,Principle,0,4,4,Missing evidence; Missing verification,CRITICAL,No behavior formalizations exist to assert
+P9,Principle,1,4,3,Missing rule; Missing ownership,HIGH,Dead-data inventory exists but retirement unenforced; measurement window undefined
+I1,Invariant,0,4,4,Missing verification; Missing enforcement,CRITICAL,EC5 unexecuted; behavior form unenforced
+I2,Invariant,0,4,4,Missing rule; Missing verification,CRITICAL,Provenance spec circular; EC6 unexecuted
+I3,Invariant,0,4,4,Missing evidence; Missing enforcement,CRITICAL,No construction product; restore not detectable
+I4,Invariant,0,4,4,Missing verification; Missing enforcement,CRITICAL,No ownership check; violations live in accepted baseline
+I5,Invariant,0,4,4,Missing evidence; Missing verification,CRITICAL,No authoritative model; chain 5 broken
+I6,Invariant,0,4,4,Missing evidence; Missing rule,CRITICAL,No graph artifact
+I7,Invariant,0,4,4,Missing rule; Missing governance,CRITICAL,No lifecycle mechanism or authority
+I8,Invariant,1,4,3,Missing rule; Missing enforcement,HIGH,Inventory exists; retirement undefined
+I9,Invariant,0,4,4,Missing evidence; Missing verification,CRITICAL,No behavior verification; integrity-only indistinguishable
+I10,Invariant,0,4,4,Missing evidence,CRITICAL,Natural keys undefined
+I11,Invariant,3,4,1 (nominal),Missing verification; Missing governance,CRITICAL,Documented SECURITY DEFINER bypass; real gap is unresolved bypass not level
+G1,Governance,0,4,4,Missing verification; Missing governance,HIGH,No document-classification gate
+G2,Governance,0,3,3,Missing governance,MEDIUM,Reviewable in principle; no ADR hierarchy enforcement
+G3,Governance,0,3,3,Missing verification,HIGH,5 of 6 chains broken; EC8 unexecuted
+G4,Governance,0,4,4,Missing enforcement,HIGH,Terminology plan not gated; EC5/EC2 unexecuted
+G5,Governance,0,3,3,Missing governance,MEDIUM,Ownership table exists; no enforcement
+G6,Governance,0,3,3,Missing enforcement,MEDIUM,No archive manifests yet
+G7,Governance,0,3,3,Missing governance,MEDIUM,Ordering unverified
+G8,Governance,0,3,3,Missing governance,MEDIUM,No immutability check
+G9,Governance,0,4,4,Missing enforcement,HIGH,Freeze text only; no ADR-principle gate
+G10,Governance,0,4,4,Missing enforcement,HIGH,Freeze text only; no baseline-list gate
+G11,Governance,0,4,4,Missing enforcement,HIGH,Freeze text only; EC5 unexecuted
+G12,Governance,0,4,4,Missing enforcement,HIGH,Freeze text only
+G13,Governance,0,4,4,Missing enforcement,HIGH,Phase 0 unexecuted; no ADR gate
+EC1,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run; transition cannot certify
+EC2,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC3,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC4,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC5,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC6,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC7,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC8,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC9,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run
+EC10,Exit criterion,0,3,3,Missing verification,HIGH,Defined but not run

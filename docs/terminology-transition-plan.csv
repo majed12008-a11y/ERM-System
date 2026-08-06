@@ -1,0 +1,28 @@
+Term,Status,ReplacementTerm,TransitionPeriod,FinalVocabulary,Reason
+Canonical Seed,Deprecated,Canonical Dataset,Phase 0 to Phase 5,No,Embeds the worldview that the dataset is a kind of seed (SREA canonical seed tree)
+Seed Suite (as product),Deprecated,Installer History / Canonical Dataset,Phase 0 to Phase 5,No,Treats the ledger as the deliverable; contradicts P1
+Seed (as future construct unit),Deprecated,Migration / Reference Dataset / Scenario Dataset / Fixture,Phase 0 to Phase 5,No,Superseded construction model used seeds as the unit of construction
+Seed (as historical artifact),Allowed,Seed file (historical),Permanent,Yes (qualified),Remains the correct word for the 79 files in backend/seed/ when describing history
+Validation Dataset,Deprecated,Canonical Dataset,Phase 2,No,Divergent dataset concept from dataset-architecture; retired with that document
+Baseline-restore (as install path),Deprecated,Dataset Construction,Phase 0 to Phase 5,No,Contradicts I3 (restoration is not construction)
+Dump / Gate-0 baseline (as source of truth),Deprecated,Baseline (dataset state) / Dump (carrier artifact),Phase 0 to Phase 5,No,Contradicts P1 (dataset is truth; dump is carrier)
+seed-status [OK] as readiness proof,Deprecated,Provenance evidence,Phase 4,No,Contradicts I2 (tracker state is not proof of execution)
+Business Object,Deprecated,Business Entity (DOMAIN_MODEL) / Aggregate (ADR),Phase 1,No,Undefined and unused; conflicts with the terminology constitution
+Canonical Dataset,Canonical,None,Immediate (already in force),Yes,The product; the source of truth (P1)
+Installer History,Canonical,None,Immediate (already in force),Yes,The role of the seed suite
+Baseline,Canonical (clarified),None,Phase 0,Yes,A versioned reproducible dataset STATE; never the dump
+Aggregate,Canonical,None,Phase 1,Yes,The authoritative invariant model (P3 P6 I5 I10); must be added to DOMAIN_MODEL
+Aggregate Root,Canonical,None,Phase 1,Yes,Named for Application and Condition
+Runtime-Generated Data,Canonical,None,Phase 0,Yes,Data class (audit sessions history outbox) never seeded (I11)
+Runtime (engine),Allowed,None,Permanent,Yes (qualified),Form Runtime = schema-driven form engine; distinct from Runtime-Generated Data
+Domain,Allowed (qualified),None,Permanent,Yes (qualified),Must be qualified: Bounded Context (DOMAIN_MODEL) / Domain Module (backend) / Domain Schema (DB)
+Canonical Lineage,Allowed synonym,Canonical Dataset content (Era-2 Yemen),Permanent,Yes,Synonym for the canonical dataset content
+Canonical Schema,Allowed synonym,Schema authority (database/canonical/),Permanent,Yes,Distinct from Canonical Dataset; refers to DDL authority
+Scenario Dataset,Canonical,None,Phase 0,Yes,Dataset category: business scenarios over canonical data
+Fixture,Canonical (clarified),None,Phase 0,Yes,Presentation/test data over canonical; qualified Demo/Pilot/Test
+Reference Dataset,Canonical,None,Phase 0,Yes,Idempotent environment-invariant master data
+Migration,Canonical,None,Phase 0,Yes,Versioned forward-only schema evolution; distinct from data
+Provenance,Canonical,None,Phase 0,Yes,Execution evidence that survives restore (I2 I7)
+Dataset Lifecycle,Canonical,None,Phase 0,Yes,Promote version deprecate branch merge archive (P5)
+Gate-0,Allowed (historical),None,Permanent,Yes (historical only),Historical milestone / dump referent; not a forward construct
+Era-1/2/3,Allowed,None,Permanent,Yes (historical only),Epoch labels for the installer history

@@ -1,0 +1,42 @@
+Document,Type,Classification,Reason
+ADR-002-canonical-dataset-architecture.md,ADR,Compatible,This ADR itself; establishes the new baseline
+architecture-root-cause-analysis.md,Architecture Analysis,Compatible,Basis for ADR-002; factual findings remain valid; framing already matches the decision
+architecture-challenge-review.md,Architecture Analysis,Compatible,Basis for ADR-002; findings remain valid
+architecture-normalization-review.md,Architecture Analysis,Compatible,Evidence (F1/F2/F3 findings); no framing that contradicts the decision
+architecture-assumption-register.csv,Evidence,Compatible,Assumptions A1/A3/A10 codified in ADR-002; register remains valid
+architecture-risk-register.csv,Evidence,Compatible,Risk findings (R1-R6) remain valid; ADR-002 addresses them at architectural level
+architecture-boundary-analysis.csv,Evidence,Compatible,Boundary rejections are the basis for ADR-002 principles P2/P3/P4
+architecture-blocker-tree.csv,Evidence,Compatible,Minimal blocking set R1-R6 remains valid as design-governance input
+boundary-root-cause-mapping.csv,Evidence,Compatible,Root-cause mapping remains valid
+canonical-seed-specification.md,Architecture Specification,Needs Revision,Defines canonical data derived from seed suite; under ADR-002 the canonical dataset is the product and must be governed by lifecycle and aggregate principles; framing must be re-based
+change-impact-analysis.md,Architecture Analysis,Compatible,Route/empty-table findings remain valid
+database-population-audit.md,Architecture Analysis,Compatible,Factual audit; no framing conflict
+backend-table-usage.md,Architecture Analysis,Compatible,Usage-class findings (SEED_ONLY 81, UNUSED 35) support P9; remains valid
+feature-data-coverage.md,Architecture Analysis,Compatible,Module coverage verdicts remain valid; support P9 and I8
+feature-traceability-review.md,Architecture Analysis,Compatible,Feature matrix remains valid as evidence
+installation-readiness.md,Architecture Analysis,Needs Revision,"Path A (baseline-restore, deterministic) is framed as the recommended install path; under ADR-002 restoration is not construction (I3); framing must be revised"
+RC4-ARCHITECTURE.md,Master Plan,Needs Revision,Master plan must re-base its dataset/seed posture on ADR-002; informal ADR-01..08 numbering must be reconciled with the formal series; seed-suite stance superseded in framing
+rc4-seed-final-assessment.md,Architecture Analysis,Compatible,"Its conclusion that the suite is a 79-file numerically-ordered append-only change ledger is exactly the basis of ADR-002"
+seed-architecture-review.md,Architecture Analysis,Compatible,Descriptive evidence (4 epochs); no framing conflict
+seed-coverage-matrix.md,Evidence,Compatible,Population coverage evidence remains valid
+seed-coverage-matrix.csv,Evidence,Compatible,Population coverage evidence remains valid
+seed-dependency-graph.md,Architecture Analysis,Compatible,113-edge dependency findings remain valid; support P4/P6
+seed-quality-report.md,Architecture Analysis,Compatible,Grades (reproducibility F, integrity A) are the evidence ADR-002 formalizes
+seed-reconstruction-execution-architecture.md,Architecture Plan,Superseded,"Designed a construction pipeline for a change ledger; its architectural stance is superseded by ADR-002. Factual analysis retained as evidence, but not to be implemented as designed"
+table-classification.md,Architecture Analysis,Compatible,Table classification evidence remains valid
+backend-route-traceability.csv,Evidence,Compatible,315-route traceability evidence remains valid
+canonical-population-matrix.csv,Evidence,Compatible,Population matrix evidence remains valid
+database-table-inventory.csv,Evidence,Compatible,Table inventory evidence remains valid
+feature-traceability-matrix.csv,Evidence,Compatible,Feature matrix evidence remains valid
+dataset-architecture.md,Architecture Specification,Needs Revision,"Defines the Yemen National Validation Dataset, closest existing concept to the canonical dataset product; aligned in concept with ADR-002 but framed as a seed-driven implementation contract; must be re-based as the dataset product specification under lifecycle/aggregate principles"
+document-render-pipeline.md,Architecture,Compatible,Unrelated to dataset framing
+ENTERPRISE_TRACEABILITY_MODEL.md,Governance Specification,Compatible,Approved governance baseline; ADR-002 extends it with the dataset-product concept; no conflict
+phase1.6-terminal-states-hotfix.md,Architecture,Compatible,RULE 11 contract; ADR-002 invariant I5 builds on it; remains valid
+phase2-conditions-module.md,Architecture,Compatible,Domain contract; no dataset-framing conflict
+phase3-certificate-subsystem.md,Architecture,Compatible,Domain contract; no dataset-framing conflict
+phase4-notification-expansion.md,Architecture,Compatible,Domain contract; no dataset-framing conflict
+Research-Application-Lifecycle.md,Architecture,Compatible,Domain contract; no dataset-framing conflict
+verification-platform.md,Architecture,Compatible,Domain service; no dataset-framing conflict
+watermark-engine.md,Architecture,Compatible,Unrelated to dataset framing
+Workflow-Implementation-Contract.md,Architecture,Compatible,Domain contract; no dataset-framing conflict
+AGENTS.md,Governance,Needs Revision,Operating constitution; seed re-run limitation and baseline-restore workflow sections assume seed-suite framing; must reference ADR-002 and adopt I1-I3 framing

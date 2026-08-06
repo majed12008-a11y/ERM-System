@@ -1,45 +1,32 @@
 /*
  * خدمة مكتبة النماذج:
  *   - إدارة تعريفات النماذج ومثيلاتها.
- *   - التحقق من صحة الاستجابات مقابل JSON Schema المخزنة
- *     (الحقول المطلوبة، الشروط، الأنواع، المدى).
- *   - حساب الدرجات المحسوبة (computed.mean).
+ *   - التحقق من صحة الاستجابات مقابل مخطط JSON المخزن
+ *     (الحقول المطلوبة، الشروط، الأنواع، المدى، التبعيات).
+ *   - حساب الدرجات المحسوبة (computed: mean/sum/count/count_checked).
+ *   - ربط الإرسال بسير العمل عبر الإعداد (schema.workflow) — كل الانتقالات
+ *     تُنفَّذ عبر محرك سير العمل (WorkflowService) وليست منطقاً مكتوباً يدوياً.
  *   - توليد مستند رسمي من استجابات النموذج عبر محرك المستندات.
  */
-import { AuthUser } from '../shared/types';
+import { AuthUser, FormSchema } from '../shared/types';
 import { FormDefinitionRepository } from '../repositories/form-definition.repository';
 import { FormInstanceRepository, FormInstanceStatus } from '../repositories/form-instance.repository';
 import { DocumentRenderService } from './document-render.service';
 import { DocumentRenderRepository } from '../repositories/document-render.repository';
+import { DocumentLifecycleService } from './document-lifecycle.service';
+import { WorkflowService } from './workflow.service';
+import { ApplicationRepository } from '../repositories/application.repository';
+import { withTransaction } from '../config/database';
+import { broadcastDashboardEvent, NotificationService } from './notification.service';
+import { TRANSITION_TO_NOTIFICATION } from './notification-types';
 import { logger } from '../config/logger';
 import crypto from 'crypto';
-
-interface FieldDef {
-  name: string;
-  label: { ar: string; en?: string };
-  type: string;
-  required?: boolean;
-  options?: { value: string; label: { ar: string; en?: string } }[];
-  min?: number;
-  max?: number;
-  maxLength?: number;
-  pattern?: string;
-  rows?: number;
-  conditional?: { field: string; equals: string };
-}
-
-interface SectionDef {
-  id: string;
-  title: { ar: string; en?: string };
-  fields: FieldDef[];
-}
-
-interface FormSchema {
-  formCode: string;
-  version: string;
-  sections: SectionDef[];
-  computed?: { total_score?: { type: string; fields: string[] } };
-}
+import {
+  computeComputed,
+  isFieldActive,
+  isEmpty,
+  validateResponses,
+} from './form-validation';
 
 const CATEGORY_TEMPLATE: Record<string, { templateCode: string; documentType: string }> = {
   SCREENING: { templateCode: 'REVIEW_FORM_DOC', documentType: 'REVIEW_FORM' },
@@ -49,6 +36,7 @@ const CATEGORY_TEMPLATE: Record<string, { templateCode: string; documentType: st
   MONITORING: { templateCode: 'MONITORING_REPORT_DOC', documentType: 'MONITORING_REPORT' },
   MEETING: { templateCode: 'MEETING_MINUTES_DOC', documentType: 'MEETING_DOCUMENT' },
   POST_APPROVAL: { templateCode: 'PROGRESS_REPORT_DOC', documentType: 'MONITORING_REPORT' },
+  APPLICATION: { templateCode: 'APPLICATION_DOC', documentType: 'APPLICATION' },
 };
 
 export class FormService {
@@ -57,6 +45,9 @@ export class FormService {
     private instanceRepo = new FormInstanceRepository(),
     private renderService = new DocumentRenderService(),
     private renderRepo = new DocumentRenderRepository(),
+    private workflow = new WorkflowService(),
+    private appRepo = new ApplicationRepository(),
+    private lifecycle = new DocumentLifecycleService(),
   ) {}
 
   // ── Definitions ────────────────────────────────────────────
@@ -111,26 +102,97 @@ export class FormService {
     this.assertEditable(instance);
 
     const schema = definition.form_schema as FormSchema;
-    const validated = this.validateResponses(schema, responses);
+    const validated = validateResponses(schema, responses);
     const updated = await this.instanceRepo.saveResponses(id, validated, 'DRAFT');
     return updated;
   }
 
+  /**
+   * إرسال النموذج: يتحقق، يثبت الحالة SUBMITTED، ثم — إذا كان المخطط يحدد
+   * schema.workflow — ينفذ انتقال سير العمل عبر WorkflowService داخل نفس
+   * المعاملة ويزامن حالة الكيان الأب (Application).
+   */
   async submitInstance(id: number, responses: Record<string, any>, user: AuthUser) {
     const { instance, definition } = await this.getInstance(id);
     this.assertEditable(instance);
 
     const schema = definition.form_schema as FormSchema;
-    const validated = this.validateResponses(schema, responses);
-    const totalScore = this.computeTotalScore(schema, validated);
+    const validated = validateResponses(schema, responses);
+    const totalScore = computeComputed(schema.computed, validated);
     const recommendation = validated.recommendation || null;
 
-    const submitted = await this.instanceRepo.submit(id, { total_score: totalScore, recommendation });
-    if (!submitted) {
-      throw Object.assign(new Error('Only DRAFT or RETURNED instances can be submitted'), { status: 400 });
+    const wfConfig = schema.workflow;
+
+    const result = await withTransaction(async (client) => {
+      const submitted = await this.instanceRepo.submit(
+        id,
+        { total_score: totalScore, recommendation },
+        client
+      );
+      if (!submitted) {
+        throw Object.assign(new Error('Only DRAFT or RETURNED instances can be submitted'), { status: 400 });
+      }
+
+      let transitionResult: { to_state: string; from_state: string; transition_code: string } | null = null;
+      if (wfConfig?.entity_type && wfConfig.transition_on_submit) {
+        const instanceFound = await this.workflow.getInstance(wfConfig.entity_type, instance.entity_id);
+        if (!instanceFound) {
+          if (!wfConfig.workflow_code) {
+            throw Object.assign(
+              new Error(
+                `No active workflow instance for ${wfConfig.entity_type} #${instance.entity_id}; schema.workflow.workflow_code is required to initialize it`
+              ),
+              { status: 400 }
+            );
+          }
+          await this.workflow.initWorkflow(wfConfig.workflow_code, wfConfig.entity_type, instance.entity_id, client);
+        }
+        transitionResult = await this.workflow.executeTransition(
+          wfConfig.entity_type,
+          instance.entity_id,
+          wfConfig.transition_on_submit,
+          user,
+          undefined,
+          client
+        );
+        if (wfConfig.entity_type === 'Application') {
+          await this.appRepo.updateStatus(instance.entity_id, transitionResult.to_state, client);
+        }
+      }
+
+      return { submitted, transitionResult };
+    });
+
+    if (result.transitionResult && wfConfig) {
+      broadcastDashboardEvent('dashboard-stats', {});
+      const notifType = TRANSITION_TO_NOTIFICATION[wfConfig.transition_on_submit];
+      if (notifType) {
+        try {
+          let targetUserId: number = instance.created_by;
+          if (wfConfig.entity_type === 'Application') {
+            const app = await this.appRepo.findById(instance.entity_id);
+            if (app?.submitted_by) targetUserId = app.submitted_by;
+          }
+          const notifService = new NotificationService();
+          await notifService.send({
+            userId: targetUserId,
+            notificationType: notifType,
+            subject: `${wfConfig.entity_type} #${instance.entity_id}`,
+            messageBody: `Your ${wfConfig.entity_type} #${instance.entity_id} has been submitted.`,
+            sourceEntityType: wfConfig.entity_type,
+            sourceEntityId: instance.entity_id,
+          });
+        } catch (err: any) {
+          logger.error({ err, instanceId: id }, 'Notification after form submit failed');
+        }
+      }
     }
-    logger.info({ instanceId: id, form: definition.form_code, score: totalScore }, 'Form instance submitted');
-    return submitted;
+
+    logger.info(
+      { instanceId: id, form: definition.form_code, score: totalScore, workflow: result.transitionResult?.to_state },
+      'Form instance submitted'
+    );
+    return result.submitted;
   }
 
   async approveInstance(id: number, user: AuthUser) {
@@ -178,7 +240,11 @@ export class FormService {
       templateCode: 'DECISION_LETTER',
       documentType: 'OFFICIAL_LETTER',
     };
-    const templateCode = opts.templateCode || categoryConfig.templateCode;
+    // schema.document override (config-driven per-form) takes precedence.
+    const effectiveConfig = schema.document
+      ? { templateCode: schema.document.template_code, documentType: schema.document.document_type }
+      : categoryConfig;
+    const templateCode = opts.templateCode || effectiveConfig.templateCode;
 
     const titleAr = definition.form_name_ar;
     const titleEn = definition.form_name_en || definition.form_name_ar;
@@ -192,7 +258,7 @@ export class FormService {
     const result = await this.renderService.render({
       templateCode,
       language,
-      category: categoryConfig.documentType,
+      category: effectiveConfig.documentType,
       entityType: 'Form',
       entityId: instance.id,
       titleAr,
@@ -268,132 +334,19 @@ export class FormService {
     return signature;
   }
 
+  /**
+   * إبطال/سحب مستند عبر محرك دورة حياة المستندات (Gate 0)
+   * — action: VOID | REVOKE من جدول document_lifecycle_transitions.
+   */
   async setDocumentLifecycle(documentId: number, status: 'REVOKED' | 'VOID', reason: string, user: AuthUser) {
     const doc = await this.renderRepo.findDocumentById(documentId);
     if (!doc) throw Object.assign(new Error('Document not found'), { status: 404 });
-    if (doc.status !== 'OFFICIAL') {
-      throw Object.assign(new Error(`Only OFFICIAL documents can be ${status.toLowerCase()}`), { status: 400 });
-    }
 
-    const result = await this.renderRepo.setDocumentStatus(documentId, status, reason, user.id);
-    if (!result.ok) throw Object.assign(new Error('Document status could not be changed'), { status: 400 });
+    const action = status === 'REVOKED' ? 'REVOKE' : 'VOID';
+    const result = await this.lifecycle.transition(documentId, action, reason, user);
 
-    await this.renderRepo.logAudit(documentId, status === 'REVOKED' ? 'REVOKED' : 'VOIDED', user.id, {
-      reason,
-      actor: user.username,
-    });
-
-    logger.info({ documentId, status, userId: user.id }, 'Document lifecycle changed');
+    logger.info({ documentId, status, action: result.action_code, userId: user.id }, 'Document lifecycle changed');
     return { ok: true, documentId, status };
-  }
-
-  // ── Validation ─────────────────────────────────────────────
-  private validateResponses(schema: FormSchema, responses: Record<string, any>): Record<string, any> {
-    const allowed = new Set<string>();
-    const allFields = schema.sections.flatMap((s) => s.fields);
-    for (const f of allFields) allowed.add(f.name);
-
-    for (const key of Object.keys(responses)) {
-      if (!allowed.has(key)) {
-        throw Object.assign(new Error(`Unknown field: ${key}`), { status: 400 });
-      }
-    }
-
-    const errors: string[] = [];
-    const cleaned: Record<string, any> = {};
-
-    for (const field of allFields) {
-      const value = responses[field.name];
-      const isActive = this.isFieldActive(field, responses);
-      const required = Boolean(field.required) && isActive;
-
-      if (required && this.isEmpty(value)) {
-        errors.push(`Field "${field.name}" is required`);
-        continue;
-      }
-      if (this.isEmpty(value)) continue;
-
-      const err = this.validateFieldValue(field, value);
-      if (err) {
-        errors.push(err);
-        continue;
-      }
-      cleaned[field.name] = value;
-    }
-
-    if (errors.length > 0) {
-      throw Object.assign(new Error(`Validation failed: ${errors.join('; ')}`), {
-        status: 400,
-        validationErrors: errors,
-      });
-    }
-    return cleaned;
-  }
-
-  private isFieldActive(field: FieldDef, responses: Record<string, any>): boolean {
-    if (!field.conditional) return true;
-    return responses[field.conditional.field] === field.conditional.equals;
-  }
-
-  private isEmpty(value: any): boolean {
-    return value === undefined || value === null || value === '';
-  }
-
-  private validateFieldValue(field: FieldDef, value: any): string | null {
-    switch (field.type) {
-      case 'text':
-      case 'textarea':
-      case 'date': {
-        if (typeof value !== 'string') return `Field "${field.name}" must be a string`;
-        if (field.maxLength && value.length > field.maxLength) {
-          return `Field "${field.name}" exceeds max length ${field.maxLength}`;
-        }
-        if (field.pattern && !new RegExp(field.pattern).test(value)) {
-          return `Field "${field.name}" does not match required format`;
-        }
-        return null;
-      }
-      case 'number': {
-        const n = typeof value === 'number' ? value : Number(value);
-        if (Number.isNaN(n)) return `Field "${field.name}" must be a number`;
-        if (field.min !== undefined && n < field.min) return `Field "${field.name}" below minimum ${field.min}`;
-        if (field.max !== undefined && n > field.max) return `Field "${field.name}" exceeds maximum ${field.max}`;
-        return null;
-      }
-      case 'boolean': {
-        if (typeof value !== 'boolean') return `Field "${field.name}" must be a boolean`;
-        return null;
-      }
-      case 'scale': {
-        const n = typeof value === 'number' ? value : Number(value);
-        if (Number.isNaN(n)) return `Field "${field.name}" must be a number`;
-        const min = field.min ?? 1;
-        const max = field.max ?? 5;
-        if (n < min || n > max) return `Field "${field.name}" must be between ${min} and ${max}`;
-        return null;
-      }
-      case 'select':
-      case 'radio': {
-        if (typeof value !== 'string') return `Field "${field.name}" must be a string`;
-        if (field.options && !field.options.some((o) => o.value === value)) {
-          return `Field "${field.name}" has an invalid option`;
-        }
-        return null;
-      }
-      default:
-        return null;
-    }
-  }
-
-  private computeTotalScore(schema: FormSchema, responses: Record<string, any>): number | null {
-    const totalScoreDef = schema.computed?.total_score;
-    if (!totalScoreDef || totalScoreDef.type !== 'mean') return null;
-    const values = totalScoreDef.fields
-      .map((f) => responses[f])
-      .filter((v): v is number => typeof v === 'number');
-    if (values.length === 0) return null;
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    return Math.round(mean * 100) / 100;
   }
 
   // ── Rendering helpers ──────────────────────────────────────
@@ -402,7 +355,7 @@ export class FormService {
       id: section.id,
       title: section.title[language] || section.title.ar,
       rows: section.fields
-        .filter((f) => this.isFieldActive(f, responses) && !this.isEmpty(responses[f.name]))
+        .filter((f) => isFieldActive(f, responses) && !isEmpty(responses[f.name]))
         .map((f) => ({
           label: f.label[language] || f.label.ar,
           value: this.formatValue(f, responses[f.name], language),
@@ -410,7 +363,7 @@ export class FormService {
     }));
   }
 
-  private formatValue(field: FieldDef, value: any, language: 'ar' | 'en'): string {
+  private formatValue(field: any, value: any, language: 'ar' | 'en'): string {
     switch (field.type) {
       case 'boolean':
         return typeof value === 'boolean'
@@ -418,8 +371,17 @@ export class FormService {
           : String(value);
       case 'select':
       case 'radio': {
-        const option = field.options?.find((o) => o.value === value);
+        const option = field.options?.find((o: any) => o.value === value);
         return option ? (option.label[language] || option.label.ar) : String(value);
+      }
+      case 'checkbox': {
+        if (!Array.isArray(value)) return String(value);
+        return value
+          .map((v: string) => {
+            const option = field.options?.find((o: any) => o.value === v);
+            return option ? (option.label[language] || option.label.ar) : v;
+          })
+          .join('، ' + (language === 'ar' ? '' : ', '));
       }
       default:
         return String(value);

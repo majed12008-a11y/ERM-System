@@ -1,0 +1,64 @@
+Document,Classification,Reason
+ADR-002-canonical-dataset-architecture.md,Fully Consistent,The constitutional document itself
+ADR-002-impact-matrix.csv,Fully Consistent,Companion to the ADR
+architecture-root-cause-analysis.md,Fully Consistent,Basis of ADR-002; verdict codified verbatim
+architecture-challenge-review.md,Fully Consistent,Basis of ADR-002; S10 verdict formalized by the ADR
+architecture-assumption-register.csv,Fully Consistent,Evidence; A1/A3/A10 folded into ADR principles
+architecture-risk-register.csv,Fully Consistent,Evidence; R1-R15 folded into ADR principles
+architecture-boundary-analysis.csv,Fully Consistent,Evidence; B1-B10 folded into ADR principles
+architecture-blocker-tree.csv,Fully Consistent,Evidence; R1-R6 folded into ADR principles
+boundary-root-cause-mapping.csv,Fully Consistent,Evidence
+architecture-normalization-review.md,Fully Consistent,Explicitly treats dump as carrier not source of truth - same position as ADR C2/P1
+architecture-normalization-seeds.csv,Fully Consistent,Factual taxonomy evidence
+architecture-normalization-tables.csv,Fully Consistent,Factual taxonomy evidence
+database-population-audit.md,Fully Consistent,Factual audit; unchanged by decision
+database-table-inventory.csv,Fully Consistent,Factual evidence
+backend-table-usage.md,Fully Consistent,Factual usage classes; supports P9
+backend-route-traceability.csv,Fully Consistent,Factual evidence
+feature-data-coverage.md,Fully Consistent,Factual coverage; supports P8/P9
+feature-traceability-review.md,Fully Consistent,Factual coverage
+feature-traceability-matrix.csv,Fully Consistent,Factual coverage
+seed-architecture-review.md,Fully Consistent,Factual evidence of the Installer History
+seed-quality-report.md,Fully Consistent,Factual evidence; basis of the decision
+seed-dependency-graph.md,Fully Consistent,Factual evidence
+seed-coverage-matrix.md,Fully Consistent,Factual evidence
+seed-coverage-matrix.csv,Fully Consistent,Factual evidence
+table-classification.md,Fully Consistent,Factual evidence
+canonical-population-matrix.csv,Fully Consistent,Factual population evidence
+verification-platform.md,Fully Consistent,Domain contract; no dataset framing
+document-render-pipeline.md,Fully Consistent,Domain contract; no dataset framing
+Workflow-Implementation-Contract.md,Fully Consistent,Domain contract; seed SQL reference is a mechanism note not a dataset claim
+ENTERPRISE_TRACEABILITY_MODEL.md,Fully Consistent,Approved governance baseline that ADR-002 explicitly extends
+RLS-Audit-Report.md,Fully Consistent,RLS remains sole access control (I11)
+RLS-Hardening-Report.md,Fully Consistent,RLS invariant unchanged
+RLS-Inventory.md,Fully Consistent,RLS invariant unchanged
+Defect-Registry.md,Fully Consistent,RLS/defect evidence unchanged
+Quality-Gates.md,Fully Consistent,Quality gate definitions unchanged
+BUSINESS_RULES_FRAMEWORK.md,Fully Consistent,Business-level; RULE 11/12 source domain
+canonical-seed-specification.md,Partially Consistent,Content is the canonical dataset definition but framed as a seed specification ratified via seed buckets
+installation-readiness.md,Partially Consistent,Path A (baseline-restore) recommended; contradicts I3 (restoration is not construction)
+rc4-seed-final-assessment.md,Partially Consistent,Change-ledger conclusion is the ADR basis; but Now-step keeps dump as source of truth contradicting P1
+RC4-ARCHITECTURE.md,Partially Consistent,Master plan predates ADR; informal ADR-01..08 numbering to reconcile; ADR-03 directionally supports transition
+database-canonicalization-report.md,Partially Consistent,Says live DB reflects cumulative seed application and uses seed files as deployment mechanism (contradicts I1); references 57 ACTIVE files but current suite has 79
+production-cutover-checklist.md,Partially Consistent,Requires seed-status [OK] as readiness proof contradicting I2
+deployment-hardening-contract.md,Partially Consistent,ROL-01 keeps seeds manual non-migration-controlled (contradicts I1); SEC-03 plaintext passwords in seed SQL
+production-readiness-report.md,Partially Consistent,Assumes seed-based deployment path
+phase5-priority3-observability-audit.md,Partially Consistent,Informal ADR-001..007 numbering collides with formal series (ADR-002 section 7)
+ENTERPRISE_ARCHITECTURE_BASELINE_ASSESSMENT.md,Partially Consistent,"No critical blockers verdict (approved 2026-08-01) contradicts ADR-002's 4 blockers; predates decision"
+ENGINEERING_PRINCIPLES.md,Partially Consistent,AP-001/002 align with I11 but no dataset-governance principle; no ADR-002 reference
+ENGINEERING_MANIFEST.md,Partially Consistent,Predates ADR-002; no dataset governance; no ADR reference
+ENGINEERING_PROGRAM_PLAN.md,Partially Consistent,Predates ADR-002; execution program assumes old baseline
+ENGINEERING_DOCUMENTATION_STANDARD.md,Partially Consistent,Predates ADR-002; no ADR conventions defined
+ENGINEERING_SCAFFOLD_REPORT.md,Partially Consistent,Predates ADR-002
+PROJECT_CHARTER.md,Partially Consistent,Predates ADR-002; no dataset product concept
+DOMAIN_MODEL.md,Partially Consistent,Terminology constitution but defines no aggregate/aggregate-root/dataset concepts ADR P3/P6/I5/I10 depend on
+AGENTS.md,Partially Consistent,Seed re-run limitation and baseline-restore workflow still frame seeds as product (contradicts I1); Rule 11/12 and RLS constraints remain valid
+README.md,Partially Consistent,Skeleton; no Decisions/ADR section; does not index ADR-002
+reference-document-index.md,Partially Consistent,EMPTY - does not index ADR-002
+reference-glossary.md,Partially Consistent,EMPTY - no terminology registry exists
+adr-template.md,Partially Consistent,EMPTY - no ADR template despite ADR-002 being accepted
+2026-08-05-gate1-wave1-application-registration.md,Partially Consistent,Operates on Gate 0 approved baseline framing without ADR-002 C2 caveat; does not re-run seeds so feature work is compatible
+2026-08-02-gate0-document-lifecycle.md,Partially Consistent,Historical execution plan for seed 58; the Gate-0 state it produced is now historical record
+2026-08-02-document-infrastructure.md,Partially Consistent,Historical execution plan; predates ADR-002
+dataset-architecture.md,Conceptually Divergent,Defines a separate Yemen National Validation Dataset built by seed commits 50-61; 8 of its 12 named commit files do not exist in the actual 79-file suite (55-64 are forms/Gate-0); embodies the Installer History worldview; does not reference ADR-002
+seed-reconstruction-execution-architecture.md,Superseded,Construction pipeline for a change ledger; premise (re-run 79-file suite = success) contradicts I1; factual analysis retained as evidence only

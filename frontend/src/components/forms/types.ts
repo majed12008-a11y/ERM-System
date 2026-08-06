@@ -13,10 +13,31 @@ export interface FormFieldOption {
   label: FormFieldLabel
 }
 
+export type ConditionalOperator = 'eq' | 'ne' | 'in' | 'empty'
+
+export interface FieldConditional {
+  field: string
+  op?: ConditionalOperator
+  /** Backward-compatible equality short-cut (equivalent to op: 'eq'). */
+  equals?: unknown
+  /** Value for op: 'eq' | 'ne' | 'in'. */
+  value?: unknown
+}
+
+export interface FieldDependency {
+  field: string
+  op: 'lt' | 'lte' | 'gt' | 'gte' | 'eq' | 'ne'
+  /** Static comparison value. */
+  value?: unknown
+  /** Compare against another field's response (takes precedence over value). */
+  valueField?: string
+  message?: FormFieldLabel
+}
+
 export interface FormField {
   name: string
   label: FormFieldLabel
-  type: 'text' | 'textarea' | 'number' | 'date' | 'boolean' | 'scale' | 'select' | 'radio'
+  type: 'text' | 'textarea' | 'number' | 'date' | 'boolean' | 'scale' | 'select' | 'radio' | 'email' | 'tel' | 'checkbox'
   required?: boolean
   options?: FormFieldOption[]
   min?: number
@@ -24,7 +45,11 @@ export interface FormField {
   maxLength?: number
   pattern?: string
   rows?: number
-  conditional?: { field: string; equals: string }
+  conditional?: FieldConditional
+  dependencies?: FieldDependency[]
+  placeholder?: FormFieldLabel | string
+  helpText?: FormFieldLabel | string
+  unit?: string
 }
 
 export interface FormSection {
@@ -33,11 +58,35 @@ export interface FormSection {
   fields: FormField[]
 }
 
+export interface FormComputed {
+  type: 'mean' | 'sum' | 'count' | 'count_checked'
+  fields?: string[]
+}
+
+export interface FormWorkflowConfig {
+  entity_type: string
+  /** Transition code executed on submit (e.g. 'SUBMIT'). */
+  transition_on_submit: string
+  /** Workflow definition code. Required when the workflow instance does not exist yet (e.g. app shell created as draft). */
+  workflow_code?: string
+}
+
+export interface FormDocumentConfig {
+  template_code: string
+  document_type: string
+}
+
 export interface FormSchema {
   formCode: string
   version: string
   sections: FormSection[]
-  computed?: { total_score?: { type: 'mean'; fields: string[] } }
+  computed?: { total_score?: FormComputed }
+  /** Render as a wizard (stepper/section navigation) instead of single scroll. */
+  wizard?: boolean
+  /** Config-driven workflow binding executed on submit through the workflow engine. */
+  workflow?: FormWorkflowConfig
+  /** Document generation override (takes precedence over CATEGORY_TEMPLATE). */
+  document?: FormDocumentConfig
 }
 
 export interface FormDefinition {

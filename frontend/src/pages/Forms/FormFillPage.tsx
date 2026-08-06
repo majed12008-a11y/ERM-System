@@ -14,6 +14,7 @@ import {
   getFormInstance, saveFormDraft, submitForm, generateFormDocument,
 } from '../../api/forms'
 import SchemaForm from '../../components/forms/SchemaForm'
+import FormWizard from '../../components/forms/FormWizard'
 import DocumentPanel from '../../components/forms/DocumentPanel'
 import type {
   FormDefinition, FormInstance, FormSchema,
@@ -130,7 +131,7 @@ function FormFillBody({ data, navigate, queryClient }: {
 
   const liveScore = useMemo(() => {
     if (!schema?.computed?.total_score) return null
-    const fields = schema.computed.total_score.fields
+    const fields = schema.computed.total_score.fields || []
     const values = fields.map((f) => Number(responses[f])).filter((n) => !Number.isNaN(n))
     if (values.length !== fields.length || values.length === 0) return null
     return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
@@ -174,11 +175,25 @@ function FormFillBody({ data, navigate, queryClient }: {
       {editable && schema && (
         <Card>
           <CardContent className="p-5">
-            <SchemaForm
-              schema={schema}
-              responses={responses}
-              onChange={handleChange}
-            />
+            {schema.wizard ? (
+              <FormWizard
+                schema={schema}
+                responses={responses}
+                onChange={handleChange}
+                saveState={saveState}
+                isSavingDraft={saveDraft.isPending}
+                isSubmitting={submit.isPending}
+                onSaveDraft={() => saveDraft.mutate(responses)}
+                onSubmit={() => submit.mutate(responses)}
+              />
+            ) : (
+              <SchemaForm
+                schema={schema}
+                responses={responses}
+                onChange={handleChange}
+              />
+            )}
+            {!schema.wizard && (
             <div className="mt-6 pt-4 border-t flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 {liveScore != null && (
@@ -199,6 +214,7 @@ function FormFillBody({ data, navigate, queryClient }: {
                 </Button>
               </div>
             </div>
+            )}
           </CardContent>
         </Card>
       )}

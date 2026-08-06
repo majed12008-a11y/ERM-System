@@ -1402,5 +1402,19 @@
   "schemaForm.errors.maxLength": "{{field}} تجاوز الحد الأقصى للطول",
   "schemaForm.errors.type": "{{field}} قيمة غير صالحة",
   "schemaForm.errors.min": "{{field}} أقل من الحد الأدنى",
-  "schemaForm.errors.max": "{{field}} أكبر من الحد الأقصى"
+  "schemaForm.errors.max": "{{field}} أكبر من الحد الأقصى",
+  "schemaForm.errors.email": "{{field}} يجب أن يكون بريداً إلكترونياً صالحاً",
+  "schemaForm.errors.dependency": "{{field}} لا يحقق شرطاً بين الحقول",
+  "formWizard.next": "التالي",
+  "formWizard.prev": "السابق",
+  "formWizard.review": "مراجعة",
+  "formWizard.reviewSummary": "ملخص المراجعة",
+  "formWizard.step": "الخطوة {{current}} من {{total}}",
+  "formWizard.print": "طباعة",
+  "formWizard.submit": "إرسال النموذج",
+  "formWizard.ready": "جاهز للإرسال",
+  "formWizard.notReady": "يوجد {{count}} حقول غير مكتملة",
+  "formWizard.sectionErrors": "أكمل الحقول المطلوبة في هذا القسم للمتابعة",
+  "formWizard.computedReadiness": "الجاهزية: {{value}} من {{total}}",
+  "formWizard.noValue": "بدون إجابة"
 }

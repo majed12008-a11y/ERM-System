@@ -1402,5 +1402,19 @@
   "schemaForm.errors.maxLength": "{{field}} exceeds maximum length",
   "schemaForm.errors.type": "{{field}} is invalid",
   "schemaForm.errors.min": "{{field}} is below the minimum",
-  "schemaForm.errors.max": "{{field}} exceeds the maximum"
+  "schemaForm.errors.max": "{{field}} exceeds the maximum",
+  "schemaForm.errors.email": "{{field}} must be a valid email address",
+  "schemaForm.errors.dependency": "{{field}} violates a cross-field condition",
+  "formWizard.next": "Next",
+  "formWizard.prev": "Previous",
+  "formWizard.review": "Review",
+  "formWizard.reviewSummary": "Review Summary",
+  "formWizard.step": "Step {{current}} of {{total}}",
+  "formWizard.print": "Print",
+  "formWizard.submit": "Submit Form",
+  "formWizard.ready": "Ready to submit",
+  "formWizard.notReady": "{{count}} incomplete fields",
+  "formWizard.sectionErrors": "Complete the required fields in this section to continue",
+  "formWizard.computedReadiness": "Readiness: {{value}} of {{total}}",
+  "formWizard.noValue": "No answer"
 }

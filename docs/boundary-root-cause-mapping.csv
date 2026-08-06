@@ -1,0 +1,11 @@
+Boundary,Verdict,RootCause,Classification,DependsOnIt,CanContinueAround,FixLaterCost,MinimalBlocker
+core.applications,REJECTED,A,WrongOwnership,"documents; conditions; certificates; workflow; committee; forms (26 FK); all RULE 12 scenarios",No,Redesign,R3
+security.users,REJECTED,C,WrongOwnership,"all modules (66 FK); RLS context; audit trigger",No,Redesign,R4
+documents.documents,REJECTED,A,WrongOwnership,"workflow (lifecycle); committee; forms; evidence chain",Partial,Redesign,R6
+workflow.workflows + workflow_instances,REJECTED (seed-ordering authority),B,WrongDependency,"every workflow-governed domain",Partial,"Redesign of sequencing and verification; schema stable",R2
+monitoring.*,REJECTED,C,WrongResponsibility,"none (zero consumers)",Yes,Low - removal,R5
+templates.*,REJECTED,C,MissingConcept,"none (zero consumers)",Yes,Low - removal,R5
+core.applications_conditions,REJECTED,A,WrongAggregate,"evidence; documents; certificates; all RULE 12 scenarios",No,Redesign,R3
+certificates.*,REJECTED (linkage enforcement),A,MissingConcept,"reporting; UAT",Partial,"Moderate; depends on R3 aggregate",R3
+communication.*,REJECTED (seed ordering),B,WrongDependency,"none downstream",Yes,"Low-to-moderate; ordering rule only",R2
+infrastructure (00-truncate / 00-seed-tracker),REJECTED,B,MissingGovernance,"everything - execution; replay; skip; verification",No,Redesign - registry rebuild,R1

@@ -17,9 +17,15 @@ function serializeError(err: any): Record<string, any> {
   };
 }
 
+const pinoTransport = env.NODE_ENV === 'development'
+  ? (process.env.PINOLOG_FILE
+      ? { target: 'pino-pretty', options: { destination: process.env.PINOLOG_FILE } }
+      : { target: 'pino-pretty' })
+  : undefined;
+
 export const logger = pino({
   level: env.LOG_LEVEL,
-  transport: env.NODE_ENV === 'development' ? { target: 'pino-pretty' } : undefined,
+  transport: pinoTransport,
   redact: ['req.headers.authorization', 'req.body.password', 'req.body.oldPassword', 'req.body.newPassword'],
   serializers: {
     err: serializeError,

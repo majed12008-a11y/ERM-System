@@ -22,6 +22,7 @@ const DEFAULT_PREFIXES: Record<string, string> = {
   SAFETY_REPORT: 'SAF',
   MONITORING_REPORT: 'MON',
   CLOSURE_REPORT: 'FIN',
+  APPLICATION: 'REC',
 };
 
 export class DocumentNumberingRepository extends AuditableRepository {

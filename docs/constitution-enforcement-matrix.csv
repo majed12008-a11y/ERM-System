@@ -1,0 +1,44 @@
+Element,Type,Rule,ConstraintLink,EvidenceLink,VerificationLink,GateLink,DecisionLink,CurrentClassification,IntendedVerification
+P1,Principle,"Dataset-first: Canonical Dataset is the source of truth; seed suite is a historical record",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P2,Principle,"Domain ownership: every datum maps to exactly one owning subsystem or a declared shared kernel",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P3,Principle,"Aggregate ownership: aggregate-level invariants (RULE 11/12) in a single authoritative model",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P4,Principle,"Semantic dependencies: execution order respects business dependency graph, never numeric order",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P5,Principle,"Dataset lifecycle: promote version deprecate branch merge archive",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P6,Principle,"Business identity over execution order: idempotency by natural keys and aggregate roots",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P7,Principle,"Provenance trust: no decision relies on execution state not provable as a product of execution",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P8,Principle,"Behavior verification over integrity verification",M,M,M,M,M,Currently unenforceable,Continuously enforced
+P9,Principle,"No dead data: canonical data may not reference zero-consumer behavior; consumerless data retired",M,P,M,M,M,Human-reviewed,Continuously enforced
+I1,Invariant,"Seed suite never treated as the dataset product",P,M,M,M,M,Documentation only,Continuously enforced
+I2,Invariant,"No decision based on recorded execution state unless provenance survives restore",M,M,M,M,M,Documentation only,Continuously enforced
+I3,Invariant,"Reproducibility by construction, not by restoration",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I4,Invariant,"Every datum belongs to exactly one owning subsystem or a declared shared kernel",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I5,Invariant,"Aggregate-level invariants expressible in a single authoritative model and assertable by verification",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I6,Invariant,"Execution order respects the business dependency graph; numeric/filename order never sufficient",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I7,Invariant,"All canonical data participates in a defined lifecycle",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I8,Invariant,"No consumerless data in canonical counts; consumerless data deprecated and retired",M,P,M,M,M,Documentation only,Continuously enforced
+I9,Invariant,"Verification asserts business behavior in addition to integrity",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I10,Invariant,"Idempotency and reconciliation defined by business identity not execution position",M,M,M,M,M,Currently unenforceable,Continuously enforced
+I11,Invariant,"Schema RLS and data are distinct concerns; RLS is the sole access-control mechanism; never disabled never bypassed",P (RLS policies) / M (never-bypassed),P (174+ policies + app.user_id context),P (DB enforces RLS) / M (bypass detection),M,M,Automatically verifiable (with documented bypass),Continuously enforced
+G1,Governance,"No mixed worldview: every document belongs to exactly one baseline (T1)",M,M,M,M,M,Documentation only,Continuously enforced
+G2,Governance,"Single constitutional source: ADR-002 is the sole constitution (T2)",M,M,M,M,M,Documentation only,Automatically verifiable
+G3,Governance,"Backward traceability: every decision traces to evidence (T3)",M,M,M,M,M,Documentation only,Automatically verifiable
+G4,Governance,"Controlled terminology evolution (T4)",M,M,M,M,M,Documentation only,Continuously enforced
+G5,Governance,"Single ownership of governance artifacts (T5)",M,M,M,M,M,Documentation only,Automatically verifiable
+G6,Governance,"Archive before replace (T6)",M,M,M,M,M,Documentation only,Automatically verifiable
+G7,Governance,"Governance first, mechanism later (T7)",M,M,M,M,M,Documentation only,Automatically verifiable
+G8,Governance,"Evidence is immutable (T8)",M,M,M,M,M,Documentation only,Automatically verifiable
+G9,Governance,"No new architectural principles beyond P1-P9 (freeze)",M,M,M,M,M,Documentation only,Continuously enforced
+G10,Governance,"No new constitutional documents beyond the baseline list (freeze)",M,M,M,M,M,Documentation only,Continuously enforced
+G11,Governance,"No new terminology beyond the final vocabulary (freeze)",M,M,M,M,M,Documentation only,Continuously enforced
+G12,Governance,"No new ownership models (freeze)",M,M,M,M,M,Documentation only,Continuously enforced
+G13,Governance,"Change to a frozen element is a formal ADR; ADR-001 is the first governance act; ordering gate until ADR-001 exists (freeze)",M,M,M,M,M,Documentation only,Continuously enforced
+EC1,Exit criterion,"ADR-001 exists and approved; ADR template non-empty and binding",P,P,P,M,M,Documentation only,Automatically verifiable
+EC2,Exit criterion,"Glossary document index and ADR index populated; final vocabulary recorded",P,P,P,M,M,Documentation only,Automatically verifiable
+EC3,Exit criterion,"DOMAIN_MODEL defines Aggregate and Aggregate Root; Application and Condition roots named",P,P,P,M,M,Documentation only,Automatically verifiable
+EC4,Exit criterion,"All 27 affected documents disposed; zero active Partially Consistent/Divergent/Superseded",P,P,P,M,M,Documentation only,Automatically verifiable
+EC5,Exit criterion,"Zero forbidden terms in active documents",P,P,P,M,M,Documentation only,Automatically verifiable
+EC6,Exit criterion,"Cutover checklist gates on dataset-construction evidence not seed-status",P,P,P,M,M,Documentation only,Automatically verifiable
+EC7,Exit criterion,"SREA and dataset-architecture archived; no active document cites them as forward plan",P,P,P,M,M,Documentation only,Automatically verifiable
+EC8,Exit criterion,"All 6 traceability chains re-verified with 0 broken",P,P,P,M,M,Documentation only,Automatically verifiable
+EC9,Exit criterion,"Enterprise baseline assessment v2 approved with ADR-002-consistent verdict",P,P,P,M,M,Documentation only,Automatically verifiable
+EC10,Exit criterion,"Informal ADR numbering collision resolved; mapping table present",P,P,P,M,M,Documentation only,Automatically verifiable
