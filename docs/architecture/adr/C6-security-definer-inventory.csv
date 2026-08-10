@@ -1,0 +1,38 @@
+id,schema,function_name,classification,rls_protected_access,pattern_workaround,source
+C6-001,system,fn_apply_audit_triggers,A.Executable,WRITE (trigger DDL on protected tables),infrastructure; audit trigger setup,database/canonical/functions/system.sql; backend/seed/11
+C6-002,system,fn_calculate_quorum,A.Executable,READ (committee membership),role/committee-membership predicate bypass,database/canonical/functions/system.sql; backend/seed/14
+C6-003,system,fn_check_sla,A.Executable,READ (document/application SLA data),bounded read as owner,database/canonical/functions/system.sql; backend/seed/14
+C6-004,system,fn_create_snapshot,A.Executable,READ (snapshot data),bounded read as owner,database/canonical/functions/system.sql; backend/seed/14
+C6-005,system,fn_current_user_id,A.Executable,NONE (reads app.user_id GUC only),no RLS-protected-table access,database/canonical/functions/system.sql; backend/seed/14
+C6-006,system,fn_generate_application_number,A.Executable,READ (application number data),bounded read as owner,database/canonical/functions/system.sql; backend/seed/14
+C6-007,system,fn_generate_project_code,A.Executable,READ (project code data),bounded read as owner,database/canonical/functions/system.sql; backend/seed/14
+C6-008,system,fn_init_workflow,A.Executable,WRITE (workflow state init),single mutation path,database/canonical/functions/system.sql; backend/seed/25
+C6-009,system,fn_is_admin() no-arg,A.Executable,READ (security.users role),role-bypass predicate (policy inner),database/canonical/functions/system.sql; backend/seed/14
+C6-010,system,fn_is_admin(bigint),A.Executable,READ (security.users role),role-bypass predicate (policy inner),database/canonical/functions/system.sql; backend/seed/14
+C6-011,system,fn_is_committee_member_for_application,A.Executable,READ (committee membership),role/committee-membership predicate bypass,database/canonical/functions/system.sql; backend/seed/14
+C6-012,system,fn_log_audit,A.Executable,WRITE (system.audit_log),infrastructure; audit trigger callback,database/canonical/functions/system.sql; backend/seed/11
+C6-013,system,fn_notify_status_change,A.Executable,WRITE (notifications),bounded write as owner,database/canonical/functions/system.sql; backend/seed/25
+C6-014,security,fn_authenticate,A.Executable,READ (security.users credentials),auth flow with no session user,database/canonical/functions/security.sql; backend/seed/33; backend/migrations/003_auth_function.js
+C6-015,security,fn_register_user,A.Executable,WRITE (INSERT security.users),single mutation path; PostgreSQL 18.3 Windows FOR INSERT WITH CHECK bug workaround (AGENTS.md),database/canonical/functions/security.sql; backend/seed/33
+C6-016,security,fn_reset_password,A.Executable,WRITE (UPDATE security.users),auth flow with no session user,database/canonical/functions/security.sql; backend/seed/47
+C6-017,security,fn_verify_email,A.Executable,WRITE (UPDATE security.users),public verify with no session user,database/canonical/functions/security.sql; backend/seed/47
+C6-018,committee,fn_cycle_created_by,A.Executable,READ (committee cycle),committee-membership predicate bypass,database/canonical/functions/committee.sql; backend/seed/46
+C6-019,committee,fn_get_cycle_committee_id,A.Executable,READ (committee cycle),committee-membership predicate bypass,database/canonical/functions/committee.sql; backend/seed/46
+C6-020,committee,fn_is_admin_or_cycle_creator_or_committee_admin,A.Executable,READ (committee cycle),role/committee-membership predicate bypass,database/canonical/functions/committee.sql; backend/seed/46
+C6-021,committee,fn_is_assessor_for_cycle,A.Executable,READ (committee membership),committee-membership predicate bypass,database/canonical/functions/committee.sql; backend/seed/46
+C6-022,committee,fn_user_can_access_assessment,A.Executable,READ (assessment data),assessment-access predicate bypass,database/canonical/functions/committee.sql; backend/seed/46
+C6-023,committee,fn_user_can_access_cycle,A.Executable,READ (committee cycle),committee-membership predicate bypass,database/canonical/functions/committee.sql; backend/seed/46
+C6-024,documents,fn_get_certificate_verification,A.Executable,READ (certificate verification),public verify with no session user,database/canonical/functions/documents.sql; backend/seed/47
+C6-025,documents,fn_verify_generated_document,A.Executable,READ (generated document verification),public verify with no session user,database/canonical/functions/documents.sql; backend/seed/47
+C6-026,documents,fn_document_transition,A.Executable,WRITE (UPDATE documents.documents + INSERT audit/approvals),single mutation path (gate0),database/canonical/functions/documents.sql; backend/seed/58
+C6-027,documents,fn_can_view_document,A.Executable,READ (document access),document-access predicate bypass,database/canonical/functions/documents.sql; backend/seed/59
+C6-028,documents,fn_is_document_signer,A.Executable,READ (document signatures),document-access predicate bypass,database/canonical/functions/documents.sql; backend/seed/57
+C6-029,security,fn_encrypt,E.Migration-only,READ/WRITE (encryption at rest),transitional migration 002 artifact only; not in canonical live extraction,backend/migrations/002_encryption.js
+C6-030,security,fn_decrypt,E.Migration-only,READ/WRITE (encryption at rest),transitional migration 002 artifact only; not in canonical live extraction,backend/migrations/002_encryption.js
+
+# COMPANION to docs/architecture/adr/C6-security-definer-final-audit.md
+# Total 30 executable SECURITY DEFINER functions = 28 live (A) + 2 migration-only (E).
+# Recorded I11 precedent coverage: 1 (PRECEDENT-I11-SECURITY-DEFINER, scope "registration only" = C6-015, status Unrecorded).
+# Uncovered live surface: 27 functions. Classification: A=Executable, B=References/comments (non-executable, NOT in this CSV),
+# C=Historical artifacts (backup/schema dumps, NOT in this CSV), D=Tests/fixtures (NOT in this CSV), E=Migration-only.
+# C6-005 (fn_current_user_id) reads only the app.user_id GUC: SECURITY DEFINER is unnecessary hygiene, NOT an RLS bypass.
