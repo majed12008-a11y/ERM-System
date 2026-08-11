@@ -19,7 +19,7 @@ The ADR Board can now decide C6 and PQ-1 **without another investigation**. The 
 2. **C6 finding (verified):** every SECURITY DEFINER function that reads/writes an RLS-protected table bypasses RLS; unrecorded deviation = violation (R9). Only 1 precedent recorded, scope "registration only", status Unrecorded → uncovered surface = 27 live functions.
 3. **C6 path (tested):** one exception is possible; C6-D (interpretation: DOMAIN_MODEL A02/A09 is the semantic home of RULE 12, RLS policies its enforcement expression) + C6-C (recorded R9 exception with fixed scope/expiry; I11 → Suspended) resolves C6's two parts; no constitutional amendment required.
 4. **C6 consequence (documented):** I11 gate remains un-bindable (GD-2) while the exception is in force; the bypass-detection verification cannot be gated on a Suspended rule.
-5. **PQ-1 (confirmed):** EC-8 Candidate A explicit in `object-model.md` §2.3 line 107; the "subscriber mismatch" suspension is resolved; no new model; no amendment.
+5. **PQ-1 (confirmed):** EC-8 audit-chain Candidate A (`Decision → Evidence → Constraint → Rule`) is explicit in `constitutional-object-model.md` §2.3 line 107 and `constitutional-enforcement-architecture.md` §2/§3 (line 76), both labeling it T3/EC8 (A4-01 corrected: the traceability-chain confirmation rests on these constitutional sources, not on `PQ1-EC8-final-confirmation.md`, which resolves a different EC-8 question — the Document-aggregate subscriber endpoint). The traceability-chain selection requires no new model; no amendment.
 6. **Matrix (reconciled):** prior-package option/requirement/state matrices reconciled against the governance registries and the constitution.
 
 ## 2. Decision inputs for ADR-003+ (Board's to choose)

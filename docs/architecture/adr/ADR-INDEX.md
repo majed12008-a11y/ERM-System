@@ -10,7 +10,9 @@
 |---|---|---|---|---|
 | [ADR-001](ADR-001-series-foundation.md) | ADR Series Foundation | APPROVED | 2026-08-07 | Numbering policy; binding template; ADR index; terminology policy; adoption of Baseline v2 |
 | [ADR-002](ADR-002-canonical-dataset-architecture.md) | Canonical Dataset Architecture (constitution) | APPROVED | 2026-08-06 | P1–P9, I1–I11, G1–G13, EC1–EC10; the constitution |
-| ADR-003+ | (reserved) | — | — | New decisions only; number never reused (ADR-001 §2.1) |
+| [ADR-018](ADR-018-I11-SECURITY-DEFINER-GOVERNANCE.md) | I11 SECURITY DEFINER Governance | PROPOSED | 2026-08-11 (draft) | C6/PQ-2 — bounded R9 exception for the 28 live SECURITY DEFINER functions; P3–I11 conflict resolution (C6-D + C6-C). Renumbered from the historical ADR-003 draft per J-01 R1. |
+| [ADR-019](ADR-019-EC8-AUDIT-CHAIN.md) | EC8 Audit Chain | PROPOSED | 2026-08-11 (draft) | PQ-1 — canonical EC8 audit chain `Decision → Evidence → Constraint → Rule` (Candidate A); enforcement chain as projection. Renumbered from the historical ADR-004 draft per J-01 R1. |
+| ADR-003+ | (reserved) | — | — | New decisions only; number never reused (ADR-001 §2.1). ADR-003/ADR-004 are historical drafts with superseded numbering (J-01 R1) — NOT part of the formal series; see `ADR-003-004-PRE-BOARD-REVIEW.md` §Phase 5. |
 
 ## 2. Informal-ADR reconciliation map
 
@@ -47,8 +49,10 @@
 
 | PQ | Question | Source | Required decision | Status |
 |---|---|---|---|---|
-| PQ-1 | Which traceability chain is authoritative for EC8: the §2.3 chain `Decision → Evidence → Constraint → Rule`, or the §4 full chain via Verification/Gate? | LOW-2 (`phase3-review-decision.md`) | Select one chain; record the other as a projection | OPEN |
-| PQ-2 | When will the ADR board record the I11 SECURITY DEFINER exception (formal ADR with dated commitment) and resolve the P3–I11 conflict? | C6 / R9 (`phase3-review-decision.md`, I11) | Formal ADR committing to the exception and conflict resolution | OPEN |
+| PQ-1 | Which traceability chain is authoritative for EC8: the §2.3 chain `Decision → Evidence → Constraint → Rule`, or the §4 full chain via Verification/Gate? | LOW-2 (`phase3-review-decision.md`) | Select one chain; record the other as a projection — **proposed in [ADR-019](ADR-019-EC8-AUDIT-CHAIN.md)** | OPEN |
+| PQ-2 | When will the ADR board record the I11 SECURITY DEFINER exception (formal ADR with dated commitment) and resolve the P3–I11 conflict? | C6 / R9 (`phase3-review-decision.md`, I11) | Formal ADR committing to the exception and conflict resolution — **proposed in [ADR-018](ADR-018-I11-SECURITY-DEFINER-GOVERNANCE.md)** | OPEN |
+
+> Status remains **OPEN** for both — the proposed ADRs (ADR-018/ADR-019, PROPOSED) record the proposed decisions; they do not close the questions. Only the ADR Board's formal decision can close them.
 
 ## 4. References
 

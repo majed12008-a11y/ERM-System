@@ -1,5 +1,7 @@
 # ADR-004 — EC8 Audit Chain (Traceability)
 
+> **HISTORICAL DRAFT — SUPERSEDED NUMBERING (finding J-01).** This number collides with the ADR-INDEX §2.1 informal-ADR reconciliation reservations (RC4 ADR-02 → TBD-P3 (ADR-004); ADR-001 §2.1: "A number is never reused"; Governance Freeze EC10). Per review option **R1**, this decision is now proposed as **[ADR-019](ADR-019-EC8-AUDIT-CHAIN.md)** (next free number above all reservations). This file is retained verbatim as the historical draft with superseded numbering; it is NOT part of the formal series and must not be registered. Content corrections (A4-01, A4-02, A4-03) are applied in ADR-019.
+
 > DRAFT ONLY — NOT an accepted decision. This document proposes a decision to the ADR Board. It creates no obligation until formally accepted and registered in `docs/architecture/adr/ADR-INDEX.md` (ADR-001 §2.2, §2.3). It does not authorize Phase 4.
 
 | Field | Value |
