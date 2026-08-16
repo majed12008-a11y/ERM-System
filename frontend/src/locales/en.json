@@ -25,6 +25,8 @@
   "status.CONDITIONAL": "Conditional",
   "status.WITHDRAWN": "Withdrawn",
   "status.CLOSED": "Closed",
+  "status.APPEAL_REVIEW": "Appeal Review",
+  "status.RENEWAL_REVIEW": "Renewal Review",
   "status.PENDING": "Pending",
   "status.ACCREDITED": "Accredited",
   "status.SUSPENDED": "Suspended",

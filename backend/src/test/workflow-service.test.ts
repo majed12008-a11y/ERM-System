@@ -148,5 +148,69 @@ describe('WorkflowService.executeTransition', () => {
         service.executeTransition('Application', 1, 'ARCHIVE', user, undefined, mockClient)
       ).rejects.toThrow('Not authorized for this transition');
     });
+
+    it('allows an admin to execute a transition even without the exact role', async () => {
+      mockRepo.findTransition.mockResolvedValue({
+        id: 20,
+        transition_code: 'SUBMIT',
+        to_state_id: 2,
+        to_state_code: 'SUBMITTED',
+        requires_comment: false,
+        allowed_roles: 'RESEARCHER',
+      });
+      const user = { id: 1, roles: ['SUPER_ADMIN'] } as any;
+      await expect(
+        service.executeTransition('Application', 1, 'SUBMIT', user, undefined, mockClient)
+      ).resolves.toMatchObject({ transition_code: 'SUBMIT' });
+      expect(mockRepo.getEntityOwnerId).not.toHaveBeenCalled();
+    });
+
+    it('allows the entity owner to execute an owner-scoped transition without the exact role', async () => {
+      mockRepo.findTransition.mockResolvedValue({
+        id: 20,
+        transition_code: 'SUBMIT',
+        to_state_id: 2,
+        to_state_code: 'SUBMITTED',
+        requires_comment: false,
+        allowed_roles: 'RESEARCHER',
+      });
+      mockRepo.getEntityOwnerId.mockResolvedValue(3);
+      const user = { id: 3, roles: ['INST_COORDINATOR'] } as any;
+      await expect(
+        service.executeTransition('Application', 1, 'SUBMIT', user, undefined, mockClient)
+      ).resolves.toMatchObject({ transition_code: 'SUBMIT' });
+    });
+
+    it('rejects an owner who lacks the role for a non-owner-scoped transition', async () => {
+      mockRepo.findTransition.mockResolvedValue({
+        id: 20,
+        transition_code: 'ACCEPT_INITIAL',
+        to_state_id: 2,
+        to_state_code: 'INITIAL_REVIEW',
+        requires_comment: false,
+        allowed_roles: 'ETHICS_ADMIN,COMMITTEE_CHAIR,SUPER_ADMIN',
+      });
+      mockRepo.getEntityOwnerId.mockResolvedValue(3);
+      const user = { id: 3, roles: ['RESEARCHER'] } as any;
+      await expect(
+        service.executeTransition('Application', 1, 'ACCEPT_INITIAL', user, undefined, mockClient)
+      ).rejects.toThrow('Not authorized for this transition');
+    });
+
+    it('rejects a non-owner who lacks the role on an owner-scoped transition', async () => {
+      mockRepo.findTransition.mockResolvedValue({
+        id: 20,
+        transition_code: 'SUBMIT',
+        to_state_id: 2,
+        to_state_code: 'SUBMITTED',
+        requires_comment: false,
+        allowed_roles: 'RESEARCHER',
+      });
+      mockRepo.getEntityOwnerId.mockResolvedValue(99);
+      const user = { id: 3, roles: ['INST_COORDINATOR'] } as any;
+      await expect(
+        service.executeTransition('Application', 1, 'SUBMIT', user, undefined, mockClient)
+      ).rejects.toThrow('Not authorized for this transition');
+    });
   });
 });

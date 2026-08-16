@@ -1,6 +1,8 @@
 # PQ-1 / EC-8 — Final Confirmation (Pre-ADR)
 
 > Pre-ADR audit artifact. Resolves the earlier PQ-1 EC-8 "subscriber mismatch" suspension (ADR-INDEX PQ-1). Input to ADR-003+ drafting.
+>
+> **RETENTION NOTE (finding A4-01):** this document resolves a **different** EC-8 question — the Document-aggregate subscriber endpoint (its own Candidate A/B) — and cites a non-existent source (`domain-model/object-model.md`; no `domain-model/` directory exists). It is **NOT** evidence for the EC8 traceability-chain selection, which rests solely on `constitutional-object-model.md` §2.3 (line 107) and `constitutional-enforcement-architecture.md` §2/§3 (line 76). Retained only as unrelated historical evidence; see ADR-019 §2.1.
 
 | Field | Value |
 |---|---|

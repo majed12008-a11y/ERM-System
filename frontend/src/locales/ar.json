@@ -25,6 +25,8 @@
   "status.CONDITIONAL": "مشروط",
   "status.WITHDRAWN": "مسحوب",
   "status.CLOSED": "مغلق",
+  "status.APPEAL_REVIEW": "مراجعة الاستئناف",
+  "status.RENEWAL_REVIEW": "مراجعة التجديد",
   "status.PENDING": "معلق",
   "status.ACCREDITED": "معتمد",
   "status.SUSPENDED": "موقوف",

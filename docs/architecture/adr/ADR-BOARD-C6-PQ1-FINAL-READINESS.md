@@ -6,7 +6,7 @@
 |---|---|
 | Status | **READY FOR ADR DRAFTING — E (C6 + PQ-1)** |
 | Date | 2026-08-10 |
-| Evidence base | C6-security-definer-final-audit.md + C6-security-definer-inventory.csv + PQ1-EC8-final-confirmation.md + matrix reconciliation |
+| Evidence base | C6-security-definer-final-audit.md + C6-security-definer-inventory.csv + PQ1-EC8-final-confirmation.md (retained as unrelated historical evidence only — resolves a different EC-8 question; see item 5) + matrix reconciliation |
 | Constraint | Phase 4 remains BLOCKED pending the Board's ADR-003+ decision. This artifact only removes the "further investigation" blocker. |
 
 ---

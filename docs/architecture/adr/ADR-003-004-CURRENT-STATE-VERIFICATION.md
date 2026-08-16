@@ -1,5 +1,7 @@
 # ADR-003/004 — Current State Verification (Evidence-Based)
 
+> **BASELINE SNAPSHOT (pre-correction).** This report records the repository state **before** the correction package was applied. The corrections it finds missing were subsequently applied and committed in `d60a7b6` (ADR-018/ADR-019 renumbering, ADR-003/ADR-004 historical markers, ADR-INDEX update, A4-01 mis-citation removal, A4-02 hop-edge framing, A3-03 reconciliation, A3-01 precision, A3-02 anchoring, template conformance). See `ADR-018-019-PRE-BOARD-CORRECTION-REPORT.md` for the applied state. The "NOT READY" verdict below refers to the **pre-correction** state only.
+
 > Read-only repository verification. Determines the actual current state of the ADR-003/004 governance correction. No source, SQL, database, seed, registry, specification, relationship, or ADR was modified. No commit, no tag.
 
 | Field | Value |

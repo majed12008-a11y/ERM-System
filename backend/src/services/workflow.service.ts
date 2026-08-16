@@ -82,8 +82,17 @@ export class WorkflowService {
 
       if (transition.allowed_roles) {
         const roles = transition.allowed_roles.split(',').map((r: string) => r.trim());
-        if (!user.roles?.some((r: string) => roles.includes(r))) {
-          throw Object.assign(new Error('Not authorized for this transition'), { status: 403 });
+        const hasRequiredRole = user.roles?.some((r: string) => roles.includes(r));
+
+        if (!hasRequiredRole && !this.policy.canBypassOwnership(user)) {
+          const isOwnerScoped = this.policy.requiresOwnership(entityType, transition);
+          if (!isOwnerScoped) {
+            throw Object.assign(new Error('Not authorized for this transition'), { status: 403 });
+          }
+          const ownerId = await this.repo.getEntityOwnerId(entityType, numericEntityId, txClient);
+          if (ownerId !== user.id) {
+            throw Object.assign(new Error('Not authorized for this transition'), { status: 403 });
+          }
         }
       }
 

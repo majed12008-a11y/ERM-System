@@ -132,6 +132,11 @@ export const reviewSubmissionSchema = z.object({
   comment_text: z.string().optional().default(''),
 })
 
+export const committeeDecisionSchema = z.object({
+  decision: z.enum(['APPROVED', 'REJECTED', 'CONDITIONAL']).default('APPROVED'),
+  notes: z.string().optional().default(''),
+})
+
 export const meetingAgendaSchema = z.object({
   title: z.string({ message: 'Title is required' }).min(1),
   description: z.string().optional().default(''),

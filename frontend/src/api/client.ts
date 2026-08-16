@@ -72,7 +72,7 @@ api.interceptors.response.use(
         window.location.href = '/login'
       }
     }
-    if (err.response?.status === 403) {
+    if (err.response?.status === 403 && !err.response?.data?.error) {
       toast.error('You do not have permission to perform this action')
     }
     return Promise.reject(err)
