@@ -1,0 +1,66 @@
+Domain,Feature,Status,Backend Evidence,Frontend Evidence,Database Evidence,API Evidence,Test Evidence,Notes
+Authentication,JWT Login,Implemented,auth.service.ts,LoginPage.tsx,security.users,POST /auth/login,Vitest tests,Access + refresh tokens
+Authentication,Email Verification,Implemented,auth.service.ts,VerifyEmailPage.tsx,security.users,POST /auth/verify-email,Vitest tests,OTP-based verification
+Authentication,Password Reset,Implemented,auth.service.ts,ForgotPasswordPage.tsx,security.users,POST /auth/forgot-password,Vitest tests,Email-based reset
+Authentication,Argon2 Hashing,Implemented,config/env.ts,—,security.users,—,Verified in code,Salt >= 12
+Users,User CRUD,Implemented,users.service.ts,Users/List.tsx,security.users,GET/POST/PUT/DELETE /users,Vitest tests,Full CRUD
+Users,User Profiles,Implemented,users.service.ts,ProfilePage.tsx,security.users,GET /users/:id,Vitest tests,View and edit
+Users,User Search,Implemented,users.service.ts,UserList.tsx,security.users,GET /users?search,Vitest tests,Name/email search
+Roles,RBAC Enforcement,Implemented,middleware/rbac.ts,—,security.roles + security.role_permissions,All protected endpoints,Vitest tests,8 roles defined
+Roles,Role Management,Implemented,roles.service.ts,RoleList.tsx,security.roles,GET/POST /roles,Vitest tests,Admin only
+Institutions,Institution CRUD,Implemented,institutions.service.ts,—,core.institutions,GET/POST /institutions,Vitest tests,Seed data available
+Institutions,Institution Admins,Implemented,institution.service.ts,—,core.institution_admins,POST /institutions/:id/admins,Vitest tests,Admin assignment
+Projects,Project CRUD,Implemented,project.service.ts,ProjectCreate.tsx,core.projects,GET/POST/PUT /projects,Vitest tests,Full lifecycle
+Projects,Project Members,Implemented,project.service.ts,ProjectDetail.tsx,core.project_members,POST /projects/:id/members,Vitest tests,Collaboration support
+Applications,Application CRUD,Implemented,application.service.ts,ApplicationCreate.tsx,core.applications,GET/POST/PUT /applications,Vitest tests,Full lifecycle
+Applications,Status Tracking,Implemented,workflow.service.ts,ApplicationDetail.tsx,workflow.workflow_instances,GET /applications/:id,Vitest tests,Real-time status
+Documents,Document Upload,Implemented,document.service.ts,DocumentsPage.tsx,documents.documents,POST /documents,Vitest tests,File + metadata
+Documents,Document Types,Implemented,document.service.ts,DocumentsPage.tsx,documents.document_types,GET /documents/types,Vitest tests,Configurable types
+Documents,Checksum Verification,Implemented,checksum.service.ts,—,documents.document_signatures,GET /documents/:id/checksum,Vitest tests,SHA-256
+Documents,Document Lifecycle,Partially Implemented,document-lifecycle.service.ts,—,documents.document_lifecycle,—,Partial,Structural only
+Documents,Retention Rules,Structural,—,—,documents.document_retention_rules,—,Not tested,No enforcement demonstrated
+Documents,Watermarking,Structural,watermark.service.ts,—,documents.document_watermarks,—,Partial,Engine exists
+Committees,Committee CRUD,Implemented,committee.service.ts,Committees.tsx,committee.committees,GET/POST /committees,Vitest tests,Full lifecycle
+Committees,Cycle Management,Implemented,cycle.service.ts,CommitteeDetail.tsx,committee.committee_cycles,GET/POST /committees/:id/cycles,Vitest tests,Dated cycles
+Committees,Member Management,Implemented,committee.service.ts,CommitteeDetail.tsx,committee.committee_members,POST /committees/:id/members,Vitest tests,Role assignment
+Committees,Meeting Management,Implemented,meeting.service.ts,CommitteeMeetings.tsx,committee.meetings,GET/POST /meetings,Vitest tests,Full lifecycle
+Reviews,Review Assignment,Implemented,review.service.ts,MyReviews.tsx,committee.review_assignments,POST /reviews/assign,Vitest tests,Multi-reviewer
+Reviews,Review Forms,Implemented,form.service.ts,ReviewFormsPage.tsx,committee.form_definitions,GET/POST /forms,Vitest tests,Configurable
+Reviews,Review Answers,Implemented,review.service.ts,MyReviews.tsx,committee.review_answers,POST /reviews/:id/answers,Vitest tests,Scores + comments
+Workflow,State Machine,Implemented,workflow.service.ts,—,workflow.workflow_definitions + workflow.workflow_transitions,—,Vitest tests,Generic engine
+Workflow,Transition Control,Implemented,workflow.service.ts,—,workflow.workflow_transitions,—,Vitest tests,Role-based transitions
+Workflow,16 States,Implemented,—,—,workflow.workflow_states (seed),—,Verified,Complete lifecycle
+Workflow,Appeal/Renewal,Implemented,workflow.service.ts,—,workflow.workflow_transitions (seed 100),—,Verified,Transition rules defined
+Notifications,Notification Infrastructure,Structural,notification.service.ts,Notifications.tsx,communication.notifications,GET /notifications,Vitest tests,No real delivery
+Notifications,Templates,Structural,notification-types.service.ts,—,communication.notification_templates,—,Verified in DB,Defined but unused
+Notifications,Email Delivery,Not Implemented,—,—,—,—,—,No SMTP integration
+Notifications,SMS Delivery,Not Implemented,—,—,—,—,—,No SMS gateway
+Reporting,Reports Page,Structural,reporting.service.ts,ReportsPage.tsx,reporting.* (empty),GET /reports,Partial,No real reports
+Reporting,Admin Dashboard,Partially Implemented,admin.service.ts,AdminDashboard.tsx,—,GET /admin/dashboard,Partial,Basic stats only
+Reporting,Export,Not Implemented,—,—,—,—,—,No PDF/Excel export
+Templates,Form Templates,Implemented,form.service.ts,ReviewFormsPage.tsx,committee.form_definitions,GET/POST /forms,Vitest tests,Configurable
+Templates,Document Templates,Implemented,template-renderer.service.ts,DocumentTemplates.tsx,system.document_templates,GET/POST /templates,Vitest tests,Handlebars rendering
+Accreditation,Cycle Management,Implemented,accreditation.service.ts,AccreditationCycles.tsx,committee.accreditation_cycles,GET/POST /accreditation/cycles,Vitest tests,Full lifecycle
+Accreditation,Assessments,Implemented,accreditation.service.ts,AccreditationAssessments.tsx,committee.accreditation_assessments,GET /accreditation/:id/assessments,Verified in DB,Evidence-based
+Accreditation,Evidence,Implemented,accreditation.service.ts,AccreditationEvidence.tsx,committee.accreditation_evidence,POST /accreditation/:id/evidence,Verified in DB,Document upload
+Accreditation,Conditions,Implemented,accreditation.service.ts,AccreditationConditions.tsx,committee.accreditation_conditions,GET /accreditation/:id/conditions,Verified in DB,Conditional approval
+Safety,Adverse Events,Structural,safety.service.ts,AdverseEvents.tsx,safety.adverse_events,GET/POST /safety/adverse-events,Verified in DB,Schema exists but empty
+Safety,Risk Incidents,Structural,safety.service.ts,RiskIncidents.tsx,safety.risk_incidents,GET/POST /safety/risk-incidents,Verified in DB,Schema exists but empty
+Safety,Corrective Actions,Structural,safety.service.ts,CorrectiveActions.tsx,safety.corrective_actions,GET/POST /safety/corrective-actions,Verified in DB,Schema exists but empty
+Monitoring,Monitoring Plans,Structural,monitoring.service.ts,—,monitoring.monitoring_plans,—,Verified in DB,Empty tables
+Monitoring,Monitoring Visits,Structural,monitoring.service.ts,—,monitoring.monitoring_visits,—,Verified in DB,Empty tables
+Monitoring,Deviations,Structural,monitoring.service.ts,—,monitoring.deviations,—,Verified in DB,Empty tables
+Consent,Consent Templates,Structural,consent.service.ts,ConsentTemplates.tsx,committee.consent_templates,GET /consent/templates,Verified in DB,Schema exists
+Consent,Consent Instances,Structural,consent.service.ts,—,committee.consent_instances,—,Verified in DB,Schema exists
+Risk Management,Risk Register,Structural,risk.service.ts,RiskRegister.tsx,monitoring.risk_register,GET /risk/register,Verified in DB,Page exists
+Risk Management,Ethics Risk Assessment,Structural,ethics-risk.service.ts,—,committee.ethics_risk_assessments,—,Verified in DB,Schema exists
+E-Signatures,Document Signatures,Structural,—,ESignaturesPage.tsx,documents.document_signatures,GET /signatures,Verified in DB,No real provider
+Integrations,External APIs,Not Implemented,integration.service.ts,—,integration.* (empty),—,—,Empty schema
+Audit,Audit Log,Implemented,audit.repository.ts,—,audit.audit_log,GET /audit/logs,Vitest tests,Comprehensive triggers
+Audit,Audit Triggers,Implemented,system.fn_log_audit() (DB),—,All tables,—,Verified in SQL,Auto-logging on all DML
+Archiving,Document Lifecycle,Partially Implemented,document-lifecycle.service.ts,—,documents.document_lifecycle,—,Partial,Structural support
+Archiving,Retention Policies,Structural,—,—,documents.document_retention_rules,—,Verified in DB,No enforcement
+Archiving,Checksum Integrity,Implemented,checksum.service.ts,—,documents.document_signatures,—,Verified in DB,SHA-256 on upload
+Governance,ADRs,Implemented (Documentation),—,—,—,—,—,36 architectural decision records
+Governance,Registries,Implemented (Documentation),rule.registry.ts,—,—,—,—,Runtime code but documentation layer
+Governance,Specifications,Implemented (Documentation),—,—,—,—,—,Constitutional architecture docs

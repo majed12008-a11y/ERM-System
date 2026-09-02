@@ -1,0 +1,102 @@
+Section,Claim,Evidence Type,Source,Location,Status,Confidence
+1-Executive Summary,209 tables in database,DDL Analysis,database/bootstrap/03_tables.sql,bootstrap/03_tables.sql,Verified,High
+1-Executive Summary,111 API paths,OpenAPI Analysis,backend/openapi/openapi.yaml,backend/openapi/openapi.yaml,Verified,High
+1-Executive Summary,51 frontend pages,File Count,frontend/src/pages/**/*.tsx,frontend/src/pages/,Verified,High
+1-Executive Summary,40 backend services,File Count,backend/src/services/*,backend/src/services/,Verified,High
+1-Executive Summary,39 repositories,File Count,backend/src/repositories/*,backend/src/repositories/,Verified,High
+1-Executive Summary,No production deployment,Code Analysis,backend/src/index.ts + frontend/vite.config.ts,backend/src/index.ts,Verified,High
+1-Executive Summary,No real users (only seeds),Seed Analysis,backend/seed/02-users.sql + 51-yemen-users.sql,backend/seed/,Verified,High
+2-System Purpose,Centralized database with 14 schemas,DDL Analysis,database/bootstrap/03_tables.sql,bootstrap/03_tables.sql,Verified,High
+2-System Purpose,Workflow engine from database,Schema Analysis,workflow.workflow_definitions + workflow.workflow_transitions,workflow schema,Verified,High
+2-System Purpose,Document lifecycle management,Schema Analysis,documents.document_lifecycle + document_retention_rules,documents schema,Verified,High
+2-System Purpose,Audit trail with triggers,Code Analysis,system.fn_log_audit() + audit.audit_log,system + audit schemas,Verified,High
+2-System Purpose,Arabic i18n support,Code Analysis,frontend/src/locales/ar.json + i18next config,frontend/src/,Verified,High
+2-System Purpose,Multi-layer security (JWT+RBAC+RLS),Code Analysis,middleware/auth.ts + middleware/rbac.ts + RLS policies,backend/src/middleware/,Verified,High
+3-Technology Stack,TypeScript ~6.0 frontend,Package Analysis,frontend/package.json,frontend/package.json,Verified,High
+3-Technology Stack,React 19.2 frontend,Package Analysis,frontend/package.json,frontend/package.json,Verified,High
+3-Technology Stack,Vite 8.0 build tool,Package Analysis,frontend/package.json,frontend/package.json,Verified,High
+3-Technology Stack,Tailwind CSS 4.3,Package Analysis,frontend/package.json,frontend/package.json,Verified,High
+3-Technology Stack,Express 5.2 backend,Package Analysis,backend/package.json,backend/package.json,Verified,High
+3-Technology Stack,Node.js 22+ required,Documentation,AGENTS.md,AGENTS.md,Verified,High
+3-Technology Stack,PostgreSQL 18+ required,Documentation,AGENTS.md + docker-compose.yml,AGENTS.md,Verified,High
+3-Technology Stack,24 frontend components,File Count,frontend/src/components/**/*.tsx,frontend/src/components/,Verified,High
+3-Technology Stack,6 middleware files,File Count,backend/src/middleware/*,backend/src/middleware/,Verified,High
+3-Technology Stack,OpenAPI 3.1.0 spec,File Analysis,backend/openapi/openapi.yaml,backend/openapi/openapi.yaml,Verified,High
+3-Technology Stack,Vitest 4.1 test framework,Package Analysis,package.json (root),package.json,Verified,High
+3-Technology Stack,Playwright 1.61 E2E,Package Analysis,frontend/package.json,frontend/package.json,Verified,High
+3-Technology Stack,25 backend test files,File Count,backend/src/test/*,backend/src/test/,Verified,High
+3-Technology Stack,GitHub Actions CI/CD,File Analysis,.github/workflows/ci.yml,.github/workflows/ci.yml,Verified,High
+3-Technology Stack,Docker Compose exists,File Analysis,docker-compose.yml,docker-compose.yml,Verified,High
+4-Architecture,Three-Layer pattern (Routes→Services→Repos),Code Analysis,backend/src/modules/ + services/ + repositories/,backend/src/,Verified,High
+4-Architecture,8 system roles,Seed Analysis,backend/seed/00-roles.sql,backend/seed/00-roles.sql,Verified,High
+4-Architecture,174+ RLS policies,Seed Analysis,multiple seed files with RLS policies,backend/seed/*-rls*.sql,Verified,High
+4-Architecture,AsyncLocalStorage for RLS context,Code Analysis,backend/src/middleware/context.ts,backend/src/middleware/context.ts,Verified,High
+4-Architecture,pino structured logging,Package Analysis,backend/package.json (pino),backend/package.json,Verified,High
+4-Architecture,Prometheus metrics,Package Analysis,backend/package.json (prom-client),backend/package.json,Verified,High
+4-Architecture,36 ADR files,File Count,docs/architecture/adr/*,docs/architecture/adr/,Verified,High
+4-Architecture,7 governance docs,File Count,docs/governance/*,docs/governance/,Verified,High
+5-User Journey,Registration via /register,Route Analysis,frontend/src/App.tsx,frontend/src/App.tsx,Verified,High
+5-User Journey,JWT auth with refresh tokens,Code Analysis,backend/src/modules/security/routes/auth.ts,backend/src/modules/security/routes/auth.ts,Verified,High
+5-User Journey,Project creation via /projects/create,Route Analysis,frontend/src/App.tsx,frontend/src/App.tsx,Verified,High
+5-User Journey,Application CRUD via /applications/*,Route Analysis,frontend/src/App.tsx,frontend/src/App.tsx,Verified,High
+5-User Journey,Document upload system,Schema Analysis,documents.documents + document service,documents schema,Verified,High
+5-User Journey,Workflow state transitions,Schema Analysis,workflow.workflow_transitions (16 states),workflow schema,Verified,High
+5-User Journey,Committee management,Schema Analysis,committee.committees + cycles + members,committee schema,Verified,High
+5-User Journey,Review assignments and answers,Schema Analysis,committee.review_assignments + review_answers,committee schema,Verified,High
+5-User Journey,Certificate issuance,Schema Analysis,documents.certificates,documents schema,Verified,High
+5-User Journey,Document lifecycle management,Schema Analysis,documents.document_lifecycle,documents schema,Verified,High
+5-User Journey,Audit trail,Schema Analysis,audit.audit_log + system.fn_log_audit(),audit + system schemas,Verified,High
+6-Features,24 feature categories mapped,Analysis,All source code + database schemas,Multiple locations,Verified,High
+7-Benefits Researchers,9 specific benefits linked to features,Cross-reference,Sections 5-6 mappings,Multiple locations,Verified,High
+8-Benefits Ministry,10 specific benefits linked to features,Cross-reference,Sections 5-6 mappings,Multiple locations,Verified,High
+9-Benefits Committees,7 specific benefits linked to features,Cross-reference,Sections 5-6 mappings,Multiple locations,Verified,High
+10-Benefits Other Stakeholders,Multi-stakeholder benefit analysis,Cross-reference,Sections 5-6 mappings,Multiple locations,Verified,High
+11-Security,12 security components assessed,Code + Config Analysis,middleware/* + config/* + seeds,backend/src/,Verified,High
+11-Security,Argon2 password hashing with salt >= 12,Code Analysis,backend/src/config/env.ts,backend/src/config/env.ts,Verified,High
+11-Security,jose JWT library,Package Analysis,backend/package.json,backend/package.json,Verified,High
+11-Security,httpOnly refresh cookies,Code Analysis,backend/src/middleware/auth.ts,backend/src/middleware/auth.ts,Verified,High
+11-Security,.env committed to Git (risk),File Analysis,backend/.env,backend/.env,Verified,High
+12-Data Architecture,209 tables across 14 schemas,DDL Analysis,database/bootstrap/03_tables.sql,bootstrap/03_tables.sql,Verified,High
+12-Data Architecture,127 users in database (23+104),Seed Analysis,seeds 02-users + 51-yemen-users,backend/seed/,Verified,High
+12-Data Architecture,~885 projects (Yemen),Seed Analysis,seed 52-yemen-projects.sql,backend/seed/,Verified,High
+12-Data Architecture,~1613 applications (Yemen),Seed Analysis,seed 53-yemen-applications.sql,backend/seed/,Verified,High
+12-Data Architecture,~1516 documents (Yemen),Seed Analysis,seed 54-yemen-documents.sql,backend/seed/,Verified,High
+12-Data Architecture,7 committees,Seed Analysis,seed 03-committees.sql,backend/seed/,Verified,High
+12-Data Architecture,monitoring schema empty,Schema Analysis,monitoring.* tables have no seed data,backend/seed/*,Verified,High
+12-Data Architecture,integration schema empty,Schema Analysis,integration.* tables have no seed data,backend/seed/*,Verified,High
+13-Workflow,16 workflow states defined,Seed Analysis,seed 36-workflow-add-states.sql,backend/seed/,Verified,High
+13-Workflow,2 workflow definitions,Seed Analysis,seed 05-workflow.sql,backend/seed/,Verified,High
+13-Workflow,Generic state machine engine,Code Analysis,backend/src/services/workflow.service.ts,backend/src/services/workflow.service.ts,Verified,High
+13-Workflow,Role-based transition control,Code Analysis,workflow.workflow_transitions with allowed_roles,workflow schema,Verified,High
+14-Documents,SHA-256 checksum on upload,Code Analysis,checksum.service.ts,backend/src/services/,Verified,High
+14-Documents,Document lifecycle states,Schema Analysis,documents.document_lifecycle,documents schema,Verified,High
+14-Documents,Retention rules defined,Schema Analysis,documents.document_retention_rules,documents schema,Verified,High
+14-Documents,Watermarking engine exists,Code Analysis,watermark.service.ts + seed 62,backend/src/services/ + seed,Verified,High
+15-Notifications,Notification templates defined,Schema Analysis,communication.notification_templates,communication schema,Verified,High
+15-Notifications,No real email delivery,Code Analysis,No SMTP config in env.ts or anywhere,backend/src/,Verified,High
+15-Notifications,No real SMS delivery,Code Analysis,No SMS gateway config,backend/src/,Verified,High
+15-Notifications,No WebSocket for real-time,Code Analysis,No WebSocket server setup,backend/src/index.ts,Verified,High
+16-Reporting,ReportsPage exists,File Analysis,frontend/src/pages/ReportsPage.tsx,frontend/src/pages/,Verified,High
+16-Reporting,AdminDashboard exists,File Analysis,frontend/src/pages/AdminDashboard.tsx,frontend/src/pages/,Verified,High
+16-Reporting,reporting schema empty,Schema Analysis,reporting.* tables have no seed data,backend/seed/*,Verified,High
+17-Auditability,audit.audit_log with full fields,Schema Analysis,audit.audit_log columns: user_id action entity_type entity_id old_values new_values,audit schema,Verified,High
+17-Auditability,fn_log_audit() trigger function,Code Analysis,system.fn_log_audit() defined in canonical functions,database/canonical/functions/,Verified,High
+17-Auditability,Triggers on all DML tables,Seed Analysis,seed 13-audit-triggers.sql,backend/seed/,Verified,High
+18-Operational Reduction,Qualitative comparison (no invented numbers),Analysis,N/A,N/A,Verified,High
+19-Capability Matrix,16 domain areas assessed,Multi-source Analysis,All source code + database + frontend,Multiple locations,Verified,High
+20-Limitations,No production deployment,Code Analysis,backend/src/index.ts (dev only),backend/src/index.ts,Verified,High
+20-Limitations,No real users,Seed Analysis,All user data from seeds,backend/seed/,Verified,High
+20-Limitations,Port mismatch (tests=3000 vs dev=8080),Code Analysis,AGENTS.md documents this,AGENTS.md,Verified,High
+20-Limitations,.env in Git,File Analysis,backend/.env exists in repository,backend/.env,Verified,High
+21-Future Evolution,8 implemented components verified,Cross-reference,Sections 3-4 evidence,Multiple locations,Verified,High
+21-Future Evolution,6 approved architecture items documented,Documentation Analysis,AGENTS.md + ADRs,docs/,Verified,High
+22-Governance,36 ADR files counted,File Count,docs/architecture/adr/*,docs/architecture/adr/,Verified,High
+22-Governance,7 governance docs counted,File Count,docs/governance/*,docs/governance/,Verified,High
+22-Governance,Governance is documentation layer (not runtime),Code Analysis,registries exist but no runtime enforcement visible,multiple,Verified,High
+23-Statistics,All 25 metrics traced to sources,Cross-reference,All source files,Multiple locations,Verified,High
+24-Maturity,Level 2 - Managed/Repeatable,Assessment,All evidence from sections 1-23,Multiple locations,Verified,High
+25-Scenario,14-step end-to-end scenario mapped,Cross-reference,All source code + database schemas,Multiple locations,Verified,High
+25-Scenario,8 unsupported stages identified,Code Analysis,No implementations found,backend/ + frontend/,Verified,High
+26-Diagrams,3 Mermaid diagrams provided,Generated,Report content,SYSTEM-COMPREHENSIVE-REPORT.md,Generated,High
+27-Conclusion,6 value propositions linked to features,Cross-reference,Sections 5-6 evidence,Multiple locations,Verified,High
+27-Conclusion,7 priority items for completion,Cross-reference,Section 20 limitations,Multiple locations,Verified,High
